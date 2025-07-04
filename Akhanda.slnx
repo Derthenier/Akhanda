@@ -17,6 +17,12 @@
     <File Path="Build/Props/ThirdParty.props" />
   </Folder>
   <Folder Name="/Documentation/">
+    <File Path="Documentation/GettingStarted.md" />
+    <File Path="Documentation/Plugins.md" />
+    <File Path="Documentation/Roadmap.md" />
+  </Folder>
+  <Folder Name="/Documentation/Architecture/">
+    <File Path="Documentation/Architecture/Overview.md" />
   </Folder>
   <Folder Name="/Plugins/">
     <Project Path="Plugins/ImGuiPlugin/ImGuiPlugin.vcxproj" Id="24230401-25e4-486e-b558-bf02861db756">
