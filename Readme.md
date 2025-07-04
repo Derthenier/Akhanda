@@ -1,6 +1,15 @@
-# Akhanda Game Engine
+﻿
+# <center> [ Akhanda ] Game Engine </center>
+
+<div style="margin: 0 auto; height: 70vh; overflow:hidden; background:black; background: radial-gradient(ellipse at center, #01050b 0%, #000000 100%); display: flex; justify-content: center; align-items: center; background-repeat: no-repeat; background-attachment: fixed; background-size: cover;">
+<img src="Akhanda.png" alt="Akhanda Game Engine" style="object-fit:cover; max-width:50%; height:auto;border-radius:30%">
+</div>
+
+---
 
 A modular, plugin-based 3D game engine built with C++23 and designed for AAA-quality games. Features AI as a first-class system and includes an integrated editor.
+
+---
 
 ## Features
 
