@@ -1,26 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Core\Math">
-      <UniqueIdentifier>{81769C53-FBDC-4768-AC07-658DA83E2D84}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Core\Memory">
-      <UniqueIdentifier>{604DCE76-2C4C-4876-9F4C-285C28DCF53F}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Core\Containers">
-      <UniqueIdentifier>{53FCD11F-3CC5-490A-ADEF-63A4E20A18C2}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Core\Platform\Windows">
-      <UniqueIdentifier>{CA9B92AA-4E48-44F0-AA69-DFB55DFB95D8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Renderer\RHI">
-      <UniqueIdentifier>{A221F064-95F7-4195-B85E-EDE214AFB6C8}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resources">
       <UniqueIdentifier>{8D33F72E-3D1B-4A33-AF25-C97887F06766}</UniqueIdentifier>
     </Filter>
     <Filter Include="Plugin">
       <UniqueIdentifier>{6E576E5E-6925-4C41-A224-03513EBE5FEB}</UniqueIdentifier>
     </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Core\Math\Core.Math.ixx" />
+    <ClCompile Include="Core\Memory\Core.Memory.ixx" />
+    <ClCompile Include="Core\Containers\Core.Containers.ixx" />
+    <ClCompile Include="Renderer\RHI\Engine.RHI.ixx" />
+    <ClCompile Include="Resources\Engine.Resource.ixx" />
+    <ClCompile Include="Plugin\Engine.Plugin.ixx" />
+    <ClCompile Include="Core\Platform\Windows\Win32Window.cpp" />
+    <ClCompile Include="Core\Math\Core.Math.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Core\Platform\Windows\Win32Window.hpp" />
   </ItemGroup>
 </Project>

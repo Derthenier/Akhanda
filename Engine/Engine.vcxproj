@@ -14,20 +14,16 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
-  
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{6EBA6490-35F7-4578-B7E8-EEA36BA09570}</ProjectGuid>
     <RootNamespace>Engine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
-  
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
-  
   <PropertyGroup Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
-  
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -38,27 +34,23 @@
     <Import Project="..\Build\Props\Engine.props" />
     <Import Project="..\Build\Props\ThirdParty.props" />
   </ImportGroup>
-  
   <PropertyGroup Label="UserMacros" />
-  
   <ItemGroup>
     <!-- Module interface files -->
+    <ClCompile Include="Core\Math\Core.Math.cpp" />
     <ClCompile Include="Core\Math\Core.Math.ixx" />
     <ClCompile Include="Core\Memory\Core.Memory.ixx" />
     <ClCompile Include="Core\Containers\Core.Containers.ixx" />
     <ClCompile Include="Renderer\RHI\Engine.RHI.ixx" />
     <ClCompile Include="Resources\Engine.Resource.ixx" />
     <ClCompile Include="Plugin\Engine.Plugin.ixx" />
-    
     <!-- Placeholder implementation files -->
     <ClCompile Include="Core\Platform\Windows\Win32Window.cpp" />
   </ItemGroup>
-  
   <ItemGroup>
     <!-- Header files -->
     <ClInclude Include="Core\Platform\Windows\Win32Window.hpp" />
   </ItemGroup>
-  
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
