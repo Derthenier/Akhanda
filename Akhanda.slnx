@@ -1,0 +1,28 @@
+<Solution>
+  <Configurations>
+    <BuildType Name="Debug" />
+    <BuildType Name="Profile" />
+    <BuildType Name="Release" />
+    <Platform Name="x64" />
+  </Configurations>
+  <Folder Name="/Build/" />
+  <Folder Name="/Plugins/" />
+  <Folder Name="/Tests/" />
+  <Project Path="Editor/Editor.vcxproj">
+    <BuildDependency Project="Engine/Engine.vcxproj" />
+    <BuildDependency Project="Plugins/ImGuiPlugin/ImGuiPlugin.vcxproj" />
+  </Project>
+  <Project Path="Engine/Engine.vcxproj" />
+  <Project Path="Game/ThreadsOfKaliyuga.vcxproj">
+    <BuildDependency Project="Engine/Engine.vcxproj" />
+  </Project>
+  <Project Path="Plugins/ImGuiPlugin/ImGuiPlugin.vcxproj">
+    <BuildDependency Project="Engine/Engine.vcxproj" />
+  </Project>
+  <Project Path="Plugins/ONNXPlugin/ONNXPlugin.vcxproj">
+    <BuildDependency Project="Engine/Engine.vcxproj" />
+  </Project>
+  <Project Path="Plugins/PhysXPlugin/PhysXPlugin.vcxproj">
+    <BuildDependency Project="Engine/Engine.vcxproj" />
+  </Project>
+</Solution>

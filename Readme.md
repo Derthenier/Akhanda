@@ -18,23 +18,17 @@ A modular, plugin-based 3D game engine built with C++23 and designed for AAA-qua
 - Windows 10/11 (64-bit)
 - Visual Studio 2022 (v17.5+)
 - Windows SDK 10.0.22621.0+
-- Python 3.8+ (for project generation)
 
 ## Quick Start
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/yourusername/akhanda.git
-   cd akhanda
+   git clone https://github.com/Derthenier/Akhanda.git
+   cd Akhanda
    ```
 
-2. **Generate project files**
-   ```bash
-   python Build/Scripts/GenerateProjects.py
-   ```
-
-3. **Open solution**
-   - Open `Akhanda.sln` in Visual Studio 2022
+2. **Open solution**
+   - Open `Akhanda.slnx` in Visual Studio 2022
    - Set `Editor` as startup project
    - Build and run (F5)
 
