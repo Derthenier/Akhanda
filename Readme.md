@@ -127,22 +127,22 @@ msbuild Akhanda.sln /p:Configuration=Profile /p:Platform=x64
 ## Roadmap
 
 ### Phase 1 - Foundation (Current)
-- [x] Project structure
-- [ ] Window creation
-- [ ] D3D12 initialization
-- [ ] Basic renderer
+:white_check_mark: Project structure  
+:white_large_square: Window creation  
+:white_large_square: D3D12 initialization  
+:white_large_square: Basic renderer  
 
 ### Phase 2 - Core Systems
-- [ ] Entity Component System
-- [ ] Resource management
-- [ ] Physics integration
-- [ ] Audio system
+:white_large_square: Entity Component System  
+:white_large_square: Resource management  
+:white_large_square: Physics integration  
+:white_large_square: Audio system  
 
 ### Phase 3 - Advanced Features
-- [ ] Material editor
-- [ ] AI behavior trees
-- [ ] Networking
-- [ ] Console support
+:white_large_square: Material editor  
+:white_large_square: AI behavior trees  
+:white_large_square: Networking  
+:white_large_square: Console support  
 
 ## License
 
@@ -156,3 +156,5 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 ---
 
 **Note**: This engine is under active development. APIs may change.
+
+**Note**: Copyright :copyright: 2025. Aditya Vennelakant. All rights reserved.
