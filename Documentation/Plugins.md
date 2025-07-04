@@ -662,7 +662,7 @@ public:
         btComp.treeName = "npc_combat_tree";
     }
     
-    void UpdateStateVector(ECS::Entity entity, const Math::Vector3& playerPos, float health) {
+    void UpdateStateVector(ECS::Entity entity, const Akhanda::Math::Vector3& playerPos, float health) {
         auto& decision = GetComponent<AI::DecisionComponent>(entity);
         auto& transform = GetComponent<TransformComponent>(entity);
         
@@ -671,7 +671,7 @@ public:
             transform.position.x, transform.position.y, transform.position.z, // NPC position
             playerPos.x, playerPos.y, playerPos.z,                           // Player position
             health,                                                           // NPC health
-            Math::Distance(transform.position, playerPos),                   // Distance to player
+            Akhanda::Math::Distance(transform.position, playerPos),                   // Distance to player
             // Add more features as needed
         };
     }

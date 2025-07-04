@@ -6,9 +6,9 @@ module;
 
 #include <immintrin.h>
 
-module Core.Math;
+module Akhanda.Core.Math;
 
-namespace Math::SIMD {
+namespace Akhanda::Math::SIMD {
 
     // =============================================================================
     // Vector Operations
@@ -211,4 +211,4 @@ namespace Math::SIMD {
     - Fallback to scalar operations automatically handled
     */
 
-} // namespace Math::SIMD
+} // namespace Akhanda::Math::SIMD

@@ -1,7 +1,7 @@
 // Core.Math.Vector2.cpp
-module Core.Math;
+module Akhanda.Core.Math;
 
-using namespace Math;
+using namespace Akhanda::Math;
 
 
 // =============================================================================

@@ -43,6 +43,9 @@
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
     <!-- Math library -->
+    <ClCompile Include="Core\Logging\Core.Logging.cpp" />
+    <ClCompile Include="Core\Logging\Core.Logging.ixx" />
+    <ClCompile Include="Core\Logging\Core.Logging.Sinks.cpp" />
     <ClCompile Include="Core\Math\Core.Math.cpp" />
     <ClCompile Include="Core\Math\Core.Math.ixx" />
     <ClCompile Include="Core\Math\Core.Math.Matrix3.cpp" />
@@ -55,6 +58,7 @@
     <!-- Renderer -->
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Core\Logging\Core.Logging.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

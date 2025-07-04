@@ -1,7 +1,7 @@
 // Core.Math.Matrix.cpp
-module Core.Math;
+module Akhanda.Core.Math;
 
-using namespace Math;
+using namespace Akhanda::Math;
 
 
 // =============================================================================

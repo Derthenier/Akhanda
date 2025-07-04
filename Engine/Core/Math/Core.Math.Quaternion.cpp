@@ -3,9 +3,9 @@ module;
 
 #include <cmath>
 
-module Core.Math;
+module Akhanda.Core.Math;
 
-using namespace Math;
+using namespace Akhanda::Math;
 
 
 // =============================================================================
@@ -103,28 +103,28 @@ constexpr bool Quaternion::operator!=(const Quaternion& other) const noexcept {
 // Quaternion Operations Implementation
 // =============================================================================
 
-constexpr float Math::Dot(const Quaternion& a, const Quaternion& b) noexcept {
+constexpr float Akhanda::Math::Dot(const Quaternion& a, const Quaternion& b) noexcept {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
-float Math::Length(const Quaternion& q) noexcept {
+float Akhanda::Math::Length(const Quaternion& q) noexcept {
     return std::sqrt(LengthSquared(q));
 }
 
-constexpr float Math::LengthSquared(const Quaternion& q) noexcept {
+constexpr float Akhanda::Math::LengthSquared(const Quaternion& q) noexcept {
     return Dot(q, q);
 }
 
-Quaternion Math::Normalize(const Quaternion& q) noexcept {
+Quaternion Akhanda::Math::Normalize(const Quaternion& q) noexcept {
     const float length = Length(q);
     return IsNearlyZero(length) ? Quaternion::IDENTITY : q * (1.0f / length);
 }
 
-constexpr Quaternion Math::Conjugate(const Quaternion& q) noexcept {
+constexpr Quaternion Akhanda::Math::Conjugate(const Quaternion& q) noexcept {
     return Quaternion(-q.x, -q.y, -q.z, q.w);
 }
 
-constexpr Quaternion Math::Inverse(const Quaternion& q) noexcept {
+constexpr Quaternion Akhanda::Math::Inverse(const Quaternion& q) noexcept {
     const float lengthSq = LengthSquared(q);
     if (IsNearlyZero(lengthSq)) {
         return Quaternion::IDENTITY;
@@ -134,7 +134,7 @@ constexpr Quaternion Math::Inverse(const Quaternion& q) noexcept {
     return conjugate * (1.0f / lengthSq);
 }
 
-Matrix4 Math::ToMatrix(const Quaternion& q) noexcept {
+Matrix4 Akhanda::Math::ToMatrix(const Quaternion& q) noexcept {
     const Quaternion normalized = Normalize(q);
 
     const float xx = normalized.x * normalized.x;
@@ -155,7 +155,7 @@ Matrix4 Math::ToMatrix(const Quaternion& q) noexcept {
     );
 }
 
-Matrix3 Math::ToMatrix3(const Quaternion& q) noexcept {
+Matrix3 Akhanda::Math::ToMatrix3(const Quaternion& q) noexcept {
     const Quaternion normalized = Normalize(q);
 
     const float xx = normalized.x * normalized.x;
@@ -175,7 +175,7 @@ Matrix3 Math::ToMatrix3(const Quaternion& q) noexcept {
     );
 }
 
-Vector3 Math::ToEulerAngles(const Quaternion& q) noexcept {
+Vector3 Akhanda::Math::ToEulerAngles(const Quaternion& q) noexcept {
     const Quaternion normalized = Normalize(q);
 
     // Roll (x-axis rotation)
@@ -201,7 +201,7 @@ Vector3 Math::ToEulerAngles(const Quaternion& q) noexcept {
     return Vector3(roll, pitch, yaw);
 }
 
-Quaternion Math::FromEulerAngles(const Vector3& eulerAngles) noexcept {
+Quaternion Akhanda::Math::FromEulerAngles(const Vector3& eulerAngles) noexcept {
     const float halfRoll = eulerAngles.x * 0.5f;
     const float halfPitch = eulerAngles.y * 0.5f;
     const float halfYaw = eulerAngles.z * 0.5f;
@@ -221,11 +221,11 @@ Quaternion Math::FromEulerAngles(const Vector3& eulerAngles) noexcept {
     );
 }
 
-Quaternion Math::FromAxisAngle(const Vector3& axis, float angle) noexcept {
+Quaternion Akhanda::Math::FromAxisAngle(const Vector3& axis, float angle) noexcept {
     return Quaternion(axis, angle);
 }
 
-constexpr Quaternion Math::FromRotationMatrix(const Matrix3& matrix) noexcept {
+constexpr Quaternion Akhanda::Math::FromRotationMatrix(const Matrix3& matrix) noexcept {
     const float trace = matrix(0, 0) + matrix(1, 1) + matrix(2, 2);
 
     if (trace > 0.0f) {
@@ -266,7 +266,7 @@ constexpr Quaternion Math::FromRotationMatrix(const Matrix3& matrix) noexcept {
     }
 }
 
-Quaternion Math::LookRotation(const Vector3& forward, const Vector3& up) noexcept {
+Quaternion Akhanda::Math::LookRotation(const Vector3& forward, const Vector3& up) noexcept {
     const Vector3 normalizedForward = Normalize(forward);
     const Vector3 normalizedUp = Normalize(up);
 
@@ -282,7 +282,7 @@ Quaternion Math::LookRotation(const Vector3& forward, const Vector3& up) noexcep
     return FromRotationMatrix(rotationMatrix);
 }
 
-float Math::Angle(const Quaternion& a, const Quaternion& b) noexcept {
+float Akhanda::Math::Angle(const Quaternion& a, const Quaternion& b) noexcept {
     const float dot = Abs(Dot(Normalize(a), Normalize(b)));
     const float clampedDot = Clamp(dot, 0.0f, 1.0f);
     return 2.0f * std::acos(clampedDot);
@@ -292,7 +292,7 @@ float Math::Angle(const Quaternion& a, const Quaternion& b) noexcept {
 // Quaternion Interpolation
 // =============================================================================
 
-Quaternion Math::Slerp(const Quaternion& a, const Quaternion& b, float t) noexcept {
+Quaternion Akhanda::Math::Slerp(const Quaternion& a, const Quaternion& b, float t) noexcept {
     const Quaternion normA = Normalize(a);
     Quaternion normB = Normalize(b);
 
@@ -332,7 +332,7 @@ Quaternion Math::Slerp(const Quaternion& a, const Quaternion& b, float t) noexce
     );
 }
 
-Quaternion Math::Nlerp(const Quaternion& a, const Quaternion& b, float t) noexcept {
+Quaternion Akhanda::Math::Nlerp(const Quaternion& a, const Quaternion& b, float t) noexcept {
     const Quaternion normA = Normalize(a);
     Quaternion normB = Normalize(b);
 
@@ -355,14 +355,14 @@ Quaternion Math::Nlerp(const Quaternion& a, const Quaternion& b, float t) noexce
 // Vector Interpolation Implementation
 // =============================================================================
 
-Vector2 Math::Lerp(const Vector2& a, const Vector2& b, float t) noexcept {
+Vector2 Akhanda::Math::Lerp(const Vector2& a, const Vector2& b, float t) noexcept {
     return Vector2(
         Lerp(a.x, b.x, t),
         Lerp(a.y, b.y, t)
     );
 }
 
-Vector3 Math::Lerp(const Vector3& a, const Vector3& b, float t) noexcept {
+Vector3 Akhanda::Math::Lerp(const Vector3& a, const Vector3& b, float t) noexcept {
     return Vector3(
         Lerp(a.x, b.x, t),
         Lerp(a.y, b.y, t),
@@ -370,7 +370,7 @@ Vector3 Math::Lerp(const Vector3& a, const Vector3& b, float t) noexcept {
     );
 }
 
-Vector4 Math::Lerp(const Vector4& a, const Vector4& b, float t) noexcept {
+Vector4 Akhanda::Math::Lerp(const Vector4& a, const Vector4& b, float t) noexcept {
     return Vector4(
         Lerp(a.x, b.x, t),
         Lerp(a.y, b.y, t),

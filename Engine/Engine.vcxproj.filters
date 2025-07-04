@@ -18,5 +18,11 @@
     <ClCompile Include="Core\Math\Core.Math.Matrix4.cpp" />
     <ClCompile Include="Core\Math\Core.Math.Quaternion.cpp" />
     <ClCompile Include="Core\Math\Core.Math.SIMD.cpp" />
+    <ClCompile Include="Core\Logging\Core.Logging.ixx" />
+    <ClCompile Include="Core\Logging\Core.Logging.cpp" />
+    <ClCompile Include="Core\Logging\Core.Logging.Sinks.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Core\Logging\Core.Logging.hpp" />
   </ItemGroup>
 </Project>

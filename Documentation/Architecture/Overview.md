@@ -1,4 +1,4 @@
-# Akhanda Engine Architecture Deep-dive
+﻿# Akhanda Engine Architecture Deep-dive
 
 ## Core Design Principles
 
@@ -40,7 +40,7 @@
 ```cpp
 export module Core.Math;
 
-export namespace Math {
+export namespace Akhanda::Math {
     // SIMD-optimized vector types
     struct Vector3 { float x, y, z; };
     struct Vector4 { float x, y, z, w; };

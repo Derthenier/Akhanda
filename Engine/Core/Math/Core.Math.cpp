@@ -3,14 +3,14 @@ module;
 
 #include <random>
 
-module Core.Math;
+module Akhanda.Core.Math;
 
 import <cmath>;
 import <algorithm>;
 import <array>;
 import <vector>;
 
-using namespace Math;
+using namespace Akhanda::Math;
 
 
 // =============================================================================
@@ -85,39 +85,39 @@ const Color4 Color4::TRANSPARENT(0.0f, 0.0f, 0.0f, 0.0f);
 // =============================================================================
 #pragma region Utility Functions
 
-constexpr float Math::Abs(float x) noexcept {
+constexpr float Akhanda::Math::Abs(float x) noexcept {
     return (x >= 0.0f) ? x : -x;
 }
 
-constexpr float Math::Sign(float x) noexcept {
+constexpr float Akhanda::Math::Sign(float x) noexcept {
     return (x > 0.0f) ? 1.0f : (x < 0.0f) ? -1.0f : 0.0f;
 }
 
-constexpr float Math::Min(float a, float b) noexcept {
+constexpr float Akhanda::Math::Min(float a, float b) noexcept {
     return (a < b) ? a : b;
 }
 
-constexpr float Math::Max(float a, float b) noexcept {
+constexpr float Akhanda::Math::Max(float a, float b) noexcept {
     return (a > b) ? a : b;
 }
 
-constexpr float Math::Clamp(float value, float min, float max) noexcept {
+constexpr float Akhanda::Math::Clamp(float value, float min, float max) noexcept {
     return (value < min) ? min : (value > max) ? max : value;
 }
 
-constexpr float Math::Saturate(float value) noexcept {
+constexpr float Akhanda::Math::Saturate(float value) noexcept {
     return Clamp(value, 0.0f, 1.0f);
 }
 
-constexpr float Math::ToRadians(float degrees) noexcept {
+constexpr float Akhanda::Math::ToRadians(float degrees) noexcept {
     return degrees * DEG_TO_RAD;
 }
 
-constexpr float Math::ToDegrees(float radians) noexcept {
+constexpr float Akhanda::Math::ToDegrees(float radians) noexcept {
     return radians * RAD_TO_DEG;
 }
 
-float Math::WrapAngle(float angle) noexcept {
+float Akhanda::Math::WrapAngle(float angle) noexcept {
     angle = std::fmod(angle + PI, TWO_PI);
     if (angle < 0) {
         angle += TWO_PI;
@@ -125,24 +125,24 @@ float Math::WrapAngle(float angle) noexcept {
     return angle - PI;
 }
 
-float Math::AngleDifference(float a, float b) noexcept {
+float Akhanda::Math::AngleDifference(float a, float b) noexcept {
     return WrapAngle(b - a);
 }
 
-constexpr float Math::Lerp(float a, float b, float t) noexcept {
+constexpr float Akhanda::Math::Lerp(float a, float b, float t) noexcept {
     return a + t * (b - a);
 }
 
-constexpr float Math::InverseLerp(float a, float b, float value) noexcept {
+constexpr float Akhanda::Math::InverseLerp(float a, float b, float value) noexcept {
     return (value - a) / (b - a);
 }
 
-constexpr float Math::SmoothStep(float edge0, float edge1, float x) noexcept {
+constexpr float Akhanda::Math::SmoothStep(float edge0, float edge1, float x) noexcept {
     const float t = Saturate((x - edge0) / (edge1 - edge0));
     return t * t * (3.0f - 2.0f * t);
 }
 
-constexpr float Math::SmootherStep(float edge0, float edge1, float x) noexcept {
+constexpr float Akhanda::Math::SmootherStep(float edge0, float edge1, float x) noexcept {
     const float t = Saturate((x - edge0) / (edge1 - edge0));
     return t * t * t * (t * (t * 6.0f - 15.0f) + 10.0f);
 }
@@ -154,59 +154,59 @@ constexpr float Math::SmootherStep(float edge0, float edge1, float x) noexcept {
 // =============================================================================
 #pragma region Vector Operations
 
-constexpr float Math::Dot(const Vector2& a, const Vector2& b) noexcept {
+constexpr float Akhanda::Math::Dot(const Vector2& a, const Vector2& b) noexcept {
     return a.x * b.x + a.y * b.y;
 }
 
-constexpr float Math::Cross(const Vector2& a, const Vector2& b) noexcept {
+constexpr float Akhanda::Math::Cross(const Vector2& a, const Vector2& b) noexcept {
     return a.x * b.y - a.y * b.x;
 }
 
-float Math::Length(const Vector2& v) noexcept {
+float Akhanda::Math::Length(const Vector2& v) noexcept {
     return std::sqrt(LengthSquared(v));
 }
 
-constexpr float Math::LengthSquared(const Vector2& v) noexcept {
+constexpr float Akhanda::Math::LengthSquared(const Vector2& v) noexcept {
     return Dot(v, v);
 }
 
-Vector2 Math::Normalize(const Vector2& v) noexcept {
+Vector2 Akhanda::Math::Normalize(const Vector2& v) noexcept {
     const float length = Length(v);
     return IsNearlyZero(length) ? Vector2::ZERO : v / length;
 }
 
-float Math::Distance(const Vector2& a, const Vector2& b) noexcept {
+float Akhanda::Math::Distance(const Vector2& a, const Vector2& b) noexcept {
     return Length(b - a);
 }
 
-constexpr float Math::DistanceSquared(const Vector2& a, const Vector2& b) noexcept {
+constexpr float Akhanda::Math::DistanceSquared(const Vector2& a, const Vector2& b) noexcept {
     return LengthSquared(b - a);
 }
 
-constexpr Vector2 Math::Reflect(const Vector2& incident, const Vector2& normal) noexcept {
+constexpr Vector2 Akhanda::Math::Reflect(const Vector2& incident, const Vector2& normal) noexcept {
     return incident - normal * 2.0f * Dot(incident, normal);
 }
 
-constexpr Vector2 Math::Project(const Vector2& a, const Vector2& b) noexcept {
+constexpr Vector2 Akhanda::Math::Project(const Vector2& a, const Vector2& b) noexcept {
     return b * (Dot(a, b) / LengthSquared(b));
 }
 
-constexpr Vector2 Math::Perpendicular(const Vector2& v) noexcept {
+constexpr Vector2 Akhanda::Math::Perpendicular(const Vector2& v) noexcept {
     return Vector2(-v.y, v.x);
 }
 
-float Math::Angle(const Vector2& a, const Vector2& b) noexcept {
+float Akhanda::Math::Angle(const Vector2& a, const Vector2& b) noexcept {
     const float dot = Dot(Normalize(a), Normalize(b));
     return std::acos(Clamp(dot, -1.0f, 1.0f));
 }
 
 
 
-constexpr float Math::Dot(const Vector3& a, const Vector3& b) noexcept {
+constexpr float Akhanda::Math::Dot(const Vector3& a, const Vector3& b) noexcept {
     return a.x * b.x + a.y * b.y + a.z * b.z;
 }
 
-constexpr Vector3 Math::Cross(const Vector3& a, const Vector3& b) noexcept {
+constexpr Vector3 Akhanda::Math::Cross(const Vector3& a, const Vector3& b) noexcept {
     return Vector3(
         a.y * b.z - a.z * b.y,
         a.z * b.x - a.x * b.z,
@@ -214,32 +214,32 @@ constexpr Vector3 Math::Cross(const Vector3& a, const Vector3& b) noexcept {
     );
 }
 
-float Math::Length(const Vector3& v) noexcept {
+float Akhanda::Math::Length(const Vector3& v) noexcept {
     return std::sqrt(LengthSquared(v));
 }
 
-constexpr float Math::LengthSquared(const Vector3& v) noexcept {
+constexpr float Akhanda::Math::LengthSquared(const Vector3& v) noexcept {
     return Dot(v, v);
 }
 
-Vector3 Math::Normalize(const Vector3& v) noexcept {
+Vector3 Akhanda::Math::Normalize(const Vector3& v) noexcept {
     const float length = Length(v);
     return IsNearlyZero(length) ? Vector3::ZERO : v / length;
 }
 
-float Math::Distance(const Vector3& a, const Vector3& b) noexcept {
+float Akhanda::Math::Distance(const Vector3& a, const Vector3& b) noexcept {
     return Length(b - a);
 }
 
-constexpr float Math::DistanceSquared(const Vector3& a, const Vector3& b) noexcept {
+constexpr float Akhanda::Math::DistanceSquared(const Vector3& a, const Vector3& b) noexcept {
     return LengthSquared(b - a);
 }
 
-constexpr Vector3 Math::Reflect(const Vector3& incident, const Vector3& normal) noexcept {
+constexpr Vector3 Akhanda::Math::Reflect(const Vector3& incident, const Vector3& normal) noexcept {
     return incident - normal * 2.0f * Dot(incident, normal);
 }
 
-constexpr Vector3 Math::Refract(const Vector3& incident, const Vector3& normal, float ior) noexcept {
+constexpr Vector3 Akhanda::Math::Refract(const Vector3& incident, const Vector3& normal, float ior) noexcept {
     const float cosI = -Dot(normal, incident);
     const float sinT2 = ior * ior * (1.0f - cosI * cosI);
 
@@ -253,37 +253,37 @@ constexpr Vector3 Math::Refract(const Vector3& incident, const Vector3& normal, 
     return inc + nor;
 }
 
-constexpr Vector3 Math::Project(const Vector3& a, const Vector3& b) noexcept {
+constexpr Vector3 Akhanda::Math::Project(const Vector3& a, const Vector3& b) noexcept {
     return b * (Dot(a, b) / LengthSquared(b));
 }
 
-float Math::Angle(const Vector3& a, const Vector3& b) noexcept {
+float Akhanda::Math::Angle(const Vector3& a, const Vector3& b) noexcept {
     const float dot = Dot(Normalize(a), Normalize(b));
     return std::acos(Clamp(dot, -1.0f, 1.0f));
 }
 
-constexpr float Math::Dot(const Vector4& a, const Vector4& b) noexcept {
+constexpr float Akhanda::Math::Dot(const Vector4& a, const Vector4& b) noexcept {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
-float Math::Length(const Vector4& v) noexcept {
+float Akhanda::Math::Length(const Vector4& v) noexcept {
     return std::sqrt(LengthSquared(v));
 }
 
-constexpr float Math::LengthSquared(const Vector4& v) noexcept {
+constexpr float Akhanda::Math::LengthSquared(const Vector4& v) noexcept {
     return Dot(v, v);
 }
 
-Vector4 Math::Normalize(const Vector4& v) noexcept {
+Vector4 Akhanda::Math::Normalize(const Vector4& v) noexcept {
     const float length = Length(v);
     return IsNearlyZero(length) ? Vector4::ZERO : v / length;
 }
 
-float Math::Distance(const Vector4& a, const Vector4& b) noexcept {
+float Akhanda::Math::Distance(const Vector4& a, const Vector4& b) noexcept {
     return Length(b - a);
 }
 
-constexpr float Math::DistanceSquared(const Vector4& a, const Vector4& b) noexcept {
+constexpr float Akhanda::Math::DistanceSquared(const Vector4& a, const Vector4& b) noexcept {
     return LengthSquared(b - a);
 }
 
@@ -294,31 +294,31 @@ constexpr float Math::DistanceSquared(const Vector4& a, const Vector4& b) noexce
 // =============================================================================
 #pragma region Utility Functions
 
-constexpr bool Math::IsNearlyEqual(float a, float b, float epsilon) noexcept {
+constexpr bool Akhanda::Math::IsNearlyEqual(float a, float b, float epsilon) noexcept {
     return Abs(a - b) <= epsilon;
 }
 
-constexpr bool Math::IsNearlyZero(float value, float epsilon) noexcept {
+constexpr bool Akhanda::Math::IsNearlyZero(float value, float epsilon) noexcept {
     return Abs(value) <= epsilon;
 }
 
-bool Math::IsFinite(float value) noexcept {
+bool Akhanda::Math::IsFinite(float value) noexcept {
     return std::isfinite(value);
 }
 
-bool Math::IsInfinite(float value) noexcept {
+bool Akhanda::Math::IsInfinite(float value) noexcept {
     return std::isinf(value);
 }
 
-bool Math::IsNaN(float value) noexcept {
+bool Akhanda::Math::IsNaN(float value) noexcept {
     return std::isnan(value);
 }
 
-constexpr bool Math::IsPowerOfTwo(uint32_t value) noexcept {
+constexpr bool Akhanda::Math::IsPowerOfTwo(uint32_t value) noexcept {
     return value > 0 && (value & (value - 1)) == 0;
 }
 
-constexpr uint32_t Math::NextPowerOfTwo(uint32_t value) noexcept {
+constexpr uint32_t Akhanda::Math::NextPowerOfTwo(uint32_t value) noexcept {
     if (value == 0) return 1;
     value--;
     value |= value >> 1;
@@ -329,7 +329,7 @@ constexpr uint32_t Math::NextPowerOfTwo(uint32_t value) noexcept {
     return value + 1;
 }
 
-constexpr uint32_t Math::PreviousPowerOfTwo(uint32_t value) noexcept {
+constexpr uint32_t Akhanda::Math::PreviousPowerOfTwo(uint32_t value) noexcept {
     if (value == 0) return 0;
     value |= value >> 1;
     value |= value >> 2;
@@ -339,7 +339,7 @@ constexpr uint32_t Math::PreviousPowerOfTwo(uint32_t value) noexcept {
     return value - (value >> 1);
 }
 
-constexpr uint32_t Math::CountSetBits(uint32_t value) noexcept {
+constexpr uint32_t Akhanda::Math::CountSetBits(uint32_t value) noexcept {
     uint32_t count = 0;
     while (value) {
         count += value & 1;
@@ -348,7 +348,7 @@ constexpr uint32_t Math::CountSetBits(uint32_t value) noexcept {
     return count;
 }
 
-constexpr uint32_t Math::CountLeadingZeros(uint32_t value) noexcept {
+constexpr uint32_t Akhanda::Math::CountLeadingZeros(uint32_t value) noexcept {
     if (value == 0) return 32;
     uint32_t count = 0;
     if (value <= 0x0000FFFF) { count += 16; value <<= 16; }
@@ -359,7 +359,7 @@ constexpr uint32_t Math::CountLeadingZeros(uint32_t value) noexcept {
     return count;
 }
 
-constexpr uint32_t Math::CountTrailingZeros(uint32_t value) noexcept {
+constexpr uint32_t Akhanda::Math::CountTrailingZeros(uint32_t value) noexcept {
     if (value == 0) return 32;
     uint32_t count = 0;
     while ((value & 1) == 0) {
@@ -372,36 +372,36 @@ constexpr uint32_t Math::CountTrailingZeros(uint32_t value) noexcept {
 // Global random instance (will be properly initialized in implementation)
 static Random g_random;
 
-Random& Math::GlobalRandom() noexcept {
+Random& Akhanda::Math::GlobalRandom() noexcept {
     return g_random;
 }
 
 // Convenience random functions
-float Math::RandomFloat() noexcept {
+float Akhanda::Math::RandomFloat() noexcept {
     return GlobalRandom().NextFloat();
 }
 
-float Math::RandomFloat(float min, float max) noexcept {
+float Akhanda::Math::RandomFloat(float min, float max) noexcept {
     return GlobalRandom().NextFloat(min, max);
 }
 
-int32_t Math::RandomInt(int32_t min, int32_t max) noexcept {
+int32_t Akhanda::Math::RandomInt(int32_t min, int32_t max) noexcept {
     return GlobalRandom().NextInt(min, max);
 }
 
-bool Math::RandomBool() noexcept {
+bool Akhanda::Math::RandomBool() noexcept {
     return GlobalRandom().NextBool();
 }
 
-Vector3 Math::RandomUnitVector3() noexcept {
+Vector3 Akhanda::Math::RandomUnitVector3() noexcept {
     return GlobalRandom().NextUnitVector3();
 }
 
-Vector3 Math::RandomPointInSphere() noexcept {
+Vector3 Akhanda::Math::RandomPointInSphere() noexcept {
     return GlobalRandom().NextPointInSphere();
 }
 
-Vector3 Math::RandomPointOnSphere() noexcept {
+Vector3 Akhanda::Math::RandomPointOnSphere() noexcept {
     return GlobalRandom().NextPointOnSphere();
 }
 
@@ -412,13 +412,13 @@ Vector3 Math::RandomPointOnSphere() noexcept {
 // Matrix3 Operations
 // =============================================================================
 
-constexpr float Math::Determinant(const Matrix3& m) noexcept {
+constexpr float Akhanda::Math::Determinant(const Matrix3& m) noexcept {
     return m(0, 0) * (m(1, 1) * m(2, 2) - m(1, 2) * m(2, 1)) -
         m(0, 1) * (m(1, 0) * m(2, 2) - m(1, 2) * m(2, 0)) +
         m(0, 2) * (m(1, 0) * m(2, 1) - m(1, 1) * m(2, 0));
 }
 
-constexpr Matrix3 Math::Transpose(const Matrix3& m) noexcept {
+constexpr Matrix3 Akhanda::Math::Transpose(const Matrix3& m) noexcept {
     return Matrix3(
         m(0, 0), m(1, 0), m(2, 0),
         m(0, 1), m(1, 1), m(2, 1),
@@ -426,7 +426,7 @@ constexpr Matrix3 Math::Transpose(const Matrix3& m) noexcept {
     );
 }
 
-constexpr Matrix3 Math::Inverse(const Matrix3& m) noexcept {
+constexpr Matrix3 Akhanda::Math::Inverse(const Matrix3& m) noexcept {
     const float det = Determinant(m);
 
     if (IsNearlyZero(det)) {
@@ -450,7 +450,7 @@ constexpr Matrix3 Math::Inverse(const Matrix3& m) noexcept {
     );
 }
 
-constexpr Matrix3 Math::Scale(const Vector2& scale) noexcept {
+constexpr Matrix3 Akhanda::Math::Scale(const Vector2& scale) noexcept {
     return Matrix3(
         scale.x, 0.0f, 0.0f,
         0.0f, scale.y, 0.0f,
@@ -458,7 +458,7 @@ constexpr Matrix3 Math::Scale(const Vector2& scale) noexcept {
     );
 }
 
-Matrix3 Math::Rotation(float angle) noexcept {
+Matrix3 Akhanda::Math::Rotation(float angle) noexcept {
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
 
@@ -469,7 +469,7 @@ Matrix3 Math::Rotation(float angle) noexcept {
     );
 }
 
-constexpr Matrix3 Math::Translation(const Vector2& translation) noexcept {
+constexpr Matrix3 Akhanda::Math::Translation(const Vector2& translation) noexcept {
     return Matrix3(
         1.0f, 0.0f, translation.x,
         0.0f, 1.0f, translation.y,
@@ -481,7 +481,7 @@ constexpr Matrix3 Math::Translation(const Vector2& translation) noexcept {
 // Matrix4 Operations
 // =============================================================================
 
-constexpr float Math::Determinant(const Matrix4& m) noexcept {
+constexpr float Akhanda::Math::Determinant(const Matrix4& m) noexcept {
     const float a = m(0, 0), b = m(0, 1), c = m(0, 2), d = m(0, 3);
     const float e = m(1, 0), f = m(1, 1), g = m(1, 2), h = m(1, 3);
     const float i = m(2, 0), j = m(2, 1), k = m(2, 2), l = m(2, 3);
@@ -493,7 +493,7 @@ constexpr float Math::Determinant(const Matrix4& m) noexcept {
         d * (e * (j * o - k * n) - f * (i * o - k * mm) + g * (i * n - j * mm));
 }
 
-constexpr Matrix4 Math::Transpose(const Matrix4& m) noexcept {
+constexpr Matrix4 Akhanda::Math::Transpose(const Matrix4& m) noexcept {
     return Matrix4(
         m(0, 0), m(1, 0), m(2, 0), m(3, 0),
         m(0, 1), m(1, 1), m(2, 1), m(3, 1),
@@ -502,7 +502,7 @@ constexpr Matrix4 Math::Transpose(const Matrix4& m) noexcept {
     );
 }
 
-constexpr Matrix4 Math::Inverse(const Matrix4& m) noexcept {
+constexpr Matrix4 Akhanda::Math::Inverse(const Matrix4& m) noexcept {
     const float a = m(0, 0), b = m(0, 1), c = m(0, 2), d = m(0, 3);
     const float e = m(1, 0), f = m(1, 1), g = m(1, 2), h = m(1, 3);
     const float i = m(2, 0), j = m(2, 1), k = m(2, 2), l = m(2, 3);
@@ -541,7 +541,7 @@ constexpr Matrix4 Math::Inverse(const Matrix4& m) noexcept {
     return result;
 }
 
-constexpr Matrix4 Math::Scale(const Vector3& scale) noexcept {
+constexpr Matrix4 Akhanda::Math::Scale(const Vector3& scale) noexcept {
     return Matrix4(
         scale.x, 0.0f, 0.0f, 0.0f,
         0.0f, scale.y, 0.0f, 0.0f,
@@ -550,7 +550,7 @@ constexpr Matrix4 Math::Scale(const Vector3& scale) noexcept {
     );
 }
 
-Matrix4 Math::RotationX(float angle) noexcept {
+Matrix4 Akhanda::Math::RotationX(float angle) noexcept {
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
 
@@ -562,7 +562,7 @@ Matrix4 Math::RotationX(float angle) noexcept {
     );
 }
 
-Matrix4 Math::RotationY(float angle) noexcept {
+Matrix4 Akhanda::Math::RotationY(float angle) noexcept {
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
 
@@ -574,7 +574,7 @@ Matrix4 Math::RotationY(float angle) noexcept {
     );
 }
 
-Matrix4 Math::RotationZ(float angle) noexcept {
+Matrix4 Akhanda::Math::RotationZ(float angle) noexcept {
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
 
@@ -586,7 +586,7 @@ Matrix4 Math::RotationZ(float angle) noexcept {
     );
 }
 
-Matrix4 Math::Rotation(const Vector3& axis, float angle) noexcept {
+Matrix4 Akhanda::Math::Rotation(const Vector3& axis, float angle) noexcept {
     const Vector3 normalizedAxis = Normalize(axis);
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
@@ -604,7 +604,7 @@ Matrix4 Math::Rotation(const Vector3& axis, float angle) noexcept {
     );
 }
 
-constexpr Matrix4 Math::Translation(const Vector3& translation) noexcept {
+constexpr Matrix4 Akhanda::Math::Translation(const Vector3& translation) noexcept {
     return Matrix4(
         1.0f, 0.0f, 0.0f, translation.x,
         0.0f, 1.0f, 0.0f, translation.y,
@@ -613,7 +613,7 @@ constexpr Matrix4 Math::Translation(const Vector3& translation) noexcept {
     );
 }
 
-Matrix4 Math::LookAt(const Vector3& eye, const Vector3& target, const Vector3& up) noexcept {
+Matrix4 Akhanda::Math::LookAt(const Vector3& eye, const Vector3& target, const Vector3& up) noexcept {
     const Vector3 forward = Normalize(target - eye);
     const Vector3 side = Normalize(Cross(forward, up));
     const Vector3 upVector = Cross(side, forward);
@@ -640,7 +640,7 @@ Matrix4 Math::LookAt(const Vector3& eye, const Vector3& target, const Vector3& u
 // Projection Matrices
 // =============================================================================
 
-Matrix4 Math::Perspective(float fovY, float aspect, float near, float far) noexcept {
+Matrix4 Akhanda::Math::Perspective(float fovY, float aspect, float near, float far) noexcept {
     const float tanHalfFovY = std::tan(fovY * 0.5f);
     const float range = far - near;
 
@@ -654,7 +654,7 @@ Matrix4 Math::Perspective(float fovY, float aspect, float near, float far) noexc
     return result;
 }
 
-Matrix4 Math::PerspectiveReversedZ(float fovY, float aspect, float near, float far) noexcept {
+Matrix4 Akhanda::Math::PerspectiveReversedZ(float fovY, float aspect, float near, float far) noexcept {
     const float tanHalfFovY = std::tan(fovY * 0.5f);
     const float range = far - near;
 
@@ -668,7 +668,7 @@ Matrix4 Math::PerspectiveReversedZ(float fovY, float aspect, float near, float f
     return result;
 }
 
-constexpr Matrix4 Math::Orthographic(float left, float right, float bottom, float top, float near, float far) noexcept {
+constexpr Matrix4 Akhanda::Math::Orthographic(float left, float right, float bottom, float top, float near, float far) noexcept {
     const float width = right - left;
     const float height = top - bottom;
     const float depth = far - near;
@@ -685,7 +685,7 @@ constexpr Matrix4 Math::Orthographic(float left, float right, float bottom, floa
     return result;
 }
 
-constexpr Matrix4 Math::OrthographicReversedZ(float left, float right, float bottom, float top, float near, float far) noexcept {
+constexpr Matrix4 Akhanda::Math::OrthographicReversedZ(float left, float right, float bottom, float top, float near, float far) noexcept {
     const float width = right - left;
     const float height = top - bottom;
     const float depth = far - near;
@@ -706,7 +706,7 @@ constexpr Matrix4 Math::OrthographicReversedZ(float left, float right, float bot
 // Matrix Decomposition and Composition
 // =============================================================================
 
-bool Math::Decompose(const Matrix4& matrix, Vector3& translation, Quaternion& rotation, Vector3& scale) noexcept {
+bool Akhanda::Math::Decompose(const Matrix4& matrix, Vector3& translation, Quaternion& rotation, Vector3& scale) noexcept {
     // Extract translation
     translation = Vector3(matrix(3, 0), matrix(3, 1), matrix(3, 2));
 
@@ -747,7 +747,7 @@ bool Math::Decompose(const Matrix4& matrix, Vector3& translation, Quaternion& ro
     return true;
 }
 
-Matrix4 Math::Compose(const Vector3& translation, const Quaternion& rotation, const Vector3& scale) noexcept {
+Matrix4 Akhanda::Math::Compose(const Vector3& translation, const Quaternion& rotation, const Vector3& scale) noexcept {
     const Matrix4 rotationMatrix = ToMatrix(rotation);
     const Matrix4 scaleMatrix = Scale(scale);
     const Matrix4 translationMatrix = Translation(translation);
@@ -1259,7 +1259,7 @@ constexpr bool Frustum::Intersects(const AABB& aabb) const noexcept {
 // Frustum Utility Function
 // =============================================================================
 
-void Math::ExtractFrustumPlanes(const Matrix4& viewProjectionMatrix, std::array<Plane, 6>& planes) noexcept {
+void Akhanda::Math::ExtractFrustumPlanes(const Matrix4& viewProjectionMatrix, std::array<Plane, 6>& planes) noexcept {
     const Frustum frustum(viewProjectionMatrix);
     planes = frustum.planes;
 }
@@ -1271,7 +1271,7 @@ void Math::ExtractFrustumPlanes(const Matrix4& viewProjectionMatrix, std::array<
 
 Matrix4 Transform::ToMatrix() const noexcept {
     const Matrix4 scaleMatrix = Scale(scale);
-    const Matrix4 rotationMatrix = Math::ToMatrix(rotation);
+    const Matrix4 rotationMatrix = Akhanda::Math::ToMatrix(rotation);
     const Matrix4 translationMatrix = Translation(position);
 
     return translationMatrix * rotationMatrix * scaleMatrix;
@@ -1423,7 +1423,7 @@ constexpr Color4 Color4::operator*(float scalar) const noexcept {
 // Advanced Transform Utilities
 // =============================================================================
 
-namespace Math {
+namespace Akhanda::Math {
     // Transform interpolation
     Transform LerpTransform(const Transform& a, const Transform& b, float t) noexcept {
         return Transform(
@@ -1810,7 +1810,7 @@ namespace {
 // 1D Noise Functions
 // =============================================================================
 
-float Math::PerlinNoise1D(float x) noexcept {
+float Akhanda::Math::PerlinNoise1D(float x) noexcept {
     const int xi = static_cast<int>(std::floor(x)) & 255;
     x -= std::floor(x);
 
@@ -1822,7 +1822,7 @@ float Math::PerlinNoise1D(float x) noexcept {
     return NoLerp(Grad(a, x), Grad(b, x - 1.0f), u);
 }
 
-float Math::SimplexNoise1D(float x) noexcept {
+float Akhanda::Math::SimplexNoise1D(float x) noexcept {
     const int i0 = static_cast<int>(std::floor(x));
     const int i1 = i0 + 1;
     const float x0 = x - i0;
@@ -1849,7 +1849,7 @@ float Math::SimplexNoise1D(float x) noexcept {
 // 2D Noise Functions
 // =============================================================================
 
-float Math::PerlinNoise2D(float x, float y) noexcept {
+float Akhanda::Math::PerlinNoise2D(float x, float y) noexcept {
     const int xi = static_cast<int>(std::floor(x)) & 255;
     const int yi = static_cast<int>(std::floor(y)) & 255;
 
@@ -1873,7 +1873,7 @@ float Math::PerlinNoise2D(float x, float y) noexcept {
     );
 }
 
-float Math::SimplexNoise2D(float x, float y) noexcept {
+float Akhanda::Math::SimplexNoise2D(float x, float y) noexcept {
     const float s = (x + y) * F2;
     const int i = static_cast<int>(std::floor(x + s));
     const int j = static_cast<int>(std::floor(y + s));
@@ -1926,12 +1926,12 @@ float Math::SimplexNoise2D(float x, float y) noexcept {
     return 70.0f * (n0 + n1 + n2);
 }
 
-float Math::RidgedNoise2D(float x, float y) noexcept {
+float Akhanda::Math::RidgedNoise2D(float x, float y) noexcept {
     float noise = PerlinNoise2D(x, y);
     return 1.0f - 2.0f * Abs(noise);
 }
 
-float Math::CellularNoise2D(float x, float y) noexcept {
+float Akhanda::Math::CellularNoise2D(float x, float y) noexcept {
     const int xi = static_cast<int>(std::floor(x));
     const int yi = static_cast<int>(std::floor(y));
 
@@ -1961,7 +1961,7 @@ float Math::CellularNoise2D(float x, float y) noexcept {
 // 3D Noise Functions
 // =============================================================================
 
-float Math::PerlinNoise3D(float x, float y, float z) noexcept {
+float Akhanda::Math::PerlinNoise3D(float x, float y, float z) noexcept {
     const int xi = static_cast<int>(std::floor(x)) & 255;
     const int yi = static_cast<int>(std::floor(y)) & 255;
     const int zi = static_cast<int>(std::floor(z)) & 255;
@@ -1996,7 +1996,7 @@ float Math::PerlinNoise3D(float x, float y, float z) noexcept {
     );
 }
 
-float Math::SimplexNoise3D(float x, float y, float z) noexcept {
+float Akhanda::Math::SimplexNoise3D(float x, float y, float z) noexcept {
     const float s = (x + y + z) * F3;
     const int i = static_cast<int>(std::floor(x + s));
     const int j = static_cast<int>(std::floor(y + s));
@@ -2082,12 +2082,12 @@ float Math::SimplexNoise3D(float x, float y, float z) noexcept {
     return 32.0f * (n0 + n1 + n2 + n3);
 }
 
-float Math::RidgedNoise3D(float x, float y, float z) noexcept {
+float Akhanda::Math::RidgedNoise3D(float x, float y, float z) noexcept {
     float noise = PerlinNoise3D(x, y, z);
     return 1.0f - 2.0f * Abs(noise);
 }
 
-float Math::CellularNoise3D(float x, float y, float z) noexcept {
+float Akhanda::Math::CellularNoise3D(float x, float y, float z) noexcept {
     const int xi = static_cast<int>(std::floor(x));
     const int yi = static_cast<int>(std::floor(y));
     const int zi = static_cast<int>(std::floor(z));
@@ -2124,7 +2124,7 @@ float Math::CellularNoise3D(float x, float y, float z) noexcept {
 // Fractal Noise Functions
 // =============================================================================
 
-float Math::FractalNoise2D(float x, float y, int octaves, float frequency,
+float Akhanda::Math::FractalNoise2D(float x, float y, int octaves, float frequency,
     float amplitude, float lacunarity, float gain) noexcept {
     float total = 0.0f;
     float maxValue = 0.0f;
@@ -2141,7 +2141,7 @@ float Math::FractalNoise2D(float x, float y, int octaves, float frequency,
     return total / maxValue;
 }
 
-float Math::FractalNoise3D(float x, float y, float z, int octaves, float frequency,
+float Akhanda::Math::FractalNoise3D(float x, float y, float z, int octaves, float frequency,
     float amplitude, float lacunarity, float gain) noexcept {
     float total = 0.0f;
     float maxValue = 0.0f;
@@ -2162,7 +2162,7 @@ float Math::FractalNoise3D(float x, float y, float z, int octaves, float frequen
 // Configurable Noise Generation
 // =============================================================================
 
-float Math::GenerateNoise2D(float x, float y, const NoiseConfig& config) noexcept {
+float Akhanda::Math::GenerateNoise2D(float x, float y, const NoiseConfig& config) noexcept {
     // Apply seed offset
     x += config.seed * 12345.6789f;
     y += config.seed * 98765.4321f;
@@ -2220,7 +2220,7 @@ float Math::GenerateNoise2D(float x, float y, const NoiseConfig& config) noexcep
     return result;
 }
 
-float Math::GenerateNoise3D(float x, float y, float z, const NoiseConfig& config) noexcept {
+float Akhanda::Math::GenerateNoise3D(float x, float y, float z, const NoiseConfig& config) noexcept {
     // Apply seed offset
     x += config.seed * 12345.6789f;
     y += config.seed * 98765.4321f;
@@ -2285,63 +2285,63 @@ float Math::GenerateNoise3D(float x, float y, float z, const NoiseConfig& config
 // Easing Functions Implementation
 // =============================================================================
 
-float Math::EaseInSine(float t) noexcept {
+float Akhanda::Math::EaseInSine(float t) noexcept {
     return 1.0f - std::cos(t * HALF_PI);
 }
 
-float Math::EaseOutSine(float t) noexcept {
+float Akhanda::Math::EaseOutSine(float t) noexcept {
     return std::sin(t * HALF_PI);
 }
 
-float Math::EaseInOutSine(float t) noexcept {
+float Akhanda::Math::EaseInOutSine(float t) noexcept {
     return -(std::cos(PI * t) - 1.0f) * 0.5f;
 }
 
-float Math::EaseInQuad(float t) noexcept {
+float Akhanda::Math::EaseInQuad(float t) noexcept {
     return t * t;
 }
 
-float Math::EaseOutQuad(float t) noexcept {
+float Akhanda::Math::EaseOutQuad(float t) noexcept {
     return 1.0f - (1.0f - t) * (1.0f - t);
 }
 
-float Math::EaseInOutQuad(float t) noexcept {
+float Akhanda::Math::EaseInOutQuad(float t) noexcept {
     return t < 0.5f ? 2.0f * t * t : 1.0f - std::pow(-2.0f * t + 2.0f, 2.0f) * 0.5f;
 }
 
-float Math::EaseInCubic(float t) noexcept {
+float Akhanda::Math::EaseInCubic(float t) noexcept {
     return t * t * t;
 }
 
-float Math::EaseOutCubic(float t) noexcept {
+float Akhanda::Math::EaseOutCubic(float t) noexcept {
     return 1.0f - std::pow(1.0f - t, 3.0f);
 }
 
-float Math::EaseInOutCubic(float t) noexcept {
+float Akhanda::Math::EaseInOutCubic(float t) noexcept {
     return t < 0.5f ? 4.0f * t * t * t : 1.0f - std::pow(-2.0f * t + 2.0f, 3.0f) * 0.5f;
 }
 
-float Math::EaseInQuart(float t) noexcept {
+float Akhanda::Math::EaseInQuart(float t) noexcept {
     return t * t * t * t;
 }
 
-float Math::EaseOutQuart(float t) noexcept {
+float Akhanda::Math::EaseOutQuart(float t) noexcept {
     return 1.0f - std::pow(1.0f - t, 4.0f);
 }
 
-float Math::EaseInOutQuart(float t) noexcept {
+float Akhanda::Math::EaseInOutQuart(float t) noexcept {
     return t < 0.5f ? 8.0f * t * t * t * t : 1.0f - std::pow(-2.0f * t + 2.0f, 4.0f) * 0.5f;
 }
 
-float Math::EaseInExpo(float t) noexcept {
+float Akhanda::Math::EaseInExpo(float t) noexcept {
     return IsNearlyZero(t) ? 0.0f : std::pow(2.0f, 10.0f * (t - 1.0f));
 }
 
-float Math::EaseOutExpo(float t) noexcept {
+float Akhanda::Math::EaseOutExpo(float t) noexcept {
     return IsNearlyEqual(t, 1.0f) ? 1.0f : 1.0f - std::pow(2.0f, -10.0f * t);
 }
 
-float Math::EaseInOutExpo(float t) noexcept {
+float Akhanda::Math::EaseInOutExpo(float t) noexcept {
     if (IsNearlyZero(t)) return 0.0f;
     if (IsNearlyEqual(t, 1.0f)) return 1.0f;
 
@@ -2350,21 +2350,21 @@ float Math::EaseInOutExpo(float t) noexcept {
         : (2.0f - std::pow(2.0f, -20.0f * t + 10.0f)) * 0.5f;
 }
 
-float Math::EaseInBack(float t) noexcept {
+float Akhanda::Math::EaseInBack(float t) noexcept {
     const float c1 = 1.70158f;
     const float c3 = c1 + 1.0f;
 
     return c3 * t * t * t - c1 * t * t;
 }
 
-float Math::EaseOutBack(float t) noexcept {
+float Akhanda::Math::EaseOutBack(float t) noexcept {
     const float c1 = 1.70158f;
     const float c3 = c1 + 1.0f;
 
     return 1.0f + c3 * std::pow(t - 1.0f, 3.0f) + c1 * std::pow(t - 1.0f, 2.0f);
 }
 
-float Math::EaseInOutBack(float t) noexcept {
+float Akhanda::Math::EaseInOutBack(float t) noexcept {
     const float c1 = 1.70158f;
     const float c2 = c1 * 1.525f;
 
@@ -2373,7 +2373,7 @@ float Math::EaseInOutBack(float t) noexcept {
         : (std::pow(2.0f * t - 2.0f, 2.0f) * ((c2 + 1.0f) * (t * 2.0f - 2.0f) + c2) + 2.0f) * 0.5f;
 }
 
-float Math::EaseInElastic(float t) noexcept {
+float Akhanda::Math::EaseInElastic(float t) noexcept {
     const float c4 = TWO_PI / 3.0f;
 
     if (IsNearlyZero(t)) return 0.0f;
@@ -2382,7 +2382,7 @@ float Math::EaseInElastic(float t) noexcept {
     return -std::pow(2.0f, 10.0f * (t - 1.0f)) * std::sin((t - 1.0f) * c4 - c4);
 }
 
-float Math::EaseOutElastic(float t) noexcept {
+float Akhanda::Math::EaseOutElastic(float t) noexcept {
     const float c4 = TWO_PI / 3.0f;
 
     if (IsNearlyZero(t)) return 0.0f;
@@ -2391,7 +2391,7 @@ float Math::EaseOutElastic(float t) noexcept {
     return std::pow(2.0f, -10.0f * t) * std::sin(t * c4) + 1.0f;
 }
 
-float Math::EaseInOutElastic(float t) noexcept {
+float Akhanda::Math::EaseInOutElastic(float t) noexcept {
     const float c5 = TWO_PI / 4.5f;
 
     if (IsNearlyZero(t)) return 0.0f;
@@ -2402,11 +2402,11 @@ float Math::EaseInOutElastic(float t) noexcept {
         : (std::pow(2.0f, -20.0f * t + 10.0f) * std::sin(20.0f * t * c5 - c5)) * 0.5f + 1.0f;
 }
 
-float Math::EaseInBounce(float t) noexcept {
+float Akhanda::Math::EaseInBounce(float t) noexcept {
     return 1.0f - EaseOutBounce(1.0f - t);
 }
 
-float Math::EaseOutBounce(float t) noexcept {
+float Akhanda::Math::EaseOutBounce(float t) noexcept {
     const float n1 = 7.5625f;
     const float d1 = 2.75f;
 
@@ -2427,7 +2427,7 @@ float Math::EaseOutBounce(float t) noexcept {
     }
 }
 
-float Math::EaseInOutBounce(float t) noexcept {
+float Akhanda::Math::EaseInOutBounce(float t) noexcept {
     return t < 0.5f
         ? (1.0f - EaseOutBounce(1.0f - 2.0f * t)) * 0.5f
         : (1.0f + EaseOutBounce(2.0f * t - 1.0f)) * 0.5f;
@@ -2438,7 +2438,7 @@ float Math::EaseInOutBounce(float t) noexcept {
 // Inertia Tensor Calculations
 // =============================================================================
 
-Matrix3 Math::SphereInertiaTensor(float mass, float radius) noexcept {
+Matrix3 Akhanda::Math::SphereInertiaTensor(float mass, float radius) noexcept {
     const float inertia = (2.0f / 5.0f) * mass * radius * radius;
     return Matrix3(
         inertia, 0.0f, 0.0f,
@@ -2447,7 +2447,7 @@ Matrix3 Math::SphereInertiaTensor(float mass, float radius) noexcept {
     );
 }
 
-Matrix3 Math::BoxInertiaTensor(float mass, const Vector3& dimensions) noexcept {
+Matrix3 Akhanda::Math::BoxInertiaTensor(float mass, const Vector3& dimensions) noexcept {
     const float massDiv12 = mass / 12.0f;
     const float x2 = dimensions.x * dimensions.x;
     const float y2 = dimensions.y * dimensions.y;
@@ -2460,7 +2460,7 @@ Matrix3 Math::BoxInertiaTensor(float mass, const Vector3& dimensions) noexcept {
     );
 }
 
-Matrix3 Math::CylinderInertiaTensor(float mass, float radius, float height) noexcept {
+Matrix3 Akhanda::Math::CylinderInertiaTensor(float mass, float radius, float height) noexcept {
     const float r2 = radius * radius;
     const float h2 = height * height;
     const float Ixx = mass * (3.0f * r2 + h2) / 12.0f;
@@ -2473,7 +2473,7 @@ Matrix3 Math::CylinderInertiaTensor(float mass, float radius, float height) noex
     );
 }
 
-Matrix3 Math::CapsuleInertiaTensor(float mass, float radius, float height) noexcept {
+Matrix3 Akhanda::Math::CapsuleInertiaTensor(float mass, float radius, float height) noexcept {
     const float cylinderHeight = height - 2.0f * radius;
     const float cylinderMass = mass * cylinderHeight / height;
     const float hemisphereMass = mass * radius / height;
@@ -2499,7 +2499,7 @@ Matrix3 Math::CapsuleInertiaTensor(float mass, float radius, float height) noexc
 // Physics Calculations
 // =============================================================================
 
-Vector3 Math::CalculateAngularVelocity(const Quaternion& fromRotation, const Quaternion& toRotation, float deltaTime) noexcept {
+Vector3 Akhanda::Math::CalculateAngularVelocity(const Quaternion& fromRotation, const Quaternion& toRotation, float deltaTime) noexcept {
     if (IsNearlyZero(deltaTime)) {
         return Vector3::ZERO;
     }
@@ -2530,7 +2530,7 @@ Vector3 Math::CalculateAngularVelocity(const Quaternion& fromRotation, const Qua
     return axis * (finalAngle / deltaTime);
 }
 
-Vector3 Math::CalculateCenterOfMass(const std::vector<Vector3>& positions, const std::vector<float>& masses) noexcept {
+Vector3 Akhanda::Math::CalculateCenterOfMass(const std::vector<Vector3>& positions, const std::vector<float>& masses) noexcept {
     if (positions.empty() || masses.empty() || positions.size() != masses.size()) {
         return Vector3::ZERO;
     }
@@ -2554,7 +2554,7 @@ Vector3 Math::CalculateCenterOfMass(const std::vector<Vector3>& positions, const
 // Collision Detection Helpers
 // =============================================================================
 
-bool Math::RayAABBIntersection(const Ray& ray, const AABB& aabb, float& tMin, float& tMax) noexcept {
+bool Akhanda::Math::RayAABBIntersection(const Ray& ray, const AABB& aabb, float& tMin, float& tMax) noexcept {
     const Vector3 invDir = Vector3(
         IsNearlyZero(ray.direction.x) ? INFINITY_F : 1.0f / ray.direction.x,
         IsNearlyZero(ray.direction.y) ? INFINITY_F : 1.0f / ray.direction.y,
@@ -2575,7 +2575,7 @@ bool Math::RayAABBIntersection(const Ray& ray, const AABB& aabb, float& tMin, fl
     return tMax >= 0.0f && tMin <= tMax;
 }
 
-bool Math::RaySphereIntersection(const Ray& ray, const Sphere& sphere, float& t1, float& t2) noexcept {
+bool Akhanda::Math::RaySphereIntersection(const Ray& ray, const Sphere& sphere, float& t1, float& t2) noexcept {
     const Vector3 oc = ray.origin - sphere.center;
     const float a = Dot(ray.direction, ray.direction);
     const float b = 2.0f * Dot(oc, ray.direction);
@@ -2596,7 +2596,7 @@ bool Math::RaySphereIntersection(const Ray& ray, const Sphere& sphere, float& t1
     return true;
 }
 
-bool Math::RayTriangleIntersection(const Ray& ray, const Triangle& triangle, float& t, Vector2& uv) noexcept {
+bool Akhanda::Math::RayTriangleIntersection(const Ray& ray, const Triangle& triangle, float& t, Vector2& uv) noexcept {
     const Vector3 edge1 = triangle.v1 - triangle.v0;
     const Vector3 edge2 = triangle.v2 - triangle.v0;
     const Vector3 h = Cross(ray.direction, edge2);
@@ -2627,17 +2627,17 @@ bool Math::RayTriangleIntersection(const Ray& ray, const Triangle& triangle, flo
     return t > EPSILON; // Ray intersection
 }
 
-bool Math::SphereSphereIntersection(const Sphere& a, const Sphere& b) noexcept {
+bool Akhanda::Math::SphereSphereIntersection(const Sphere& a, const Sphere& b) noexcept {
     const float distanceSquared = DistanceSquared(a.center, b.center);
     const float radiusSum = a.radius + b.radius;
     return distanceSquared <= radiusSum * radiusSum;
 }
 
-bool Math::SphereAABBIntersection(const Sphere& sphere, const AABB& aabb) noexcept {
+bool Akhanda::Math::SphereAABBIntersection(const Sphere& sphere, const AABB& aabb) noexcept {
     return sphere.Intersects(aabb);
 }
 
-bool Math::AABBAABBIntersection(const AABB& a, const AABB& b) noexcept {
+bool Akhanda::Math::AABBAABBIntersection(const AABB& a, const AABB& b) noexcept {
     return a.Intersects(b);
 }
 
@@ -2645,13 +2645,13 @@ bool Math::AABBAABBIntersection(const AABB& a, const AABB& b) noexcept {
 // Closest Point Calculations
 // =============================================================================
 
-Vector3 Math::ClosestPointOnRay(const Ray& ray, const Vector3& point) noexcept {
+Vector3 Akhanda::Math::ClosestPointOnRay(const Ray& ray, const Vector3& point) noexcept {
     const Vector3 toPoint = point - ray.origin;
     const float t = Max(0.0f, Dot(toPoint, ray.direction) / Dot(ray.direction, ray.direction));
     return ray.origin + ray.direction * t;
 }
 
-Vector3 Math::ClosestPointOnSegment(const Vector3& segmentStart, const Vector3& segmentEnd, const Vector3& point) noexcept {
+Vector3 Akhanda::Math::ClosestPointOnSegment(const Vector3& segmentStart, const Vector3& segmentEnd, const Vector3& point) noexcept {
     const Vector3 segment = segmentEnd - segmentStart;
     const Vector3 toPoint = point - segmentStart;
 
@@ -2664,11 +2664,11 @@ Vector3 Math::ClosestPointOnSegment(const Vector3& segmentStart, const Vector3& 
     return segmentStart + segment * t;
 }
 
-Vector3 Math::ClosestPointOnTriangle(const Triangle& triangle, const Vector3& point) noexcept {
+Vector3 Akhanda::Math::ClosestPointOnTriangle(const Triangle& triangle, const Vector3& point) noexcept {
     return triangle.ClosestPoint(point);
 }
 
-Vector3 Math::ClosestPointOnAABB(const AABB& aabb, const Vector3& point) noexcept {
+Vector3 Akhanda::Math::ClosestPointOnAABB(const AABB& aabb, const Vector3& point) noexcept {
     return Vector3(
         Clamp(point.x, aabb.min.x, aabb.max.x),
         Clamp(point.y, aabb.min.y, aabb.max.y),
@@ -2676,7 +2676,7 @@ Vector3 Math::ClosestPointOnAABB(const AABB& aabb, const Vector3& point) noexcep
     );
 }
 
-Vector3 Math::ClosestPointOnSphere(const Sphere& sphere, const Vector3& point) noexcept {
+Vector3 Akhanda::Math::ClosestPointOnSphere(const Sphere& sphere, const Vector3& point) noexcept {
     const Vector3 direction = point - sphere.center;
     const float distance = Length(direction);
 
@@ -2693,7 +2693,7 @@ Vector3 Math::ClosestPointOnSphere(const Sphere& sphere, const Vector3& point) n
 // Hash Functions
 // =============================================================================
 
-uint32_t Math::Hash(uint32_t value) noexcept {
+uint32_t Akhanda::Math::Hash(uint32_t value) noexcept {
     // Wang's hash
     value = (value ^ 61) ^ (value >> 16);
     value *= 9;
@@ -2703,14 +2703,14 @@ uint32_t Math::Hash(uint32_t value) noexcept {
     return value;
 }
 
-uint32_t Math::Hash(const Vector2& v) noexcept {
+uint32_t Akhanda::Math::Hash(const Vector2& v) noexcept {
     uint32_t result = 0;
     result ^= Hash(*reinterpret_cast<const uint32_t*>(&v.x)) + 0x9e3779b9 + (result << 6) + (result >> 2);
     result ^= Hash(*reinterpret_cast<const uint32_t*>(&v.y)) + 0x9e3779b9 + (result << 6) + (result >> 2);
     return result;
 }
 
-uint32_t Math::Hash(const Vector3& v) noexcept {
+uint32_t Akhanda::Math::Hash(const Vector3& v) noexcept {
     uint32_t result = 0;
     result ^= Hash(*reinterpret_cast<const uint32_t*>(&v.x)) + 0x9e3779b9 + (result << 6) + (result >> 2);
     result ^= Hash(*reinterpret_cast<const uint32_t*>(&v.y)) + 0x9e3779b9 + (result << 6) + (result >> 2);
@@ -2718,7 +2718,7 @@ uint32_t Math::Hash(const Vector3& v) noexcept {
     return result;
 }
 
-uint32_t Math::Hash(const Vector4& v) noexcept {
+uint32_t Akhanda::Math::Hash(const Vector4& v) noexcept {
     uint32_t result = 0;
     result ^= Hash(*reinterpret_cast<const uint32_t*>(&v.x)) + 0x9e3779b9 + (result << 6) + (result >> 2);
     result ^= Hash(*reinterpret_cast<const uint32_t*>(&v.y)) + 0x9e3779b9 + (result << 6) + (result >> 2);
@@ -2727,7 +2727,7 @@ uint32_t Math::Hash(const Vector4& v) noexcept {
     return result;
 }
 
-uint64_t Math::Hash64(uint64_t value) noexcept {
+uint64_t Akhanda::Math::Hash64(uint64_t value) noexcept {
     // Splitmix64 hash
     value += 0x9e3779b97f4a7c15ULL;
     value = (value ^ (value >> 30)) * 0xbf58476d1ce4e5b9ULL;
@@ -2739,7 +2739,7 @@ uint64_t Math::Hash64(uint64_t value) noexcept {
 // Compression/Encoding Functions
 // =============================================================================
 
-uint32_t Math::PackColor(const Color4& color) noexcept {
+uint32_t Akhanda::Math::PackColor(const Color4& color) noexcept {
     const uint32_t r = static_cast<uint32_t>(Saturate(color.r) * 255.0f + 0.5f);
     const uint32_t g = static_cast<uint32_t>(Saturate(color.g) * 255.0f + 0.5f);
     const uint32_t b = static_cast<uint32_t>(Saturate(color.b) * 255.0f + 0.5f);
@@ -2748,7 +2748,7 @@ uint32_t Math::PackColor(const Color4& color) noexcept {
     return (a << 24) | (r << 16) | (g << 8) | b;
 }
 
-Color4 Math::UnpackColor(uint32_t packed) noexcept {
+Color4 Akhanda::Math::UnpackColor(uint32_t packed) noexcept {
     const float invScale = 1.0f / 255.0f;
     return Color4(
         static_cast<float>((packed >> 16) & 0xFF) * invScale,
@@ -2758,7 +2758,7 @@ Color4 Math::UnpackColor(uint32_t packed) noexcept {
     );
 }
 
-uint32_t Math::PackNormal(const Vector3& normal) noexcept {
+uint32_t Akhanda::Math::PackNormal(const Vector3& normal) noexcept {
     // Pack normal into 32-bit using spheremap transform
     const Vector3 n = Normalize(normal);
     const float f = std::sqrt(8.0f * n.z + 8.0f);
@@ -2771,7 +2771,7 @@ uint32_t Math::PackNormal(const Vector3& normal) noexcept {
     return (ix << 16) | iy;
 }
 
-Vector3 Math::UnpackNormal(uint32_t packed) noexcept {
+Vector3 Akhanda::Math::UnpackNormal(uint32_t packed) noexcept {
     // Unpack normal from 32-bit spheremap
     const float x = (static_cast<float>((packed >> 16) & 0xFFFF) / 65535.0f) * 2.0f - 1.0f;
     const float y = (static_cast<float>(packed & 0xFFFF) / 65535.0f) * 2.0f - 1.0f;
@@ -2790,7 +2790,7 @@ Vector3 Math::UnpackNormal(uint32_t packed) noexcept {
 // Coordinate System Conversions
 // =============================================================================
 
-Vector3 Math::CartesianToSpherical(const Vector3& cartesian) noexcept {
+Vector3 Akhanda::Math::CartesianToSpherical(const Vector3& cartesian) noexcept {
     const float r = Length(cartesian);
     if (IsNearlyZero(r)) {
         return Vector3::ZERO;
@@ -2802,7 +2802,7 @@ Vector3 Math::CartesianToSpherical(const Vector3& cartesian) noexcept {
     return Vector3(r, theta, phi);
 }
 
-Vector3 Math::SphericalToCartesian(const Vector3& spherical) noexcept {
+Vector3 Akhanda::Math::SphericalToCartesian(const Vector3& spherical) noexcept {
     const float r = spherical.x;
     const float theta = spherical.y;
     const float phi = spherical.z;
@@ -2816,14 +2816,14 @@ Vector3 Math::SphericalToCartesian(const Vector3& spherical) noexcept {
     );
 }
 
-Vector3 Math::CartesianToCylindrical(const Vector3& cartesian) noexcept {
+Vector3 Akhanda::Math::CartesianToCylindrical(const Vector3& cartesian) noexcept {
     const float rho = std::sqrt(cartesian.x * cartesian.x + cartesian.y * cartesian.y);
     const float phi = std::atan2(cartesian.y, cartesian.x);
 
     return Vector3(rho, phi, cartesian.z);
 }
 
-Vector3 Math::CylindricalToCartesian(const Vector3& cylindrical) noexcept {
+Vector3 Akhanda::Math::CylindricalToCartesian(const Vector3& cylindrical) noexcept {
     const float rho = cylindrical.x;
     const float phi = cylindrical.y;
     const float z = cylindrical.z;
