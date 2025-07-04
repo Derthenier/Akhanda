@@ -5,24 +5,39 @@
     <BuildType Name="Release" />
     <Platform Name="x64" />
   </Configurations>
-  <Folder Name="/Build/" />
-  <Folder Name="/Plugins/" />
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="LICENSE" />
+    <File Path="Readme.md" />
+  </Folder>
+  <Folder Name="/Solution Items/Props/">
+    <File Path="Build/Props/Common.props" />
+    <File Path="Build/Props/Engine.props" />
+    <File Path="Build/Props/Plugin.props" />
+    <File Path="Build/Props/ThirdParty.props" />
+  </Folder>
+  <Folder Name="/Documentation/">
+  </Folder>
+  <Folder Name="/Plugins/">
+    <Project Path="Plugins/ImGuiPlugin/ImGuiPlugin.vcxproj" Id="24230401-25e4-486e-b558-bf02861db756">
+      <BuildDependency Project="Engine/Engine.vcxproj" />
+    </Project>
+    <Project Path="Plugins/ONNXPlugin/ONNXPlugin.vcxproj" Id="7ac4ded5-f7cb-4d90-b7fc-6a91da5d7a3d">
+      <BuildDependency Project="Engine/Engine.vcxproj" />
+    </Project>
+    <Project Path="Plugins/PhysXPlugin/PhysXPlugin.vcxproj" Id="663039b1-b495-4ab3-bde6-e7c0a9f634ed">
+      <BuildDependency Project="Engine/Engine.vcxproj" />
+    </Project>
+  </Folder>
   <Folder Name="/Tests/" />
-  <Project Path="Editor/Editor.vcxproj">
-    <BuildDependency Project="Engine/Engine.vcxproj" />
-    <BuildDependency Project="Plugins/ImGuiPlugin/ImGuiPlugin.vcxproj" />
-  </Project>
-  <Project Path="Engine/Engine.vcxproj" />
-  <Project Path="Game/ThreadsOfKaliyuga.vcxproj">
-    <BuildDependency Project="Engine/Engine.vcxproj" />
-  </Project>
-  <Project Path="Plugins/ImGuiPlugin/ImGuiPlugin.vcxproj">
-    <BuildDependency Project="Engine/Engine.vcxproj" />
-  </Project>
-  <Project Path="Plugins/ONNXPlugin/ONNXPlugin.vcxproj">
-    <BuildDependency Project="Engine/Engine.vcxproj" />
-  </Project>
-  <Project Path="Plugins/PhysXPlugin/PhysXPlugin.vcxproj">
-    <BuildDependency Project="Engine/Engine.vcxproj" />
-  </Project>
+  <Folder Name="/Application/">
+    <Project Path="Editor/Editor.vcxproj" Id="56f93d34-f55f-4e1f-b3e4-98c4dc3763c0">
+      <BuildDependency Project="Engine/Engine.vcxproj" />
+      <BuildDependency Project="Plugins/ImGuiPlugin/ImGuiPlugin.vcxproj" />
+    </Project>
+    <Project Path="Game/ThreadsOfKaliyuga.vcxproj" Id="b4e2fa56-c13d-4912-b9c0-7625395965a0">
+      <BuildDependency Project="Engine/Engine.vcxproj" />
+    </Project>
+  </Folder>
+  <Project Path="Engine/Engine.vcxproj" Id="6eba6490-35f7-4578-b7e8-eea36ba09570" />
 </Solution>
