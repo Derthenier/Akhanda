@@ -1,7 +1,7 @@
 <Project>
   <PropertyGroup>
     <SolutionDir>$(MSBuildThisFileDirectory)</SolutionDir>
-    <OutputPath>$(SolutionDir)Build\Output\Bin\$(Platform)\$(Configuration)\</OutputPath>
+    <OutDir>$(SolutionDir)Build\Output\Bin\$(Platform)\$(Configuration)\</OutDir>
     <IntermediateOutputPath>$(SolutionDir)Build\Output\Intermediate\$(ProjectName)\$(Platform)\$(Configuration)\</IntermediateOutputPath>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
   </PropertyGroup>

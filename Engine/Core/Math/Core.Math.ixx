@@ -339,8 +339,8 @@ export namespace Math {
         // Constructors
         constexpr Quaternion() noexcept : x(0), y(0), z(0), w(1) {}
         constexpr Quaternion(float x, float y, float z, float w) noexcept : x(x), y(y), z(z), w(w) {}
-        constexpr Quaternion(const Vector3& axis, float angle) noexcept;
-        constexpr Quaternion(const Vector3& eulerAngles) noexcept;
+        Quaternion(const Vector3& axis, float angle) noexcept;
+        Quaternion(const Vector3& eulerAngles) noexcept;
 
         // Operations
         constexpr Quaternion operator+(const Quaternion& other) const noexcept;
@@ -452,8 +452,8 @@ export namespace Math {
 
         constexpr Plane() noexcept : normal(Vector3::UNIT_Y), distance(0) {}
         constexpr Plane(const Vector3& normal, float distance) noexcept : normal(normal), distance(distance) {}
-        constexpr Plane(const Vector3& normal, const Vector3& point) noexcept;
-        constexpr Plane(const Vector3& p1, const Vector3& p2, const Vector3& p3) noexcept;
+        Plane(const Vector3& normal, const Vector3& point) noexcept;
+        Plane(const Vector3& p1, const Vector3& p2, const Vector3& p3) noexcept;
 
         constexpr float DistanceToPoint(const Vector3& point) const noexcept;
         constexpr Vector3 ClosestPoint(const Vector3& point) const noexcept;
@@ -517,9 +517,9 @@ export namespace Math {
             : v0(v0), v1(v1), v2(v2) {
         }
 
-        constexpr Vector3 Normal() const noexcept;
+        Vector3 Normal() const noexcept;
         constexpr Vector3 Center() const noexcept;
-        constexpr float Area() const noexcept;
+        float Area() const noexcept;
         constexpr bool Contains(const Vector3& point) const noexcept;
         constexpr Vector3 ClosestPoint(const Vector3& point) const noexcept;
     };
@@ -598,7 +598,7 @@ export namespace Math {
             : position(position), rotation(rotation), scale(scale) {
         }
 
-        constexpr Matrix4 ToMatrix() const noexcept;
+        Matrix4 ToMatrix() const noexcept;
         constexpr Transform Inverse() const noexcept;
         constexpr Vector3 TransformPoint(const Vector3& point) const noexcept;
         constexpr Vector3 TransformVector(const Vector3& vector) const noexcept;
@@ -624,13 +624,13 @@ export namespace Math {
             : position(position), rotation(rotation), scale(scale) {
         }
 
-        constexpr Matrix3 ToMatrix() const noexcept;
-        constexpr Transform2D Inverse() const noexcept;
-        constexpr Vector2 TransformPoint(const Vector2& point) const noexcept;
-        constexpr Vector2 TransformVector(const Vector2& vector) const noexcept;
+        Matrix3 ToMatrix() const noexcept;
+        Transform2D Inverse() const noexcept;
+        Vector2 TransformPoint(const Vector2& point) const noexcept;
+        Vector2 TransformVector(const Vector2& vector) const noexcept;
 
-        constexpr Transform2D operator*(const Transform2D& other) const noexcept;
-        constexpr Transform2D& operator*=(const Transform2D& other) noexcept;
+        Transform2D operator*(const Transform2D& other) const noexcept;
+        Transform2D& operator*=(const Transform2D& other) noexcept;
 
         static const Transform2D IDENTITY;
     };
@@ -652,8 +652,8 @@ export namespace Math {
     // Angle functions
     constexpr float ToRadians(float degrees) noexcept;
     constexpr float ToDegrees(float radians) noexcept;
-    constexpr float WrapAngle(float angle) noexcept;
-    constexpr float AngleDifference(float a, float b) noexcept;
+    float WrapAngle(float angle) noexcept;
+    float AngleDifference(float a, float b) noexcept;
 
     // Interpolation
     constexpr float Lerp(float a, float b, float t) noexcept;
@@ -702,35 +702,35 @@ export namespace Math {
     // Vector2 operations
     constexpr float Dot(const Vector2& a, const Vector2& b) noexcept;
     constexpr float Cross(const Vector2& a, const Vector2& b) noexcept;
-    constexpr float Length(const Vector2& v) noexcept;
+    float Length(const Vector2& v) noexcept;
     constexpr float LengthSquared(const Vector2& v) noexcept;
-    constexpr Vector2 Normalize(const Vector2& v) noexcept;
-    constexpr float Distance(const Vector2& a, const Vector2& b) noexcept;
+    Vector2 Normalize(const Vector2& v) noexcept;
+    float Distance(const Vector2& a, const Vector2& b) noexcept;
     constexpr float DistanceSquared(const Vector2& a, const Vector2& b) noexcept;
     constexpr Vector2 Reflect(const Vector2& incident, const Vector2& normal) noexcept;
     constexpr Vector2 Project(const Vector2& a, const Vector2& b) noexcept;
     constexpr Vector2 Perpendicular(const Vector2& v) noexcept;
-    constexpr float Angle(const Vector2& a, const Vector2& b) noexcept;
+    float Angle(const Vector2& a, const Vector2& b) noexcept;
 
     // Vector3 operations
     constexpr float Dot(const Vector3& a, const Vector3& b) noexcept;
     constexpr Vector3 Cross(const Vector3& a, const Vector3& b) noexcept;
-    constexpr float Length(const Vector3& v) noexcept;
+    float Length(const Vector3& v) noexcept;
     constexpr float LengthSquared(const Vector3& v) noexcept;
-    constexpr Vector3 Normalize(const Vector3& v) noexcept;
-    constexpr float Distance(const Vector3& a, const Vector3& b) noexcept;
+    Vector3 Normalize(const Vector3& v) noexcept;
+    float Distance(const Vector3& a, const Vector3& b) noexcept;
     constexpr float DistanceSquared(const Vector3& a, const Vector3& b) noexcept;
     constexpr Vector3 Reflect(const Vector3& incident, const Vector3& normal) noexcept;
     constexpr Vector3 Refract(const Vector3& incident, const Vector3& normal, float ior) noexcept;
     constexpr Vector3 Project(const Vector3& a, const Vector3& b) noexcept;
-    constexpr float Angle(const Vector3& a, const Vector3& b) noexcept;
+    float Angle(const Vector3& a, const Vector3& b) noexcept;
 
     // Vector4 operations
     constexpr float Dot(const Vector4& a, const Vector4& b) noexcept;
-    constexpr float Length(const Vector4& v) noexcept;
+    float Length(const Vector4& v) noexcept;
     constexpr float LengthSquared(const Vector4& v) noexcept;
-    constexpr Vector4 Normalize(const Vector4& v) noexcept;
-    constexpr float Distance(const Vector4& a, const Vector4& b) noexcept;
+    Vector4 Normalize(const Vector4& v) noexcept;
+    float Distance(const Vector4& a, const Vector4& b) noexcept;
     constexpr float DistanceSquared(const Vector4& a, const Vector4& b) noexcept;
 }
 
@@ -744,7 +744,7 @@ export namespace Math {
     constexpr Matrix3 Transpose(const Matrix3& m) noexcept;
     constexpr Matrix3 Inverse(const Matrix3& m) noexcept;
     constexpr Matrix3 Scale(const Vector2& scale) noexcept;
-    constexpr Matrix3 Rotation(float angle) noexcept;
+    Matrix3 Rotation(float angle) noexcept;
     constexpr Matrix3 Translation(const Vector2& translation) noexcept;
 
     // Matrix4 operations
@@ -752,16 +752,16 @@ export namespace Math {
     constexpr Matrix4 Transpose(const Matrix4& m) noexcept;
     constexpr Matrix4 Inverse(const Matrix4& m) noexcept;
     constexpr Matrix4 Scale(const Vector3& scale) noexcept;
-    constexpr Matrix4 RotationX(float angle) noexcept;
-    constexpr Matrix4 RotationY(float angle) noexcept;
-    constexpr Matrix4 RotationZ(float angle) noexcept;
-    constexpr Matrix4 Rotation(const Vector3& axis, float angle) noexcept;
+    Matrix4 RotationX(float angle) noexcept;
+    Matrix4 RotationY(float angle) noexcept;
+    Matrix4 RotationZ(float angle) noexcept;
+    Matrix4 Rotation(const Vector3& axis, float angle) noexcept;
     constexpr Matrix4 Translation(const Vector3& translation) noexcept;
-    constexpr Matrix4 LookAt(const Vector3& eye, const Vector3& target, const Vector3& up) noexcept;
+    Matrix4 LookAt(const Vector3& eye, const Vector3& target, const Vector3& up) noexcept;
 
     // Projection matrices
-    constexpr Matrix4 Perspective(float fovY, float aspect, float near, float far) noexcept;
-    constexpr Matrix4 PerspectiveReversedZ(float fovY, float aspect, float near, float far) noexcept;
+    Matrix4 Perspective(float fovY, float aspect, float near, float far) noexcept;
+    Matrix4 PerspectiveReversedZ(float fovY, float aspect, float near, float far) noexcept;
     constexpr Matrix4 Orthographic(float left, float right, float bottom, float top, float near, float far) noexcept;
     constexpr Matrix4 OrthographicReversedZ(float left, float right, float bottom, float top, float near, float far) noexcept;
 
@@ -776,20 +776,57 @@ export namespace Math {
 
 export namespace Math {
     constexpr float Dot(const Quaternion& a, const Quaternion& b) noexcept;
-    constexpr float Length(const Quaternion& q) noexcept;
+    float Length(const Quaternion& q) noexcept;
     constexpr float LengthSquared(const Quaternion& q) noexcept;
-    constexpr Quaternion Normalize(const Quaternion& q) noexcept;
+    Quaternion Normalize(const Quaternion& q) noexcept;
     constexpr Quaternion Conjugate(const Quaternion& q) noexcept;
     constexpr Quaternion Inverse(const Quaternion& q) noexcept;
-    constexpr Matrix4 ToMatrix(const Quaternion& q) noexcept;
-    constexpr Matrix3 ToMatrix3(const Quaternion& q) noexcept;
-    constexpr Vector3 ToEulerAngles(const Quaternion& q) noexcept;
-    constexpr Quaternion FromEulerAngles(const Vector3& eulerAngles) noexcept;
-    constexpr Quaternion FromAxisAngle(const Vector3& axis, float angle) noexcept;
+    Matrix4 ToMatrix(const Quaternion& q) noexcept;
+    Matrix3 ToMatrix3(const Quaternion& q) noexcept;
+    Vector3 ToEulerAngles(const Quaternion& q) noexcept;
+    Quaternion FromEulerAngles(const Vector3& eulerAngles) noexcept;
+    Quaternion FromAxisAngle(const Vector3& axis, float angle) noexcept;
     constexpr Quaternion FromRotationMatrix(const Matrix3& matrix) noexcept;
-    constexpr Quaternion LookRotation(const Vector3& forward, const Vector3& up = Vector3::UP) noexcept;
-    constexpr float Angle(const Quaternion& a, const Quaternion& b) noexcept;
+    Quaternion LookRotation(const Vector3& forward, const Vector3& up = Vector3::UP) noexcept;
+    float Angle(const Quaternion& a, const Quaternion& b) noexcept;
 }
+
+
+
+// =============================================================================
+// Additional Transform Utilities
+// =============================================================================
+
+export namespace Math {
+    // Transform interpolation
+    Transform LerpTransform(const Transform& a, const Transform& b, float t) noexcept;
+    Transform2D LerpTransform2D(const Transform2D& a, const Transform2D& b, float t) noexcept;
+
+    // Transform creation helpers
+    Transform CreateTransform(const Vector3& position, const Vector3& eulerAngles, const Vector3& scale = Vector3::ONE) noexcept;
+    Transform CreateLookAtTransform(const Vector3& position, const Vector3& target, const Vector3& up = Vector3::UP, const Vector3& scale = Vector3::ONE) noexcept;
+
+    // Transform hierarchy operations
+    Transform CombineTransforms(const Transform& parent, const Transform& child) noexcept;
+    Transform GetRelativeTransform(const Transform& from, const Transform& to) noexcept;
+
+    // Transform validation
+    bool IsValidTransform(const Transform& transform) noexcept;
+    bool IsValidTransform2D(const Transform2D& transform) noexcept;
+
+    // Transform normalization
+    Transform NormalizeTransform(const Transform& transform) noexcept;
+    Transform2D NormalizeTransform2D(const Transform2D& transform) noexcept;
+
+    // Transform bounding calculations
+    AABB TransformAABB(const AABB& aabb, const Transform& transform) noexcept;
+    Sphere TransformSphere(const Sphere& sphere, const Transform& transform) noexcept;
+
+    // Transform comparison
+    bool AreTransformsEqual(const Transform& a, const Transform& b, float epsilon = EPSILON) noexcept;
+    bool AreTransforms2DEqual(const Transform2D& a, const Transform2D& b, float epsilon = EPSILON) noexcept;
+}
+
 
 // =============================================================================
 // Noise Functions
@@ -932,9 +969,9 @@ export namespace Math {
     // Floating point utilities
     constexpr bool IsNearlyEqual(float a, float b, float epsilon = EPSILON) noexcept;
     constexpr bool IsNearlyZero(float value, float epsilon = EPSILON) noexcept;
-    constexpr bool IsFinite(float value) noexcept;
-    constexpr bool IsInfinite(float value) noexcept;
-    constexpr bool IsNaN(float value) noexcept;
+     bool IsFinite(float value) noexcept;
+    bool IsInfinite(float value) noexcept;
+    bool IsNaN(float value) noexcept;
 
     // Power of 2 utilities
     constexpr bool IsPowerOfTwo(uint32_t value) noexcept;
@@ -980,4 +1017,184 @@ namespace Math::SIMD {
     void VectorScale(const float* a, float scalar, float* result, size_t count) noexcept;
     void MatrixMultiply4x4(const float* a, const float* b, float* result) noexcept;
     void VectorTransform(const float* vector, const float* matrix, float* result) noexcept;
+}
+
+
+// =============================================================================
+// Curves and Splines Implementation
+// =============================================================================
+
+export namespace Math {
+    // BezierCurve member function implementations
+    template<typename T, size_t Degree>
+    constexpr T BezierCurve<T, Degree>::Evaluate(float t) const noexcept {
+        if constexpr (Degree == 0) {
+            return controlPoints[0];
+        }
+        else if constexpr (Degree == 1) {
+            return Lerp(controlPoints[0], controlPoints[1], t);
+        }
+        else if constexpr (Degree == 2) {
+            const T p01 = Lerp(controlPoints[0], controlPoints[1], t);
+            const T p12 = Lerp(controlPoints[1], controlPoints[2], t);
+            return Lerp(p01, p12, t);
+        }
+        else if constexpr (Degree == 3) {
+            const T p01 = Lerp(controlPoints[0], controlPoints[1], t);
+            const T p12 = Lerp(controlPoints[1], controlPoints[2], t);
+            const T p23 = Lerp(controlPoints[2], controlPoints[3], t);
+            const T p012 = Lerp(p01, p12, t);
+            const T p123 = Lerp(p12, p23, t);
+            return Lerp(p012, p123, t);
+        }
+        else {
+            // General case for higher-degree curves
+            std::array<T, Degree + 1> temp = controlPoints;
+
+            for (size_t j = 1; j <= Degree; ++j) {
+                for (size_t i = 0; i <= Degree - j; ++i) {
+                    temp[i] = Lerp(temp[i], temp[i + 1], t);
+                }
+            }
+
+            return temp[0];
+        }
+    }
+
+    template<typename T, size_t Degree>
+    constexpr T BezierCurve<T, Degree>::Derivative(float t) const noexcept {
+        if constexpr (Degree == 0) {
+            return T{}; // Zero derivative for constant curve
+        }
+        else {
+            std::array<T, Degree> derivativePoints;
+            for (size_t i = 0; i < Degree; ++i) {
+                derivativePoints[i] = (controlPoints[i + 1] - controlPoints[i]) * static_cast<float>(Degree);
+            }
+
+            BezierCurve<T, Degree - 1> derivativeCurve{ derivativePoints };
+            return derivativeCurve.Evaluate(t);
+        }
+    }
+
+    template<typename T, size_t Degree>
+    constexpr float BezierCurve<T, Degree>::Length(size_t subdivisions) const noexcept {
+        if (subdivisions == 0) subdivisions = 1;
+
+        float totalLength = 0.0f;
+        T previousPoint = Evaluate(0.0f);
+
+        for (size_t i = 1; i <= subdivisions; ++i) {
+            const float t = static_cast<float>(i) / static_cast<float>(subdivisions);
+            const T currentPoint = Evaluate(t);
+            totalLength += Distance(previousPoint, currentPoint);
+            previousPoint = currentPoint;
+        }
+
+        return totalLength;
+    }
+
+    // CatmullRomSpline member function implementations
+    template<typename T>
+    constexpr T CatmullRomSpline<T>::Evaluate(float t) const noexcept {
+        if (controlPoints.size() < 2) {
+            return controlPoints.empty() ? T{} : controlPoints[0];
+        }
+
+        if (controlPoints.size() == 2) {
+            return Lerp(controlPoints[0], controlPoints[1], t);
+        }
+
+        // Clamp t to valid range
+        t = Clamp(t, 0.0f, 1.0f);
+
+        // Scale t to segment range
+        const float scaledT = t * static_cast<float>(controlPoints.size() - 1);
+        const size_t segmentIndex = static_cast<size_t>(scaledT);
+        const float localT = scaledT - static_cast<float>(segmentIndex);
+
+        // Get control points for current segment
+        const size_t i0 = (segmentIndex == 0) ? 0 : segmentIndex - 1;
+        const size_t i1 = segmentIndex;
+        const size_t i2 = Min(segmentIndex + 1, controlPoints.size() - 1);
+        const size_t i3 = Min(segmentIndex + 2, controlPoints.size() - 1);
+
+        const T& p0 = controlPoints[i0];
+        const T& p1 = controlPoints[i1];
+        const T& p2 = controlPoints[i2];
+        const T& p3 = controlPoints[i3];
+
+        // Catmull-Rom interpolation
+        const float t2 = localT * localT;
+        const float t3 = t2 * localT;
+
+        return 0.5f * (
+            (2.0f * p1) +
+            (-p0 + p2) * localT +
+            (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 +
+            (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
+            );
+    }
+
+    template<typename T>
+    constexpr T CatmullRomSpline<T>::Derivative(float t) const noexcept {
+        if (controlPoints.size() < 2) {
+            return T{};
+        }
+
+        if (controlPoints.size() == 2) {
+            return controlPoints[1] - controlPoints[0];
+        }
+
+        // Clamp t to valid range
+        t = Clamp(t, 0.0f, 1.0f);
+
+        // Scale t to segment range
+        const float scaledT = t * static_cast<float>(controlPoints.size() - 1);
+        const size_t segmentIndex = static_cast<size_t>(scaledT);
+        const float localT = scaledT - static_cast<float>(segmentIndex);
+
+        // Get control points for current segment
+        const size_t i0 = (segmentIndex == 0) ? 0 : segmentIndex - 1;
+        const size_t i1 = segmentIndex;
+        const size_t i2 = Min(segmentIndex + 1, controlPoints.size() - 1);
+        const size_t i3 = Min(segmentIndex + 2, controlPoints.size() - 1);
+
+        const T& p0 = controlPoints[i0];
+        const T& p1 = controlPoints[i1];
+        const T& p2 = controlPoints[i2];
+        const T& p3 = controlPoints[i3];
+
+        // Derivative of Catmull-Rom interpolation
+        const float t2 = localT * localT;
+
+        return 0.5f * (
+            (-p0 + p2) +
+            (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * 2.0f * localT +
+            (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * 3.0f * t2
+            ) * static_cast<float>(controlPoints.size() - 1);
+    }
+
+    template<typename T>
+    constexpr size_t CatmullRomSpline<T>::GetSegmentCount() const noexcept {
+        return controlPoints.size() > 1 ? controlPoints.size() - 1 : 0;
+    }
+
+    template<typename T>
+    constexpr float CatmullRomSpline<T>::GetTotalLength(size_t subdivisions) const noexcept {
+        if (subdivisions == 0) subdivisions = 1;
+
+        float totalLength = 0.0f;
+        T previousPoint = Evaluate(0.0f);
+
+        for (size_t i = 1; i <= subdivisions; ++i) {
+            const float t = static_cast<float>(i) / static_cast<float>(subdivisions);
+            const T currentPoint = Evaluate(t);
+            totalLength += Distance(previousPoint, currentPoint);
+            previousPoint = currentPoint;
+        }
+
+        return totalLength;
+    }
+
 }

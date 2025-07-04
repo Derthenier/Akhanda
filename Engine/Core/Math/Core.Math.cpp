@@ -1,13 +1,14 @@
 // Core.Math.cpp - Main Implementation
+module;
+
+#include <random>
+
 module Core.Math;
 
 import <cmath>;
 import <algorithm>;
 import <array>;
 import <vector>;
-import <random>;
-import <limits>;
-import <immintrin.h>; // SIMD intrinsics
 
 using namespace Math;
 
@@ -79,573 +80,6 @@ const Color4 Color4::TRANSPARENT(0.0f, 0.0f, 0.0f, 0.0f);
 
 #pragma endregion
 
-
-
-// =============================================================================
-// Vector2 Implementation
-// =============================================================================
-#pragma region Vector2
-constexpr float& Vector2::operator[](size_t index) noexcept {
-    return (&x)[index];
-}
-
-constexpr const float& Vector2::operator[](size_t index) const noexcept {
-    return (&x)[index];
-}
-
-constexpr Vector2 Vector2::operator+(const Vector2& other) const noexcept {
-    return Vector2(x + other.x, y + other.y);
-}
-
-constexpr Vector2 Vector2::operator-(const Vector2& other) const noexcept {
-    return Vector2(x - other.x, y - other.y);
-}
-
-constexpr Vector2 Vector2::operator*(const Vector2& other) const noexcept {
-    return Vector2(x * other.x, y * other.y);
-}
-
-constexpr Vector2 Vector2::operator/(const Vector2& other) const noexcept {
-    return Vector2(x / other.x, y / other.y);
-}
-
-constexpr Vector2 Vector2::operator*(float scalar) const noexcept {
-    return Vector2(x * scalar, y * scalar);
-}
-
-constexpr Vector2 Vector2::operator/(float scalar) const noexcept {
-    const float invScalar = 1.0f / scalar;
-    return Vector2(x * invScalar, y * invScalar);
-}
-
-constexpr Vector2& Vector2::operator+=(const Vector2& other) noexcept {
-    x += other.x;
-    y += other.y;
-    return *this;
-}
-
-constexpr Vector2& Vector2::operator-=(const Vector2& other) noexcept {
-    x -= other.x;
-    y -= other.y;
-    return *this;
-}
-
-constexpr Vector2& Vector2::operator*=(const Vector2& other) noexcept {
-    x *= other.x;
-    y *= other.y;
-    return *this;
-}
-
-constexpr Vector2& Vector2::operator/=(const Vector2& other) noexcept {
-    x /= other.x;
-    y /= other.y;
-    return *this;
-}
-
-constexpr Vector2& Vector2::operator*=(float scalar) noexcept {
-    x *= scalar;
-    y *= scalar;
-    return *this;
-}
-
-constexpr Vector2& Vector2::operator/=(float scalar) noexcept {
-    const float invScalar = 1.0f / scalar;
-    x *= invScalar;
-    y *= invScalar;
-    return *this;
-}
-
-constexpr Vector2 Vector2::operator-() const noexcept {
-    return Vector2(-x, -y);
-}
-
-constexpr Vector2 Vector2::operator+() const noexcept {
-    return *this;
-}
-
-constexpr bool Vector2::operator==(const Vector2& other) const noexcept {
-    return IsNearlyEqual(x, other.x) && IsNearlyEqual(y, other.y);
-}
-
-constexpr bool Vector2::operator!=(const Vector2& other) const noexcept {
-    return !(*this == other);
-}
-
-#pragma endregion
-
-// =============================================================================
-// Vector3 Implementation
-// =============================================================================
-#pragma region Vector3
-
-constexpr float& Vector3::operator[](size_t index) noexcept {
-    return (&x)[index];
-}
-
-constexpr const float& Vector3::operator[](size_t index) const noexcept {
-    return (&x)[index];
-}
-
-constexpr Vector3 Vector3::operator+(const Vector3& other) const noexcept {
-    return Vector3(x + other.x, y + other.y, z + other.z);
-}
-
-constexpr Vector3 Vector3::operator-(const Vector3& other) const noexcept {
-    return Vector3(x - other.x, y - other.y, z - other.z);
-}
-
-constexpr Vector3 Vector3::operator*(const Vector3& other) const noexcept {
-    return Vector3(x * other.x, y * other.y, z * other.z);
-}
-
-constexpr Vector3 Vector3::operator/(const Vector3& other) const noexcept {
-    return Vector3(x / other.x, y / other.y, z / other.z);
-}
-
-constexpr Vector3 Vector3::operator*(float scalar) const noexcept {
-    return Vector3(x * scalar, y * scalar, z * scalar);
-}
-
-constexpr Vector3 Vector3::operator/(float scalar) const noexcept {
-    const float invScalar = 1.0f / scalar;
-    return Vector3(x * invScalar, y * invScalar, z * invScalar);
-}
-
-constexpr Vector3& Vector3::operator+=(const Vector3& other) noexcept {
-    x += other.x;
-    y += other.y;
-    z += other.z;
-    return *this;
-}
-
-constexpr Vector3& Vector3::operator-=(const Vector3& other) noexcept {
-    x -= other.x;
-    y -= other.y;
-    z -= other.z;
-    return *this;
-}
-
-constexpr Vector3& Vector3::operator*=(const Vector3& other) noexcept {
-    x *= other.x;
-    y *= other.y;
-    z *= other.z;
-    return *this;
-}
-
-constexpr Vector3& Vector3::operator/=(const Vector3& other) noexcept {
-    x /= other.x;
-    y /= other.y;
-    z /= other.z;
-    return *this;
-}
-
-constexpr Vector3& Vector3::operator*=(float scalar) noexcept {
-    x *= scalar;
-    y *= scalar;
-    z *= scalar;
-    return *this;
-}
-
-constexpr Vector3& Vector3::operator/=(float scalar) noexcept {
-    const float invScalar = 1.0f / scalar;
-    x *= invScalar;
-    y *= invScalar;
-    z *= invScalar;
-    return *this;
-}
-
-constexpr Vector3 Vector3::operator-() const noexcept {
-    return Vector3(-x, -y, -z);
-}
-
-constexpr Vector3 Vector3::operator+() const noexcept {
-    return *this;
-}
-
-constexpr bool Vector3::operator==(const Vector3& other) const noexcept {
-    return IsNearlyEqual(x, other.x) && IsNearlyEqual(y, other.y) && IsNearlyEqual(z, other.z);
-}
-
-constexpr bool Vector3::operator!=(const Vector3& other) const noexcept {
-    return !(*this == other);
-}
-
-#pragma endregion
-
-// =============================================================================
-// Vector4 Implementation
-// =============================================================================
-#pragma region Vector4
-
-constexpr float& Vector4::operator[](size_t index) noexcept {
-    return (&x)[index];
-}
-
-constexpr const float& Vector4::operator[](size_t index) const noexcept {
-    return (&x)[index];
-}
-
-constexpr Vector4 Vector4::operator+(const Vector4& other) const noexcept {
-    return Vector4(x + other.x, y + other.y, z + other.z, w + other.w);
-}
-
-constexpr Vector4 Vector4::operator-(const Vector4& other) const noexcept {
-    return Vector4(x - other.x, y - other.y, z - other.z, w - other.w);
-}
-
-constexpr Vector4 Vector4::operator*(const Vector4& other) const noexcept {
-    return Vector4(x * other.x, y * other.y, z * other.z, w * other.w);
-}
-
-constexpr Vector4 Vector4::operator/(const Vector4& other) const noexcept {
-    return Vector4(x / other.x, y / other.y, z / other.z, w / other.w);
-}
-
-constexpr Vector4 Vector4::operator*(float scalar) const noexcept {
-    return Vector4(x * scalar, y * scalar, z * scalar, w * scalar);
-}
-
-constexpr Vector4 Vector4::operator/(float scalar) const noexcept {
-    const float invScalar = 1.0f / scalar;
-    return Vector4(x * invScalar, y * invScalar, z * invScalar, w * invScalar);
-}
-
-constexpr Vector4& Vector4::operator+=(const Vector4& other) noexcept {
-    x += other.x;
-    y += other.y;
-    z += other.z;
-    w += other.w;
-    return *this;
-}
-
-constexpr Vector4& Vector4::operator-=(const Vector4& other) noexcept {
-    x -= other.x;
-    y -= other.y;
-    z -= other.z;
-    w -= other.w;
-    return *this;
-}
-
-constexpr Vector4& Vector4::operator*=(const Vector4& other) noexcept {
-    x *= other.x;
-    y *= other.y;
-    z *= other.z;
-    w *= other.w;
-    return *this;
-}
-
-constexpr Vector4& Vector4::operator/=(const Vector4& other) noexcept {
-    x /= other.x;
-    y /= other.y;
-    z /= other.z;
-    w /= other.w;
-    return *this;
-}
-
-constexpr Vector4& Vector4::operator*=(float scalar) noexcept {
-    x *= scalar;
-    y *= scalar;
-    z *= scalar;
-    w *= scalar;
-    return *this;
-}
-
-constexpr Vector4& Vector4::operator/=(float scalar) noexcept {
-    const float invScalar = 1.0f / scalar;
-    x *= invScalar;
-    y *= invScalar;
-    z *= invScalar;
-    w *= invScalar;
-    return *this;
-}
-
-constexpr Vector4 Vector4::operator-() const noexcept {
-    return Vector4(-x, -y, -z, -w);
-}
-
-constexpr Vector4 Vector4::operator+() const noexcept {
-    return *this;
-}
-
-constexpr bool Vector4::operator==(const Vector4& other) const noexcept {
-    return IsNearlyEqual(x, other.x) && IsNearlyEqual(y, other.y) &&
-        IsNearlyEqual(z, other.z) && IsNearlyEqual(w, other.w);
-}
-
-constexpr bool Vector4::operator!=(const Vector4& other) const noexcept {
-    return !(*this == other);
-}
-
-#pragma endregion
-
-// =============================================================================
-// Matrix3 Implementation
-// =============================================================================
-#pragma region Matrix3
-
-constexpr Matrix3::Matrix3() noexcept : m{ 0 } {}
-
-constexpr Matrix3::Matrix3(float m00, float m01, float m02,
-    float m10, float m11, float m12,
-    float m20, float m21, float m22) noexcept {
-    m[0] = m00; m[1] = m10; m[2] = m20;
-    m[3] = m01; m[4] = m11; m[5] = m21;
-    m[6] = m02; m[7] = m12; m[8] = m22;
-}
-
-constexpr Matrix3::Matrix3(float diagonal) noexcept : m{ 0 } {
-    m[0] = diagonal;
-    m[4] = diagonal;
-    m[8] = diagonal;
-}
-
-constexpr float& Matrix3::operator()(size_t row, size_t col) noexcept {
-    return m[col * 3 + row];
-}
-
-constexpr const float& Matrix3::operator()(size_t row, size_t col) const noexcept {
-    return m[col * 3 + row];
-}
-
-constexpr float* Matrix3::operator[](size_t row) noexcept {
-    return &m[row * 3];
-}
-
-constexpr const float* Matrix3::operator[](size_t row) const noexcept {
-    return &m[row * 3];
-}
-
-constexpr Matrix3 Matrix3::operator+(const Matrix3& other) const noexcept {
-    Matrix3 result;
-    for (int i = 0; i < 9; ++i) {
-        result.m[i] = m[i] + other.m[i];
-    }
-    return result;
-}
-
-constexpr Matrix3 Matrix3::operator-(const Matrix3& other) const noexcept {
-    Matrix3 result;
-    for (int i = 0; i < 9; ++i) {
-        result.m[i] = m[i] - other.m[i];
-    }
-    return result;
-}
-
-constexpr Matrix3 Matrix3::operator*(const Matrix3& other) const noexcept {
-    Matrix3 result;
-    for (int col = 0; col < 3; ++col) {
-        for (int row = 0; row < 3; ++row) {
-            result(row, col) =
-                (*this)(row, 0) * other(0, col) +
-                (*this)(row, 1) * other(1, col) +
-                (*this)(row, 2) * other(2, col);
-        }
-    }
-    return result;
-}
-
-constexpr Matrix3 Matrix3::operator*(float scalar) const noexcept {
-    Matrix3 result;
-    for (int i = 0; i < 9; ++i) {
-        result.m[i] = m[i] * scalar;
-    }
-    return result;
-}
-
-constexpr Vector3 Matrix3::operator*(const Vector3& vector) const noexcept {
-    return Vector3(
-        (*this)(0, 0) * vector.x + (*this)(0, 1) * vector.y + (*this)(0, 2) * vector.z,
-        (*this)(1, 0) * vector.x + (*this)(1, 1) * vector.y + (*this)(1, 2) * vector.z,
-        (*this)(2, 0) * vector.x + (*this)(2, 1) * vector.y + (*this)(2, 2) * vector.z
-    );
-}
-
-constexpr Matrix3& Matrix3::operator+=(const Matrix3& other) noexcept {
-    for (int i = 0; i < 9; ++i) {
-        m[i] += other.m[i];
-    }
-    return *this;
-}
-
-constexpr Matrix3& Matrix3::operator-=(const Matrix3& other) noexcept {
-    for (int i = 0; i < 9; ++i) {
-        m[i] -= other.m[i];
-    }
-    return *this;
-}
-
-constexpr Matrix3& Matrix3::operator*=(const Matrix3& other) noexcept {
-    *this = *this * other;
-    return *this;
-}
-
-constexpr Matrix3& Matrix3::operator*=(float scalar) noexcept {
-    for (int i = 0; i < 9; ++i) {
-        m[i] *= scalar;
-    }
-    return *this;
-}
-
-constexpr bool Matrix3::operator==(const Matrix3& other) const noexcept {
-    for (int i = 0; i < 9; ++i) {
-        if (!IsNearlyEqual(m[i], other.m[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-constexpr bool Matrix3::operator!=(const Matrix3& other) const noexcept {
-    return !(*this == other);
-}
-
-#pragma endregion
-
-// =============================================================================
-// Matrix4 Implementation
-// =============================================================================
-#pragma region Matrix4
-
-constexpr Matrix4::Matrix4() noexcept : m{ 0 } {}
-
-constexpr Matrix4::Matrix4(float m00, float m01, float m02, float m03,
-    float m10, float m11, float m12, float m13,
-    float m20, float m21, float m22, float m23,
-    float m30, float m31, float m32, float m33) noexcept {
-    m[0] = m00; m[1] = m10; m[2] = m20; m[3] = m30;
-    m[4] = m01; m[5] = m11; m[6] = m21; m[7] = m31;
-    m[8] = m02; m[9] = m12; m[10] = m22; m[11] = m32;
-    m[12] = m03; m[13] = m13; m[14] = m23; m[15] = m33;
-}
-
-constexpr Matrix4::Matrix4(float diagonal) noexcept : m{ 0 } {
-    m[0] = diagonal;
-    m[5] = diagonal;
-    m[10] = diagonal;
-    m[15] = diagonal;
-}
-
-constexpr Matrix4::Matrix4(const Matrix3& mat3) noexcept : m{ 0 } {
-    m[0] = mat3.m[0]; m[1] = mat3.m[1]; m[2] = mat3.m[2];
-    m[4] = mat3.m[3]; m[5] = mat3.m[4]; m[6] = mat3.m[5];
-    m[8] = mat3.m[6]; m[9] = mat3.m[7]; m[10] = mat3.m[8];
-    m[15] = 1.0f;
-}
-
-constexpr float& Matrix4::operator()(size_t row, size_t col) noexcept {
-    return m[col * 4 + row];
-}
-
-constexpr const float& Matrix4::operator()(size_t row, size_t col) const noexcept {
-    return m[col * 4 + row];
-}
-
-constexpr float* Matrix4::operator[](size_t row) noexcept {
-    return &m[row * 4];
-}
-
-constexpr const float* Matrix4::operator[](size_t row) const noexcept {
-    return &m[row * 4];
-}
-
-constexpr Matrix4 Matrix4::operator+(const Matrix4& other) const noexcept {
-    Matrix4 result;
-    for (int i = 0; i < 16; ++i) {
-        result.m[i] = m[i] + other.m[i];
-    }
-    return result;
-}
-
-constexpr Matrix4 Matrix4::operator-(const Matrix4& other) const noexcept {
-    Matrix4 result;
-    for (int i = 0; i < 16; ++i) {
-        result.m[i] = m[i] - other.m[i];
-    }
-    return result;
-}
-
-constexpr Matrix4 Matrix4::operator*(const Matrix4& other) const noexcept {
-    Matrix4 result;
-    for (int col = 0; col < 4; ++col) {
-        for (int row = 0; row < 4; ++row) {
-            result(row, col) =
-                (*this)(row, 0) * other(0, col) +
-                (*this)(row, 1) * other(1, col) +
-                (*this)(row, 2) * other(2, col) +
-                (*this)(row, 3) * other(3, col);
-        }
-    }
-    return result;
-}
-
-constexpr Matrix4 Matrix4::operator*(float scalar) const noexcept {
-    Matrix4 result;
-    for (int i = 0; i < 16; ++i) {
-        result.m[i] = m[i] * scalar;
-    }
-    return result;
-}
-
-constexpr Vector4 Matrix4::operator*(const Vector4& vector) const noexcept {
-    return Vector4(
-        (*this)(0, 0) * vector.x + (*this)(0, 1) * vector.y + (*this)(0, 2) * vector.z + (*this)(0, 3) * vector.w,
-        (*this)(1, 0) * vector.x + (*this)(1, 1) * vector.y + (*this)(1, 2) * vector.z + (*this)(1, 3) * vector.w,
-        (*this)(2, 0) * vector.x + (*this)(2, 1) * vector.y + (*this)(2, 2) * vector.z + (*this)(2, 3) * vector.w,
-        (*this)(3, 0) * vector.x + (*this)(3, 1) * vector.y + (*this)(3, 2) * vector.z + (*this)(3, 3) * vector.w
-    );
-}
-
-constexpr Vector3 Matrix4::TransformPoint(const Vector3& point) const noexcept {
-    const Vector4 result = *this * Vector4(point, 1.0f);
-    return Vector3(result.x, result.y, result.z) / result.w;
-}
-
-constexpr Vector3 Matrix4::TransformVector(const Vector3& vector) const noexcept {
-    const Vector4 result = *this * Vector4(vector, 0.0f);
-    return Vector3(result.x, result.y, result.z);
-}
-
-constexpr Matrix4& Matrix4::operator+=(const Matrix4& other) noexcept {
-    for (int i = 0; i < 16; ++i) {
-        m[i] += other.m[i];
-    }
-    return *this;
-}
-
-constexpr Matrix4& Matrix4::operator-=(const Matrix4& other) noexcept {
-    for (int i = 0; i < 16; ++i) {
-        m[i] -= other.m[i];
-    }
-    return *this;
-}
-
-constexpr Matrix4& Matrix4::operator*=(const Matrix4& other) noexcept {
-    *this = *this * other;
-    return *this;
-}
-
-constexpr Matrix4& Matrix4::operator*=(float scalar) noexcept {
-    for (int i = 0; i < 16; ++i) {
-        m[i] *= scalar;
-    }
-    return *this;
-}
-
-constexpr bool Matrix4::operator==(const Matrix4& other) const noexcept {
-    for (int i = 0; i < 16; ++i) {
-        if (!IsNearlyEqual(m[i], other.m[i])) {
-            return false;
-        }
-    }
-    return true;
-}
-
-constexpr bool Matrix4::operator!=(const Matrix4& other) const noexcept {
-    return !(*this == other);
-}
-
-#pragma endregion
-
 // =============================================================================
 // Basic Mathematical Functions
 // =============================================================================
@@ -683,7 +117,7 @@ constexpr float Math::ToDegrees(float radians) noexcept {
     return radians * RAD_TO_DEG;
 }
 
-constexpr float Math::WrapAngle(float angle) noexcept {
+float Math::WrapAngle(float angle) noexcept {
     angle = std::fmod(angle + PI, TWO_PI);
     if (angle < 0) {
         angle += TWO_PI;
@@ -691,7 +125,7 @@ constexpr float Math::WrapAngle(float angle) noexcept {
     return angle - PI;
 }
 
-constexpr float Math::AngleDifference(float a, float b) noexcept {
+float Math::AngleDifference(float a, float b) noexcept {
     return WrapAngle(b - a);
 }
 
@@ -728,7 +162,7 @@ constexpr float Math::Cross(const Vector2& a, const Vector2& b) noexcept {
     return a.x * b.y - a.y * b.x;
 }
 
-constexpr float Math::Length(const Vector2& v) noexcept {
+float Math::Length(const Vector2& v) noexcept {
     return std::sqrt(LengthSquared(v));
 }
 
@@ -736,12 +170,12 @@ constexpr float Math::LengthSquared(const Vector2& v) noexcept {
     return Dot(v, v);
 }
 
-constexpr Vector2 Math::Normalize(const Vector2& v) noexcept {
+Vector2 Math::Normalize(const Vector2& v) noexcept {
     const float length = Length(v);
     return IsNearlyZero(length) ? Vector2::ZERO : v / length;
 }
 
-constexpr float Math::Distance(const Vector2& a, const Vector2& b) noexcept {
+float Math::Distance(const Vector2& a, const Vector2& b) noexcept {
     return Length(b - a);
 }
 
@@ -761,7 +195,7 @@ constexpr Vector2 Math::Perpendicular(const Vector2& v) noexcept {
     return Vector2(-v.y, v.x);
 }
 
-constexpr float Math::Angle(const Vector2& a, const Vector2& b) noexcept {
+float Math::Angle(const Vector2& a, const Vector2& b) noexcept {
     const float dot = Dot(Normalize(a), Normalize(b));
     return std::acos(Clamp(dot, -1.0f, 1.0f));
 }
@@ -780,7 +214,7 @@ constexpr Vector3 Math::Cross(const Vector3& a, const Vector3& b) noexcept {
     );
 }
 
-constexpr float Math::Length(const Vector3& v) noexcept {
+float Math::Length(const Vector3& v) noexcept {
     return std::sqrt(LengthSquared(v));
 }
 
@@ -788,12 +222,12 @@ constexpr float Math::LengthSquared(const Vector3& v) noexcept {
     return Dot(v, v);
 }
 
-constexpr Vector3 Math::Normalize(const Vector3& v) noexcept {
+Vector3 Math::Normalize(const Vector3& v) noexcept {
     const float length = Length(v);
     return IsNearlyZero(length) ? Vector3::ZERO : v / length;
 }
 
-constexpr float Math::Distance(const Vector3& a, const Vector3& b) noexcept {
+float Math::Distance(const Vector3& a, const Vector3& b) noexcept {
     return Length(b - a);
 }
 
@@ -823,7 +257,7 @@ constexpr Vector3 Math::Project(const Vector3& a, const Vector3& b) noexcept {
     return b * (Dot(a, b) / LengthSquared(b));
 }
 
-constexpr float Math::Angle(const Vector3& a, const Vector3& b) noexcept {
+float Math::Angle(const Vector3& a, const Vector3& b) noexcept {
     const float dot = Dot(Normalize(a), Normalize(b));
     return std::acos(Clamp(dot, -1.0f, 1.0f));
 }
@@ -832,7 +266,7 @@ constexpr float Math::Dot(const Vector4& a, const Vector4& b) noexcept {
     return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w;
 }
 
-constexpr float Math::Length(const Vector4& v) noexcept {
+float Math::Length(const Vector4& v) noexcept {
     return std::sqrt(LengthSquared(v));
 }
 
@@ -840,12 +274,12 @@ constexpr float Math::LengthSquared(const Vector4& v) noexcept {
     return Dot(v, v);
 }
 
-constexpr Vector4 Math::Normalize(const Vector4& v) noexcept {
+Vector4 Math::Normalize(const Vector4& v) noexcept {
     const float length = Length(v);
     return IsNearlyZero(length) ? Vector4::ZERO : v / length;
 }
 
-constexpr float Math::Distance(const Vector4& a, const Vector4& b) noexcept {
+float Math::Distance(const Vector4& a, const Vector4& b) noexcept {
     return Length(b - a);
 }
 
@@ -868,15 +302,15 @@ constexpr bool Math::IsNearlyZero(float value, float epsilon) noexcept {
     return Abs(value) <= epsilon;
 }
 
-constexpr bool Math::IsFinite(float value) noexcept {
+bool Math::IsFinite(float value) noexcept {
     return std::isfinite(value);
 }
 
-constexpr bool Math::IsInfinite(float value) noexcept {
+bool Math::IsInfinite(float value) noexcept {
     return std::isinf(value);
 }
 
-constexpr bool Math::IsNaN(float value) noexcept {
+bool Math::IsNaN(float value) noexcept {
     return std::isnan(value);
 }
 
@@ -1024,7 +458,7 @@ constexpr Matrix3 Math::Scale(const Vector2& scale) noexcept {
     );
 }
 
-constexpr Matrix3 Math::Rotation(float angle) noexcept {
+Matrix3 Math::Rotation(float angle) noexcept {
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
 
@@ -1116,7 +550,7 @@ constexpr Matrix4 Math::Scale(const Vector3& scale) noexcept {
     );
 }
 
-constexpr Matrix4 Math::RotationX(float angle) noexcept {
+Matrix4 Math::RotationX(float angle) noexcept {
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
 
@@ -1128,7 +562,7 @@ constexpr Matrix4 Math::RotationX(float angle) noexcept {
     );
 }
 
-constexpr Matrix4 Math::RotationY(float angle) noexcept {
+Matrix4 Math::RotationY(float angle) noexcept {
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
 
@@ -1140,7 +574,7 @@ constexpr Matrix4 Math::RotationY(float angle) noexcept {
     );
 }
 
-constexpr Matrix4 Math::RotationZ(float angle) noexcept {
+Matrix4 Math::RotationZ(float angle) noexcept {
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
 
@@ -1152,7 +586,7 @@ constexpr Matrix4 Math::RotationZ(float angle) noexcept {
     );
 }
 
-constexpr Matrix4 Math::Rotation(const Vector3& axis, float angle) noexcept {
+Matrix4 Math::Rotation(const Vector3& axis, float angle) noexcept {
     const Vector3 normalizedAxis = Normalize(axis);
     const float cos_a = std::cos(angle);
     const float sin_a = std::sin(angle);
@@ -1179,7 +613,7 @@ constexpr Matrix4 Math::Translation(const Vector3& translation) noexcept {
     );
 }
 
-constexpr Matrix4 Math::LookAt(const Vector3& eye, const Vector3& target, const Vector3& up) noexcept {
+Matrix4 Math::LookAt(const Vector3& eye, const Vector3& target, const Vector3& up) noexcept {
     const Vector3 forward = Normalize(target - eye);
     const Vector3 side = Normalize(Cross(forward, up));
     const Vector3 upVector = Cross(side, forward);
@@ -1206,7 +640,7 @@ constexpr Matrix4 Math::LookAt(const Vector3& eye, const Vector3& target, const 
 // Projection Matrices
 // =============================================================================
 
-constexpr Matrix4 Math::Perspective(float fovY, float aspect, float near, float far) noexcept {
+Matrix4 Math::Perspective(float fovY, float aspect, float near, float far) noexcept {
     const float tanHalfFovY = std::tan(fovY * 0.5f);
     const float range = far - near;
 
@@ -1220,7 +654,7 @@ constexpr Matrix4 Math::Perspective(float fovY, float aspect, float near, float 
     return result;
 }
 
-constexpr Matrix4 Math::PerspectiveReversedZ(float fovY, float aspect, float near, float far) noexcept {
+Matrix4 Math::PerspectiveReversedZ(float fovY, float aspect, float near, float far) noexcept {
     const float tanHalfFovY = std::tan(fovY * 0.5f);
     const float range = far - near;
 
@@ -1362,11 +796,11 @@ constexpr Vector3 Ray::GetPoint(float t) const noexcept {
 // Plane Implementation
 // =============================================================================
 
-constexpr Plane::Plane(const Vector3& normal, const Vector3& point) noexcept
+Plane::Plane(const Vector3& normal, const Vector3& point) noexcept
     : normal(Normalize(normal)), distance(Dot(this->normal, point)) {
 }
 
-constexpr Plane::Plane(const Vector3& p1, const Vector3& p2, const Vector3& p3) noexcept {
+Plane::Plane(const Vector3& p1, const Vector3& p2, const Vector3& p3) noexcept {
     const Vector3 edge1 = p2 - p1;
     const Vector3 edge2 = p3 - p1;
     normal = Normalize(Cross(edge1, edge2));
@@ -1608,7 +1042,7 @@ constexpr float Sphere::SurfaceArea() const noexcept {
 // Triangle Implementation
 // =============================================================================
 
-constexpr Vector3 Triangle::Normal() const noexcept {
+Vector3 Triangle::Normal() const noexcept {
     return Normalize(Cross(v1 - v0, v2 - v0));
 }
 
@@ -1616,7 +1050,7 @@ constexpr Vector3 Triangle::Center() const noexcept {
     return (v0 + v1 + v2) / 3.0f;
 }
 
-constexpr float Triangle::Area() const noexcept {
+float Triangle::Area() const noexcept {
     return Length(Cross(v1 - v0, v2 - v0)) * 0.5f;
 }
 
@@ -1835,7 +1269,7 @@ void Math::ExtractFrustumPlanes(const Matrix4& viewProjectionMatrix, std::array<
 // Transform Implementation
 // =============================================================================
 
-constexpr Matrix4 Transform::ToMatrix() const noexcept {
+Matrix4 Transform::ToMatrix() const noexcept {
     const Matrix4 scaleMatrix = Scale(scale);
     const Matrix4 rotationMatrix = Math::ToMatrix(rotation);
     const Matrix4 translationMatrix = Translation(position);
@@ -1888,7 +1322,7 @@ constexpr Transform& Transform::operator*=(const Transform& other) noexcept {
 // Transform2D Implementation
 // =============================================================================
 
-constexpr Matrix3 Transform2D::ToMatrix() const noexcept {
+Matrix3 Transform2D::ToMatrix() const noexcept {
     const float cos_r = std::cos(rotation);
     const float sin_r = std::sin(rotation);
 
@@ -1899,7 +1333,7 @@ constexpr Matrix3 Transform2D::ToMatrix() const noexcept {
     );
 }
 
-constexpr Transform2D Transform2D::Inverse() const noexcept {
+Transform2D Transform2D::Inverse() const noexcept {
     const float invRotation = -rotation;
     const Vector2 invScale(1.0f / scale.x, 1.0f / scale.y);
 
@@ -1914,7 +1348,7 @@ constexpr Transform2D Transform2D::Inverse() const noexcept {
     return Transform2D(invPosition, invRotation, invScale);
 }
 
-constexpr Vector2 Transform2D::TransformPoint(const Vector2& point) const noexcept {
+Vector2 Transform2D::TransformPoint(const Vector2& point) const noexcept {
     const float cos_r = std::cos(rotation);
     const float sin_r = std::sin(rotation);
 
@@ -1925,7 +1359,7 @@ constexpr Vector2 Transform2D::TransformPoint(const Vector2& point) const noexce
     );
 }
 
-constexpr Vector2 Transform2D::TransformVector(const Vector2& vector) const noexcept {
+Vector2 Transform2D::TransformVector(const Vector2& vector) const noexcept {
     const float cos_r = std::cos(rotation);
     const float sin_r = std::sin(rotation);
 
@@ -1936,7 +1370,7 @@ constexpr Vector2 Transform2D::TransformVector(const Vector2& vector) const noex
     );
 }
 
-constexpr Transform2D Transform2D::operator*(const Transform2D& other) const noexcept {
+Transform2D Transform2D::operator*(const Transform2D& other) const noexcept {
     const Vector2 newPosition = TransformPoint(other.position);
     const float newRotation = rotation + other.rotation;
     const Vector2 newScale = scale * other.scale;
@@ -1944,7 +1378,7 @@ constexpr Transform2D Transform2D::operator*(const Transform2D& other) const noe
     return Transform2D(newPosition, newRotation, newScale);
 }
 
-constexpr Transform2D& Transform2D::operator*=(const Transform2D& other) noexcept {
+Transform2D& Transform2D::operator*=(const Transform2D& other) noexcept {
     *this = *this * other;
     return *this;
 }
@@ -2113,13 +1547,13 @@ namespace Math {
     }
 
     // Transform comparison
-    bool AreTransformsEqual(const Transform& a, const Transform& b, float epsilon = EPSILON) noexcept {
+    bool AreTransformsEqual(const Transform& a, const Transform& b, float epsilon) noexcept {
         return IsNearlyEqual(Distance(a.position, b.position), 0.0f, epsilon) &&
             IsNearlyEqual(Angle(a.rotation, b.rotation), 0.0f, epsilon) &&
             IsNearlyEqual(Distance(a.scale, b.scale), 0.0f, epsilon);
     }
 
-    bool AreTransforms2DEqual(const Transform2D& a, const Transform2D& b, float epsilon = EPSILON) noexcept {
+    bool AreTransforms2DEqual(const Transform2D& a, const Transform2D& b, float epsilon) noexcept {
         return IsNearlyEqual(Distance(a.position, b.position), 0.0f, epsilon) &&
             IsNearlyEqual(AngleDifference(a.rotation, b.rotation), 0.0f, epsilon) &&
             IsNearlyEqual(Distance(a.scale, b.scale), 0.0f, epsilon);
@@ -2286,17 +1720,6 @@ Color3 Random::NextColor3() noexcept {
 Color4 Random::NextColor4() noexcept {
     return Color4(NextFloat(), NextFloat(), NextFloat(), NextFloat());
 }
-
-// =============================================================================
-// Global Random Instance and Functions
-// =============================================================================
-
-static Random g_globalRandom(static_cast<uint32_t>(std::time(nullptr)));
-
-Random& Math::GlobalRandom() noexcept {
-    return g_globalRandom;
-}
-
 
 // =============================================================================
 // Noise Implementation - Private Helpers
@@ -3410,190 +2833,4 @@ Vector3 Math::CylindricalToCartesian(const Vector3& cylindrical) noexcept {
         rho * std::sin(phi),
         z
     );
-}
-
-// =============================================================================
-// Curves and Splines Implementation
-// =============================================================================
-
-namespace Math {
-    // Bezier curve evaluation using De Casteljau's algorithm
-    template<typename T, size_t Degree>
-    constexpr T BezierCurve<T, Degree>::Evaluate(float t) const noexcept {
-        if constexpr (Degree == 0) {
-            return controlPoints[0];
-        }
-        else if constexpr (Degree == 1) {
-            return Lerp(controlPoints[0], controlPoints[1], t);
-        }
-        else if constexpr (Degree == 2) {
-            const T p01 = Lerp(controlPoints[0], controlPoints[1], t);
-            const T p12 = Lerp(controlPoints[1], controlPoints[2], t);
-            return Lerp(p01, p12, t);
-        }
-        else if constexpr (Degree == 3) {
-            const T p01 = Lerp(controlPoints[0], controlPoints[1], t);
-            const T p12 = Lerp(controlPoints[1], controlPoints[2], t);
-            const T p23 = Lerp(controlPoints[2], controlPoints[3], t);
-            const T p012 = Lerp(p01, p12, t);
-            const T p123 = Lerp(p12, p23, t);
-            return Lerp(p012, p123, t);
-        }
-        else {
-            // General case for higher-degree curves
-            std::array<T, Degree + 1> temp = controlPoints;
-
-            for (size_t j = 1; j <= Degree; ++j) {
-                for (size_t i = 0; i <= Degree - j; ++i) {
-                    temp[i] = Lerp(temp[i], temp[i + 1], t);
-                }
-            }
-
-            return temp[0];
-        }
-    }
-
-    template<typename T, size_t Degree>
-    constexpr T BezierCurve<T, Degree>::Derivative(float t) const noexcept {
-        if constexpr (Degree == 0) {
-            return T{}; // Zero derivative for constant curve
-        }
-        else {
-            std::array<T, Degree> derivativePoints;
-            for (size_t i = 0; i < Degree; ++i) {
-                derivativePoints[i] = (controlPoints[i + 1] - controlPoints[i]) * static_cast<float>(Degree);
-            }
-
-            BezierCurve<T, Degree - 1> derivativeCurve{ derivativePoints };
-            return derivativeCurve.Evaluate(t);
-        }
-    }
-
-    template<typename T, size_t Degree>
-    constexpr float BezierCurve<T, Degree>::Length(size_t subdivisions) const noexcept {
-        if (subdivisions == 0) subdivisions = 1;
-
-        float totalLength = 0.0f;
-        T previousPoint = Evaluate(0.0f);
-
-        for (size_t i = 1; i <= subdivisions; ++i) {
-            const float t = static_cast<float>(i) / static_cast<float>(subdivisions);
-            const T currentPoint = Evaluate(t);
-            totalLength += Distance(previousPoint, currentPoint);
-            previousPoint = currentPoint;
-        }
-
-        return totalLength;
-    }
-
-    // Catmull-Rom spline implementation
-    template<typename T>
-    constexpr T CatmullRomSpline<T>::Evaluate(float t) const noexcept {
-        if (controlPoints.size() < 2) {
-            return controlPoints.empty() ? T{} : controlPoints[0];
-        }
-
-        if (controlPoints.size() == 2) {
-            return Lerp(controlPoints[0], controlPoints[1], t);
-        }
-
-        // Clamp t to valid range
-        t = Clamp(t, 0.0f, 1.0f);
-
-        // Scale t to segment range
-        const float scaledT = t * static_cast<float>(controlPoints.size() - 1);
-        const size_t segmentIndex = static_cast<size_t>(scaledT);
-        const float localT = scaledT - static_cast<float>(segmentIndex);
-
-        // Get control points for current segment
-        const size_t i0 = (segmentIndex == 0) ? 0 : segmentIndex - 1;
-        const size_t i1 = segmentIndex;
-        const size_t i2 = Min(segmentIndex + 1, controlPoints.size() - 1);
-        const size_t i3 = Min(segmentIndex + 2, controlPoints.size() - 1);
-
-        const T& p0 = controlPoints[i0];
-        const T& p1 = controlPoints[i1];
-        const T& p2 = controlPoints[i2];
-        const T& p3 = controlPoints[i3];
-
-        // Catmull-Rom interpolation
-        const float t2 = localT * localT;
-        const float t3 = t2 * localT;
-
-        return 0.5f * (
-            (2.0f * p1) +
-            (-p0 + p2) * localT +
-            (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * t2 +
-            (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * t3
-            );
-    }
-
-    template<typename T>
-    constexpr T CatmullRomSpline<T>::Derivative(float t) const noexcept {
-        if (controlPoints.size() < 2) {
-            return T{};
-        }
-
-        if (controlPoints.size() == 2) {
-            return controlPoints[1] - controlPoints[0];
-        }
-
-        // Clamp t to valid range
-        t = Clamp(t, 0.0f, 1.0f);
-
-        // Scale t to segment range
-        const float scaledT = t * static_cast<float>(controlPoints.size() - 1);
-        const size_t segmentIndex = static_cast<size_t>(scaledT);
-        const float localT = scaledT - static_cast<float>(segmentIndex);
-
-        // Get control points for current segment
-        const size_t i0 = (segmentIndex == 0) ? 0 : segmentIndex - 1;
-        const size_t i1 = segmentIndex;
-        const size_t i2 = Min(segmentIndex + 1, controlPoints.size() - 1);
-        const size_t i3 = Min(segmentIndex + 2, controlPoints.size() - 1);
-
-        const T& p0 = controlPoints[i0];
-        const T& p1 = controlPoints[i1];
-        const T& p2 = controlPoints[i2];
-        const T& p3 = controlPoints[i3];
-
-        // Derivative of Catmull-Rom interpolation
-        const float t2 = localT * localT;
-
-        return 0.5f * (
-            (-p0 + p2) +
-            (2.0f * p0 - 5.0f * p1 + 4.0f * p2 - p3) * 2.0f * localT +
-            (-p0 + 3.0f * p1 - 3.0f * p2 + p3) * 3.0f * t2
-            ) * static_cast<float>(controlPoints.size() - 1);
-    }
-
-    template<typename T>
-    constexpr size_t CatmullRomSpline<T>::GetSegmentCount() const noexcept {
-        return controlPoints.size() > 1 ? controlPoints.size() - 1 : 0;
-    }
-
-    template<typename T>
-    constexpr float CatmullRomSpline<T>::GetTotalLength(size_t subdivisions) const noexcept {
-        if (subdivisions == 0) subdivisions = 1;
-
-        float totalLength = 0.0f;
-        T previousPoint = Evaluate(0.0f);
-
-        for (size_t i = 1; i <= subdivisions; ++i) {
-            const float t = static_cast<float>(i) / static_cast<float>(subdivisions);
-            const T currentPoint = Evaluate(t);
-            totalLength += Distance(previousPoint, currentPoint);
-            previousPoint = currentPoint;
-        }
-
-        return totalLength;
-    }
-
-    // Explicit template instantiations for common types
-    template class BezierCurve<Vector2, 2>;
-    template class BezierCurve<Vector2, 3>;
-    template class BezierCurve<Vector3, 2>;
-    template class BezierCurve<Vector3, 3>;
-    template class CatmullRomSpline<Vector2>;
-    template class CatmullRomSpline<Vector3>;
 }
