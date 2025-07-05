@@ -6,7 +6,7 @@
 #### 1.1 - Core Engine
 :white_check_mark: Math libarary  
 :white_check_mark: Logging system  
-:white_large_square: Memory management  
+:white_check_mark: Memory management  
 :white_large_square: Threading support  
 :white_large_square: Container library  
 
