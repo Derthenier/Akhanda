@@ -55,10 +55,13 @@
     <ClCompile Include="Core\Math\Core.Math.Vector2.cpp" />
     <ClCompile Include="Core\Math\Core.Math.Vector3.cpp" />
     <ClCompile Include="Core\Math\Core.Math.Vector4.cpp" />
+    <ClCompile Include="Core\Memory\Core.Memory.cpp" />
+    <ClCompile Include="Core\Memory\Core.Memory.ixx" />
     <!-- Renderer -->
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />
+    <ClInclude Include="Core\Memory\Core.Memory.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
