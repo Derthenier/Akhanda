@@ -1,0 +1,17 @@
+{
+  "rendering": {
+    "api": "D3D12",
+    "resolution": {
+      "width": 1920,
+      "height": 1080
+    },
+    "fullscreen": false,
+    "vsync": true,
+    "msaa_samples": 4,
+    "max_fps": 144,
+    "hdr_enabled": false,
+    "adapter_preference": 0,
+    "debug_layer": false,
+    "gpu_validation": false
+  }
+}

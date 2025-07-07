@@ -40,6 +40,10 @@
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
     <!-- Math library -->
+    <ClCompile Include="Core\Configuration\Core.ConfigManager.ixx" />
+    <ClCompile Include="Core\Configuration\Core.RendererConfig.ixx" />
+    <ClCompile Include="Core\Configuration\Core.Configuration.ixx" />
+    <ClCompile Include="Core\Configuration\Core.FileHandler.ixx" />
     <ClCompile Include="Core\Containers\Core.Containers.ixx" />
     <ClCompile Include="Core\Jobs\Core.JobSystem.cpp" />
     <ClCompile Include="Core\Jobs\Core.JobSystem.ixx" />
@@ -73,7 +77,17 @@
     <ClInclude Include="Core\Logging\SpdlogIntegration.hpp" />
     <ClInclude Include="Core\Memory\Core.Memory.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
+    <Import Project="..\packages\nlohmann.json.3.12.0\build\native\nlohmann.json.targets" Condition="Exists('..\packages\nlohmann.json.3.12.0\build\native\nlohmann.json.targets')" />
   </ImportGroup>
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>This project references NuGet package(s) that are missing on this computer. Use NuGet Package Restore to download them.  For more information, see http://go.microsoft.com/fwlink/?LinkID=322105. The missing file is {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\nlohmann.json.3.12.0\build\native\nlohmann.json.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\nlohmann.json.3.12.0\build\native\nlohmann.json.targets'))" />
+  </Target>
 </Project>

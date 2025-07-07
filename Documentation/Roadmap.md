@@ -9,7 +9,7 @@
 :white_check_mark: Memory management  
 :white_check_mark: Threading support  
 :white_check_mark: Container library  
-:white_large_square: Configuration system
+:white_check_mark: Configuration system
 
 #### 1.2 - Windowing
 :white_large_square: Platform abstraction layer  
