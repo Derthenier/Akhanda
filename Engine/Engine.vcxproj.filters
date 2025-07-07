@@ -26,11 +26,19 @@
     <ClCompile Include="Core\Threading\Core.Threading.cpp" />
     <ClCompile Include="Core\Jobs\Core.JobSystem.ixx" />
     <ClCompile Include="Core\Jobs\Core.JobSystem.cpp" />
+    <ClCompile Include="Core\Containers\Core.Containers.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />
     <ClInclude Include="Core\Memory\Core.Memory.hpp" />
     <ClInclude Include="Core\Logging\EditorSink.hpp" />
     <ClInclude Include="Core\Logging\SpdlogIntegration.hpp" />
+    <ClInclude Include="Core\Containers\AllocatorAware.hpp" />
+    <ClInclude Include="Core\Containers\ContainerTraits.hpp" />
+    <ClInclude Include="Core\Containers\HashMap.hpp" />
+    <ClInclude Include="Core\Containers\StaticArray.hpp" />
+    <ClInclude Include="Core\Containers\Vector.hpp" />
+    <ClInclude Include="Core\Containers\Queue.hpp" />
+    <ClInclude Include="Core\Containers\Stack.hpp" />
   </ItemGroup>
 </Project>
