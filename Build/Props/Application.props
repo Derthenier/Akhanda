@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="Common.props" />
-
+  
   <PropertyGroup>
-    <ConfigurationType>DynamicLibrary</ConfigurationType>
-    <!-- Plugins should have configuration in name for debugging -->
+    <ConfigurationType>Application</ConfigurationType>
+    <!-- Applications should have configuration in name for debugging -->
     <TargetName>$(MSBuildProjectName)_$(Configuration)</TargetName>
   </PropertyGroup>
-
+  
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>
@@ -15,12 +15,11 @@
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>
-        AKH_PLUGIN;
-        AKH_PLUGIN_BUILDING;
+        AKH_APPLICATION;
         %(PreprocessorDefinitions)
       </PreprocessorDefinitions>
     </ClCompile>
-
+    
     <Link>
       <AdditionalDependencies>
         Engine.lib;
@@ -30,8 +29,8 @@
         $(OutputPath);
         %(AdditionalLibraryDirectories)
       </AdditionalLibraryDirectories>
-      <!-- Export symbols for plugin loading -->
-      <ModuleDefinitionFile Condition="Exists('$(ProjectDir)Source\$(MSBuildProjectName).def')">$(ProjectDir)Source\$(MSBuildProjectName).def</ModuleDefinitionFile>
+      <SubSystem>Windows</SubSystem>
+      <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
 </Project>

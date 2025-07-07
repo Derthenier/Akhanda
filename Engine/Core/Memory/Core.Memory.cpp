@@ -8,7 +8,6 @@ module;
 #include <chrono>
 #include <cstdlib>
 #include <cstring>
-#include <format>
 #include <iomanip>
 #include <memory>
 #include <mutex>
@@ -127,25 +126,22 @@ namespace {
                 return;
             }
 
-            auto msg = std::format("Memory leak detection: {} leaked allocations found", allocations_.size());
-            logger.Error(msg);
+            logger.ErrorFormat("Memory leak detection: {} leaked allocations found", allocations_.size());
 
             size_t totalLeakedBytes = 0;
             for (const auto& [ptr, info] : allocations_) {
                 totalLeakedBytes += info.size;
 
-                auto msg1 = std::format("LEAK: {} bytes at 0x{:X} from {}:{} in {} (allocator: {})",
+                logger.ErrorFormat("LEAK: {} bytes at 0x{:X} from {}:{} in {} (allocator: {})",
                     info.size,
                     reinterpret_cast<uintptr_t>(ptr),
                     info.location.file_name(),
                     info.location.line(),
                     info.location.function_name(),
                     info.allocatorName);
-                logger.Error(msg1);
             }
 
-            auto totalMsg = std::format("Total leaked memory: {}", FormatBytes(totalLeakedBytes));
-            logger.Error(totalMsg);
+            logger.ErrorFormat("Total leaked memory: {}", FormatBytes(totalLeakedBytes));
         }
 
         void SetEnabled(bool enabled) {
@@ -183,18 +179,16 @@ public:
             throw std::bad_alloc();
         }
 
-        auto msg = std::format("LinearAllocator '{}' created with {} of memory",
+        Channels::Engine().InfoFormat("LinearAllocator '{}' created with {} of memory",
             name_, FormatBytes(size));
-        Channels::Engine().Info(msg);
     }
 
     ~Impl() {
         if (memory_) {
-            auto msg = std::format("LinearAllocator '{}' destroyed. Peak usage: {} / {}",
+            Channels::Engine().InfoFormat("LinearAllocator '{}' destroyed. Peak usage: {} / {}",
                 name_,
                 FormatBytes(stats_.GetPeakUsage()),
                 FormatBytes(totalSize_));
-            Channels::Engine().Info(msg);
             PlatformAlignedFree(memory_);
         }
     }
@@ -208,9 +202,8 @@ public:
         const size_t alignedSize = AlignUp(size, DEFAULT_ALIGNMENT);
 
         if (alignedOffset + alignedSize > totalSize_) {
-            auto msg = std::format("LinearAllocator '{}' out of memory. Requested: {}, Available: {}",
+            Channels::Engine().ErrorFormat("LinearAllocator '{}' out of memory. Requested: {}, Available: {}",
                 name_, FormatBytes(alignedSize), FormatBytes(totalSize_ - alignedOffset));
-            Channels::Engine().Error(msg);
             return nullptr;
         }
 
@@ -259,9 +252,8 @@ public:
         stats_.activeAllocations.store(0, std::memory_order_relaxed);
         stats_.freeCount.fetch_add(1, std::memory_order_relaxed);
 
-        auto msg = std::format("LinearAllocator '{}' reset. Freed {}",
+        Channels::Engine().InfoFormat("LinearAllocator '{}' reset. Freed {}",
             name_, FormatBytes(wasUsed));
-        Channels::Engine().Info(msg);
     }
 
     bool OwnsPointer(void* ptr) const {
@@ -355,18 +347,16 @@ public:
         // Initialize free list
         InitializeFreeList();
 
-        auto msg = std::format("PoolAllocator '{}' created: {} blocks of {} each ({})",
+        Channels::Engine().InfoFormat("PoolAllocator '{}' created: {} blocks of {} each ({})",
             name_, blockCount_, FormatBytes(blockSize_), FormatBytes(totalSize_));
-        Channels::Engine().Info(msg);
     }
 
     ~Impl() {
         if (memory_) {
-            auto msg = std::format("PoolAllocator '{}' destroyed. {} / {} blocks used at peak",
+            Channels::Engine().InfoFormat("PoolAllocator '{}' destroyed. {} / {} blocks used at peak",
                 name_,
                 blockCount_ - stats_.GetPeakUsage() / blockSize_,
                 blockCount_);
-            Channels::Engine().Info(msg);
             PlatformAlignedFree(memory_);
         }
     }
@@ -375,24 +365,21 @@ public:
         if (size == 0) return nullptr;
 
         if (size > blockSize_) {
-            auto msg = std::format("PoolAllocator '{}' cannot allocate {} (block size: {})",
+            Channels::Engine().ErrorFormat("PoolAllocator '{}' cannot allocate {} (block size: {})",
                 name_, FormatBytes(size), FormatBytes(blockSize_));
-            Channels::Engine().Error(msg);
             return nullptr;
         }
 
         if (alignment > alignment_) {
-            auto msg = std::format("PoolAllocator '{}' cannot provide alignment {} (max: {})",
+            Channels::Engine().ErrorFormat("PoolAllocator '{}' cannot provide alignment {} (max: {})",
                 name_, alignment, alignment_);
-            Channels::Engine().Error(msg);
             return nullptr;
         }
 
         std::lock_guard<std::shared_mutex> lock(mutex_);
 
         if (!freeHead_) {
-            auto msg = std::format("PoolAllocator '{}' out of blocks", name_);
-            Channels::Engine().Error(msg);
+            Channels::Engine().ErrorFormat("PoolAllocator '{}' out of blocks", name_);
             return nullptr;
         }
 
@@ -424,9 +411,8 @@ public:
         if (!ptr) return;
 
         if (!OwnsPointer(ptr)) {
-            auto msg = std::format("PoolAllocator '{}' does not own pointer 0x{:X}",
+            Channels::Engine().ErrorFormat("PoolAllocator '{}' does not own pointer 0x{:X}",
                 name_, reinterpret_cast<uintptr_t>(ptr));
-            Channels::Engine().Error(msg);
             return;
         }
 
@@ -459,9 +445,8 @@ public:
         stats_.activeAllocations.store(0, std::memory_order_relaxed);
         stats_.freeCount.fetch_add(1, std::memory_order_relaxed);
 
-        auto msg = std::format("PoolAllocator '{}' reset. Freed {}",
+        Channels::Engine().InfoFormat("PoolAllocator '{}' reset. Freed {}",
             name_, FormatBytes(wasUsed));
-        Channels::Engine().Info(msg);
     }
 
     bool OwnsPointer(void* ptr) const {
@@ -586,18 +571,16 @@ public:
             throw std::bad_alloc();
         }
 
-        auto msg = std::format("StackAllocator '{}' created with {}",
+        Channels::Engine().InfoFormat("StackAllocator '{}' created with {}",
             name_, FormatBytes(size));
-        Channels::Engine().Info(msg);
     }
 
     ~Impl() {
         if (memory_) {
-            auto msg = std::format("StackAllocator '{}' destroyed. Peak usage: {} / {}",
+            Channels::Engine().InfoFormat("StackAllocator '{}' destroyed. Peak usage: {} / {}",
                 name_,
                 FormatBytes(stats_.GetPeakUsage()),
                 FormatBytes(totalSize_));
-            Channels::Engine().Info(msg);
             PlatformAlignedFree(memory_);
         }
     }
@@ -613,10 +596,9 @@ public:
         const size_t totalAllocationSize = dataOffset + size - currentOffset_;
 
         if (currentOffset_ + totalAllocationSize > totalSize_) {
-            auto msg = std::format("StackAllocator '{}' out of memory. Requested: {}, Available: {}",
+            Channels::Engine().ErrorFormat("StackAllocator '{}' out of memory. Requested: {}, Available: {}",
                 name_, FormatBytes(totalAllocationSize),
                 FormatBytes(totalSize_ - currentOffset_));
-            Channels::Engine().Error(msg);
             return nullptr;
         }
 
@@ -683,9 +665,8 @@ public:
             }
         }
 
-        auto msg = std::format("StackAllocator '{}' invalid deallocation at 0x{:X}",
+        Channels::Engine().ErrorFormat("StackAllocator '{}' invalid deallocation at 0x{:X}",
             name_, reinterpret_cast<uintptr_t>(ptr));
-        Channels::Engine().Error(msg);
     }
 
     void Reset() {
@@ -699,9 +680,8 @@ public:
         stats_.activeAllocations.store(0, std::memory_order_relaxed);
         stats_.freeCount.fetch_add(1, std::memory_order_relaxed);
 
-        auto msg = std::format("StackAllocator '{}' reset. Freed {}",
+        Channels::Engine().InfoFormat("StackAllocator '{}' reset. Freed {}",
             name_, FormatBytes(wasUsed));
-        Channels::Engine().Info(msg);
     }
 
     bool OwnsPointer(void* ptr) const {
@@ -729,9 +709,8 @@ public:
             stats_.currentUsage.store(currentOffset_, std::memory_order_relaxed);
             stats_.freeCount.fetch_add(1, std::memory_order_relaxed);
 
-            auto msg = std::format("StackAllocator '{}' rewound to marker. Freed {}",
+            Channels::Engine().InfoFormat("StackAllocator '{}' rewound to marker. Freed {}",
                 name_, FormatBytes(freedBytes));
-            Channels::Engine().Info(msg);
         }
     }
 
@@ -804,16 +783,14 @@ void StackAllocator::RewindToMarker(const Marker& marker) {
 class HeapAllocator::Impl {
 public:
     explicit Impl(const char* name) : name_(name) {
-        auto msg = std::format("HeapAllocator '{}' created", name_);
-        Channels::Engine().Info(msg);
+        Channels::Engine().InfoFormat("HeapAllocator '{}' created", name_);
     }
 
     ~Impl() {
-        auto msg = std::format("HeapAllocator '{}' destroyed. Total allocated: {}, Peak usage: {}",
+        Channels::Engine().InfoFormat("HeapAllocator '{}' destroyed. Total allocated: {}, Peak usage: {}",
             name_,
             FormatBytes(stats_.GetTotalAllocated()),
             FormatBytes(stats_.GetPeakUsage()));
-        Channels::Engine().Info(msg);
     }
 
     void* Allocate(size_t size, size_t alignment, const std::source_location& location) {
@@ -821,9 +798,8 @@ public:
 
         void* result = PlatformAlignedAlloc(size, alignment);
         if (!result) {
-            auto msg = std::format("HeapAllocator '{}' failed to allocate {}",
+            Channels::Engine().ErrorFormat("HeapAllocator '{}' failed to allocate {}",
                 name_, FormatBytes(size));
-            Channels::Engine().Error(msg);
             return nullptr;
         }
 
@@ -867,8 +843,7 @@ public:
 
     void Reset() {
         // Heap allocator cannot reset all allocations
-        auto msg = std::format("HeapAllocator '{}' reset requested but cannot free individual allocations", name_);
-        Channels::Engine().Warning(msg);
+        Channels::Engine().WarningFormat("HeapAllocator '{}' reset requested but cannot free individual allocations", name_);
     }
 
     bool OwnsPointer([[maybe_unused]] void* ptr) const {
@@ -991,8 +966,7 @@ public:
         customAllocators_[name] = std::move(allocator);
         allocators_[name] = customAllocators_[name].get();
 
-        auto msg = std::format("Registered custom allocator '{}'", name);
-        Channels::Engine().Info(msg);
+        Channels::Engine().InfoFormat("Registered custom allocator '{}'", name);
     }
 
     void UnregisterAllocator(const char* name) {
@@ -1001,8 +975,7 @@ public:
         allocators_.erase(name);
         customAllocators_.erase(name);
 
-        auto msg = std::format("Unregistered allocator '{}'", name);
-        Channels::Engine().Info(msg);
+        Channels::Engine().InfoFormat("Unregistered allocator '{}'", name);
     }
 
     IAllocator* GetAllocator(const char* name) {
@@ -1024,8 +997,7 @@ public:
         MemoryTracker::Instance().SetEnabled(enable);
         trackingEnabled_ = enable;
 
-        auto msg = std::format("Memory tracking {}", enable ? "enabled" : "disabled");
-        Channels::Engine().Info(msg);
+        Channels::Engine().InfoFormat("Memory tracking {}", enable ? "enabled" : "disabled");
     }
 
     bool IsMemoryTrackingEnabled() const {
@@ -1042,24 +1014,16 @@ public:
         logger.Info("=== Global Memory Statistics ===");
 
         const auto globalStats = GetGlobalStatistics();
-        auto msg = std::format("Total allocated: {}", FormatBytes(globalStats.GetTotalAllocated()));
-        logger.Info(msg);
-        msg = std::format("Total freed: {}", FormatBytes(globalStats.totalFreed.load()));
-        logger.Info(msg);
-        msg = std::format("Current usage: {}", FormatBytes(globalStats.GetCurrentUsage()));
-        logger.Info(msg);
-        msg = std::format("Peak usage: {}", FormatBytes(globalStats.GetPeakUsage()));
-        logger.Info(msg);
-        msg = std::format("Active allocations: {}", globalStats.GetActiveAllocations());
-        logger.Info(msg);
-        msg = std::format("Allocation count: {}", globalStats.allocationCount.load());
-        logger.Info(msg);
-        msg = std::format("Free count: {}", globalStats.freeCount.load());
-        logger.Info(msg);
+        logger.InfoFormat("Total allocated: {}", FormatBytes(globalStats.GetTotalAllocated()));
+        logger.InfoFormat("Total freed: {}", FormatBytes(globalStats.totalFreed.load()));
+        logger.InfoFormat("Current usage: {}", FormatBytes(globalStats.GetCurrentUsage()));
+        logger.InfoFormat("Peak usage: {}", FormatBytes(globalStats.GetPeakUsage()));
+        logger.InfoFormat("Active allocations: {}", globalStats.GetActiveAllocations());
+        logger.InfoFormat("Allocation count: {}", globalStats.allocationCount.load());
+        logger.InfoFormat("Free count: {}", globalStats.freeCount.load());
 
         if (MemoryTracker::Instance().IsEnabled()) {
-            auto msg1 = std::format("Tracked allocations: {}", MemoryTracker::Instance().GetTrackedAllocationCount());
-            logger.Info(msg1);
+            logger.InfoFormat("Tracked allocations: {}", MemoryTracker::Instance().GetTrackedAllocationCount());
         }
     }
 
@@ -1071,13 +1035,12 @@ public:
 
         for (const auto& [name, allocator] : allocators_) {
             const auto& stats = allocator->GetStatistics();
-            auto msg = std::format("Allocator '{}': {} / {} used, {} peak, {} allocations",
+            logger.InfoFormat("Allocator '{}': {} / {} used, {} peak, {} allocations",
                 name,
                 FormatBytes(allocator->GetUsedSize()),
                 FormatBytes(allocator->GetTotalSize()),
                 FormatBytes(stats.GetPeakUsage()),
                 stats.GetActiveAllocations());
-            logger.Info(msg);
         }
     }
 

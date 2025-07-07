@@ -19,13 +19,10 @@
     <ProjectGuid>{6EBA6490-35F7-4578-B7E8-EEA36BA09570}</ProjectGuid>
     <RootNamespace>Engine</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
-    <IntDir>$(SolutionDir)Build\Output\Intermediate\$(ProjectName)\$(Platform)\$(Configuration)\</IntDir>
-    <OutDir>$(SolutionDir)Build\Output\Bin\$(Platform)\$(Configuration)\</OutDir>
-    <TargetName>$(ProjectName)</TargetName>
   </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="..\Build\Props\Engine.props" />
   <Import Project="..\Build\Props\ThirdParty.props" />
-  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
@@ -43,9 +40,10 @@
   <PropertyGroup Label="UserMacros" />
   <ItemGroup>
     <!-- Math library -->
+    <ClCompile Include="Core\Jobs\Core.JobSystem.cpp" />
+    <ClCompile Include="Core\Jobs\Core.JobSystem.ixx" />
     <ClCompile Include="Core\Logging\Core.Logging.cpp" />
     <ClCompile Include="Core\Logging\Core.Logging.ixx" />
-    <ClCompile Include="Core\Logging\Core.Logging.Sinks.cpp" />
     <ClCompile Include="Core\Math\Core.Math.cpp" />
     <ClCompile Include="Core\Math\Core.Math.ixx" />
     <ClCompile Include="Core\Math\Core.Math.Matrix3.cpp" />
@@ -57,10 +55,14 @@
     <ClCompile Include="Core\Math\Core.Math.Vector4.cpp" />
     <ClCompile Include="Core\Memory\Core.Memory.cpp" />
     <ClCompile Include="Core\Memory\Core.Memory.ixx" />
+    <ClCompile Include="Core\Threading\Core.Threading.cpp" />
+    <ClCompile Include="Core\Threading\Core.Threading.ixx" />
     <!-- Renderer -->
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />
+    <ClInclude Include="Core\Logging\EditorSink.hpp" />
+    <ClInclude Include="Core\Logging\SpdlogIntegration.hpp" />
     <ClInclude Include="Core\Memory\Core.Memory.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

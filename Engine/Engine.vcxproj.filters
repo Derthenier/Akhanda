@@ -20,12 +20,17 @@
     <ClCompile Include="Core\Math\Core.Math.SIMD.cpp" />
     <ClCompile Include="Core\Logging\Core.Logging.ixx" />
     <ClCompile Include="Core\Logging\Core.Logging.cpp" />
-    <ClCompile Include="Core\Logging\Core.Logging.Sinks.cpp" />
     <ClCompile Include="Core\Memory\Core.Memory.ixx" />
     <ClCompile Include="Core\Memory\Core.Memory.cpp" />
+    <ClCompile Include="Core\Threading\Core.Threading.ixx" />
+    <ClCompile Include="Core\Threading\Core.Threading.cpp" />
+    <ClCompile Include="Core\Jobs\Core.JobSystem.ixx" />
+    <ClCompile Include="Core\Jobs\Core.JobSystem.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />
     <ClInclude Include="Core\Memory\Core.Memory.hpp" />
+    <ClInclude Include="Core\Logging\EditorSink.hpp" />
+    <ClInclude Include="Core\Logging\SpdlogIntegration.hpp" />
   </ItemGroup>
 </Project>

@@ -7,8 +7,9 @@
 :white_check_mark: Math libarary  
 :white_check_mark: Logging system  
 :white_check_mark: Memory management  
-:white_large_square: Threading support  
+:white_check_mark: Threading support  
 :white_large_square: Container library  
+:white_large_square: Configuration system
 
 #### 1.2 - Windowing
 :white_large_square: Platform abstraction layer  

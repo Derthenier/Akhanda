@@ -1,11 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="Common.props" />
-  
+
+  <PropertyGroup>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <!-- Override target name for Engine specifically - we want just "Engine" not "Engine_Debug" for the lib -->
+    <TargetName>Engine</TargetName>
+  </PropertyGroup>
+
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>$(SolutionDir)Engine;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>AKH_ENGINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>
+        $(SolutionDir)Engine;
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>
+        AKH_ENGINE;
+        AKH_ENGINE_BUILDING;
+        %(PreprocessorDefinitions)
+      </PreprocessorDefinitions>
     </ClCompile>
+
+    <Lib>
+      <!-- Static library specific settings -->
+      <AdditionalOptions>/IGNORE:4221 %(AdditionalOptions)</AdditionalOptions>
+    </Lib>
   </ItemDefinitionGroup>
 </Project>

@@ -2,7 +2,17 @@
   <PropertyGroup>
     <SolutionDir>$(MSBuildThisFileDirectory)</SolutionDir>
     <OutDir>$(SolutionDir)Build\Output\Bin\$(Platform)\$(Configuration)\</OutDir>
-    <IntermediateOutputPath>$(SolutionDir)Build\Output\Intermediate\$(ProjectName)\$(Platform)\$(Configuration)\</IntermediateOutputPath>
-    <TargetName>$(ProjectName)_$(Configuration)</TargetName>
+    <IntermediateOutputPath>$(SolutionDir)Build\Output\Intermediate\$(MSBuildProjectName)\$(Platform)\$(Configuration)\</IntermediateOutputPath>
+
+    <!-- Use MSBuildProjectName which is available earlier in evaluation -->
+    <TargetName>$(MSBuildProjectName)_$(Configuration)</TargetName>
+
+    <!-- Global versioning -->
+    <VersionMajor>1</VersionMajor>
+    <VersionMinor>0</VersionMinor>
+    <VersionPatch>0</VersionPatch>
+    <VersionBuild>0</VersionBuild>
+    <AssemblyVersion>$(VersionMajor).$(VersionMinor).$(VersionPatch).$(VersionBuild)</AssemblyVersion>
+    <FileVersion>$(AssemblyVersion)</FileVersion>
   </PropertyGroup>
 </Project>

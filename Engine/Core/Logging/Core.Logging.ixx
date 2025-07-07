@@ -1,4 +1,5 @@
-﻿module;
+
+module;
 
 #include <atomic>
 #include <string_view>
@@ -7,6 +8,8 @@
 #include <chrono>
 #include <thread>
 #include <string>
+#include <memory>
+#include <functional>
 
 export module Akhanda.Core.Logging;
 
@@ -24,7 +27,7 @@ export namespace Akhanda::Logging {
 }
 
 // =============================================================================
-// Log Levels
+// Log Levels (unchanged from original)
 // =============================================================================
 
 export namespace Akhanda::Logging {
@@ -51,10 +54,21 @@ export namespace Akhanda::Logging {
     constexpr bool IsValidLevel(LogLevel level) noexcept {
         return level >= LogLevel::Debug && level < LogLevel::Count;
     }
+
+    // Compile-time level filtering for zero-cost logging
+    constexpr bool ShouldCompileLog([[maybe_unused]] LogLevel level) noexcept {
+#ifdef AKH_DEBUG
+        return true; // All levels in debug
+#elif defined(AKH_PROFILE)
+        return level >= LogLevel::Info; // Info and above in profile
+#else
+        return level >= LogLevel::Warning; // Warning and above in release
+#endif
+    }
 }
 
 // =============================================================================
-// Log Entry Structure
+// Log Entry Structure (simplified)
 // =============================================================================
 
 export namespace Akhanda::Logging {
@@ -81,7 +95,7 @@ export namespace Akhanda::Logging {
 }
 
 // =============================================================================
-// Log Sink Interface
+// Log Sink Interface (simplified)
 // =============================================================================
 
 export namespace Akhanda::Logging {
@@ -97,26 +111,19 @@ export namespace Akhanda::Logging {
         virtual void SetLevel(LogLevel minLevel) = 0;
         virtual LogLevel GetLevel() const = 0;
 
-        // Thread safety
-        virtual bool IsThreadSafe() const = 0;
-
-        // Performance hints
-        virtual bool SupportsAsync() const = 0;
-        virtual size_t GetPreferredBatchSize() const { return 1; }
+        // Identification
+        virtual std::string_view GetName() const = 0;
     };
 }
 
 // =============================================================================
-// Log Channel
+// Log Channel (same public API)
 // =============================================================================
 
 export namespace Akhanda::Logging {
     class LogChannel {
     public:
-        explicit LogChannel(std::string_view name) noexcept
-            : name_(name)
-            , level_(LogLevel::Debug) {
-        }
+        explicit LogChannel(std::string_view name) noexcept;
 
         // Non-copyable, movable
         LogChannel(const LogChannel&) = delete;
@@ -124,89 +131,100 @@ export namespace Akhanda::Logging {
         LogChannel(LogChannel&&) = default;
         LogChannel& operator=(LogChannel&&) = default;
 
-        // Core logging methods
+        // Core logging methods (unchanged API)
         void Log(LogLevel level, std::string_view message,
             const std::source_location& location = std::source_location::current()) const;
 
-        // Formatted logging
+        // Formatted logging (unchanged API)
         template<typename... Args>
-        void LogFormat(LogLevel level, std::format_string<Args...> fmt, Args&&... args,
-            const std::source_location& location = std::source_location::current()) const;
+        void LogFormat(LogLevel level, std::format_string<Args...> fmt, Args&&... args) const;
 
-        // Convenience methods
-        void Debug(std::string_view message, const std::source_location& location = std::source_location::current()) const {
+        // Convenience methods (unchanged API)
+        void Debug(std::string_view message,
+            const std::source_location& location = std::source_location::current()) const {
             Log(LogLevel::Debug, message, location);
         }
 
-        void Info(std::string_view message, const std::source_location& location = std::source_location::current()) const {
+        void Info(std::string_view message,
+            const std::source_location& location = std::source_location::current()) const {
             Log(LogLevel::Info, message, location);
         }
 
-        void Warning(std::string_view message, const std::source_location& location = std::source_location::current()) const {
+        void Warning(std::string_view message,
+            const std::source_location& location = std::source_location::current()) const {
             Log(LogLevel::Warning, message, location);
         }
 
-        void Error(std::string_view message, const std::source_location& location = std::source_location::current()) const {
+        void Error(std::string_view message,
+            const std::source_location& location = std::source_location::current()) const {
             Log(LogLevel::Error, message, location);
         }
 
-        void Fatal(std::string_view message, const std::source_location& location = std::source_location::current()) const {
+        void Fatal(std::string_view message,
+            const std::source_location& location = std::source_location::current()) const {
             Log(LogLevel::Fatal, message, location);
         }
 
-        // Formatted convenience methods
+        // Formatted convenience methods (unchanged API)
         template<typename... Args>
-        void DebugFormat(std::format_string<Args...> fmt, Args&&... args,
-            const std::source_location& location = std::source_location::current()) const {
-            LogFormat(LogLevel::Debug, fmt, std::forward<Args>(args)..., location);
-        }
-
-        template<typename... Args>
-        void InfoFormat(std::format_string<Args...> fmt, Args&&... args,
-            const std::source_location& location = std::source_location::current()) const {
-            LogFormat(LogLevel::Info, fmt, std::forward<Args>(args)..., location);
+        void DebugFormat(std::format_string<Args...> fmt, Args&&... args) const {
+            LogFormat(LogLevel::Debug, fmt, std::forward<Args>(args)...);
         }
 
         template<typename... Args>
-        void WarningFormat(std::format_string<Args...> fmt, Args&&... args,
-            const std::source_location& location = std::source_location::current()) const {
-            LogFormat(LogLevel::Warning, fmt, std::forward<Args>(args)..., location);
+        void InfoFormat(std::format_string<Args...> fmt, Args&&... args) const {
+            LogFormat(LogLevel::Info, fmt, std::forward<Args>(args)...);
         }
 
         template<typename... Args>
-        void ErrorFormat(std::format_string<Args...> fmt, Args&&... args,
-            const std::source_location& location = std::source_location::current()) const {
-            LogFormat(LogLevel::Error, fmt, std::forward<Args>(args)..., location);
+        void WarningFormat(std::format_string<Args...> fmt, Args&&... args) const {
+            LogFormat(LogLevel::Warning, fmt, std::forward<Args>(args)...);
         }
 
         template<typename... Args>
-        void FatalFormat(std::format_string<Args...> fmt, Args&&... args,
-            const std::source_location& location = std::source_location::current()) const {
-            LogFormat(LogLevel::Fatal, fmt, std::forward<Args>(args)..., location);
+        void ErrorFormat(std::format_string<Args...> fmt, Args&&... args) const {
+            LogFormat(LogLevel::Error, fmt, std::forward<Args>(args)...);
         }
 
-        // Configuration
-        void SetLevel(LogLevel level) noexcept { level_.store(level, std::memory_order_relaxed); }
-        LogLevel GetLevel() const noexcept { return level_.load(std::memory_order_relaxed); }
-
-        // Query
-        std::string_view GetName() const noexcept { return name_; }
-        bool ShouldLog(LogLevel level) const noexcept {
-            return level >= level_.load(std::memory_order_relaxed);
+        template<typename... Args>
+        void FatalFormat(std::format_string<Args...> fmt, Args&&... args) const {
+            LogFormat(LogLevel::Fatal, fmt, std::forward<Args>(args)...);
         }
+
+        // Configuration (unchanged API)
+        void SetLevel(LogLevel level) noexcept;
+        LogLevel GetLevel() const noexcept;
+
+        // Query (unchanged API)
+        std::string_view GetName() const noexcept;
+        bool ShouldLog(LogLevel level) const noexcept;
+
+        // Internal interface for LogManager (public but not intended for general use)
+        void AddSink(std::shared_ptr<void> sink);  // Using void* to avoid spdlog dependency in header
+        void RemoveSink(void* sink);
 
     private:
-        std::string_view name_;
+        std::string name_;
         std::atomic<LogLevel> level_;
+
+        // spdlog logger instance (implementation detail)
+        class Impl;
+        std::unique_ptr<Impl> impl_;
+
+        // Friend declarations for internal access
+        friend class LogManager;
     };
 }
 
 // =============================================================================
-// Log Manager
+// Log Manager (same public API)
 // =============================================================================
 
 export namespace Akhanda::Logging {
     class LogManager {
+        using MemoryAllocationCallback = std::function<void(size_t, const char*)>;
+        using MemoryDeallocationCallback = std::function<void(size_t, const char*)>;
+
     public:
         static LogManager& Instance() noexcept;
 
@@ -216,53 +234,68 @@ export namespace Akhanda::Logging {
         LogManager(LogManager&&) = delete;
         LogManager& operator=(LogManager&&) = delete;
 
-        // Lifecycle
+        // Lifecycle (unchanged API)
         void Initialize();
         void Shutdown();
 
-        // Channel management
+        // Channel management (unchanged API)
         LogChannel& GetChannel(std::string_view name);
         void RemoveChannel(std::string_view name);
 
-        // Sink management
+        // Sink management (unchanged API) 
         void AddSink(std::unique_ptr<ILogSink> sink);
         void RemoveSink(ILogSink* sink);
         void ClearSinks();
 
-        // Global configuration
+        // Global configuration (unchanged API)
         void SetGlobalLevel(LogLevel level);
         LogLevel GetGlobalLevel() const;
 
-        // Core logging (called by channels)
+        // Core logging (called by channels - unchanged API)
         void Log(const LogEntry& entry);
 
-        // Performance monitoring
+        // Performance monitoring (unchanged API)
         struct Statistics {
             std::atomic<uint64_t> messagesLogged{ 0 };
             std::atomic<uint64_t> messagesDropped{ 0 };
             std::atomic<uint64_t> bytesWritten{ 0 };
             std::atomic<uint64_t> flushCount{ 0 };
+
+            void Reset() noexcept {
+                messagesLogged.store(0, std::memory_order_relaxed);
+                messagesDropped.store(0, std::memory_order_relaxed);
+                bytesWritten.store(0, std::memory_order_relaxed);
+                flushCount.store(0, std::memory_order_relaxed);
+            }
         };
 
         const Statistics& GetStatistics() const noexcept;
         void ResetStatistics() noexcept;
+        void UpdateStatistics(size_t messageBytes);
 
-        // Thread safety and performance
+        // Thread safety and performance (unchanged API)
         void Flush();
         void SetAsyncMode(bool enabled);
         bool IsAsyncMode() const;
 
-    private:
-        LogManager() = default;
-        ~LogManager() = default;
+        // Editor integration
+        using EditorLogCallback = std::function<void(const LogEntry&)>;
+        void SetEditorCallback(EditorLogCallback callback);
+        void ClearEditorCallback();
+        void SetMemoryTrackingCallbacks(MemoryAllocationCallback alloc, MemoryDeallocationCallback dealloc);
+        void ClearMemoryTrackingCallbacks();
 
-        std::atomic<LogLevel> globalLevel_{ LogLevel::Debug };
-        std::atomic<bool> asyncMode_{ true };
+    private:
+        LogManager();
+        ~LogManager();
+
+        class Impl;
+        std::unique_ptr<Impl> impl_;
     };
 }
 
 // =============================================================================
-// Scoped Logging Utilities
+// Scoped Logging Utilities (unchanged API)
 // =============================================================================
 
 export namespace Akhanda::Logging {
@@ -270,33 +303,9 @@ export namespace Akhanda::Logging {
     class ScopeLogger {
     public:
         ScopeLogger(LogChannel& channel, std::string_view scopeName,
-            const std::source_location& location = std::source_location::current()) noexcept
-            : channel_(channel)
-            , scopeName_(scopeName)
-            , startTime_(std::chrono::high_resolution_clock::now())
-            , location_(location) {
+            const std::source_location& location = std::source_location::current()) noexcept;
 
-            if (channel_.ShouldLog(LogLevel::Debug)) {
-                std::string message = "Entering scope: ";
-                message += scopeName_;
-                channel_.Log(LogLevel::Debug, message, location_);
-            }
-        }
-
-        ~ScopeLogger() noexcept {
-            if (channel_.ShouldLog(LogLevel::Debug)) {
-                const auto endTime = std::chrono::high_resolution_clock::now();
-                const auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime_);
-
-                std::string message = "Exiting scope: ";
-                message += scopeName_;
-                message += " (";
-                message += std::to_string(duration.count());
-                message += "μs)";
-
-                channel_.Log(LogLevel::Debug, message, location_);
-            }
-        }
+        ~ScopeLogger() noexcept;
 
         // Non-copyable, non-movable
         ScopeLogger(const ScopeLogger&) = delete;
@@ -306,29 +315,34 @@ export namespace Akhanda::Logging {
 
     private:
         LogChannel& channel_;
-        std::string_view scopeName_;
+        std::string scopeName_;
         std::chrono::high_resolution_clock::time_point startTime_;
         std::source_location location_;
     };
 }
 
 // =============================================================================
-// Compile-Time Configuration
+// Template Implementations
 // =============================================================================
 
 export namespace Akhanda::Logging {
-    // Compile-time log level filtering
-#ifdef AKH_DEBUG
-    constexpr LogLevel COMPILE_TIME_LOG_LEVEL = LogLevel::Debug;
-#elif defined(AKH_PROFILE)
-    constexpr LogLevel COMPILE_TIME_LOG_LEVEL = LogLevel::Info;
-#else
-    constexpr LogLevel COMPILE_TIME_LOG_LEVEL = LogLevel::Warning;
-#endif
+    template<typename... Args>
+    void LogChannel::LogFormat(LogLevel level, std::format_string<Args...> fmt, Args&&... args) const {
 
-    // Compile-time check for log level
-    constexpr bool ShouldCompileLog(LogLevel level) noexcept {
-        return level >= COMPILE_TIME_LOG_LEVEL;
+        // Early exit if this level won't be logged
+        if (!ShouldLog(level)) {
+            return;
+        }
+
+        try {
+            // Use std::format for safe formatting
+            auto formatted = std::format(fmt, std::forward<Args>(args)...);
+            Log(level, formatted, std::source_location::current());
+        }
+        catch (const std::exception&) {
+            // Format error - log the error instead
+            Log(LogLevel::Error, "LOG FORMAT ERROR: Invalid format string", std::source_location::current());
+        }
     }
 }
 
@@ -350,6 +364,3 @@ export namespace Akhanda::Logging {
         inline LogChannel& Plugin() { return LogManager::Instance().GetChannel("Plugin"); }
     }
 }
-
-// Note: Macros will be provided in Core.Logging.hpp header file
-// since macros cannot be exported from modules
