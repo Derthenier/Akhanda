@@ -9,6 +9,7 @@ module;
 export module Akhanda.Core.Configuration.Rendering;
 
 import Akhanda.Core.Configuration;
+import Akhanda.Core.Configuration.Manager;
 import std;
 
 export namespace Akhanda::Configuration {
@@ -77,17 +78,6 @@ export namespace Akhanda::Configuration {
         }
     }
 
-    inline ConfigResult_t<MSAASamples> StringToMSAASamples(const std::string& str) {
-        if (str == "None" || str == "1") return MSAASamples::None;
-        if (str == "2x" || str == "2") return MSAASamples::MSAA2x;
-        if (str == "4x" || str == "4") return MSAASamples::MSAA4x;
-        if (str == "8x" || str == "8") return MSAASamples::MSAA8x;
-        if (str == "16x" || str == "16") return MSAASamples::MSAA16x;
-
-        return ConfigError(ConfigResult::ValidationError,
-            std::format("Invalid MSAA sample count: '{}'", str));
-    }
-
     // JSON serialization for MSAASamples
     inline void to_json(json& j, const MSAASamples& samples) {
         j = static_cast<uint32_t>(samples);
@@ -111,10 +101,10 @@ export namespace Akhanda::Configuration {
     // Rendering Configuration Section
     // ============================================================================
 
-    class RenderingConfig : public IConfigSection {
-        AKH_DECLARE_CONFIG_SECTION(RenderingConfig, "rendering");
-
+    class RenderingConfig : public ConfigSectionBase<RenderingConfig> {
     public:
+        static constexpr const char* SECTION_NAME = "rendering";
+
         RenderingConfig() {
             InitializeDefaults();
             SetupValidation();
@@ -178,7 +168,7 @@ export namespace Akhanda::Configuration {
                 }
 
                 // Notify that section has changed
-                NotifySectionChanged();
+                NotifyChange();
                 return true;
             }
             catch (const json::exception& e) {
@@ -214,7 +204,7 @@ export namespace Akhanda::Configuration {
             debugLayerEnabled_.ResetToDefault();
             gpuValidationEnabled_.ResetToDefault();
 
-            NotifySectionChanged();
+            NotifyChange();
         }
 
         ConfigResult_t<bool> Validate() const override {
@@ -412,18 +402,42 @@ export namespace Akhanda::Configuration {
         ConfigValue<bool> gpuValidationEnabled_;
     };
 
-    // ============================================================================
-    // Auto-Registration
-    // ============================================================================
-
-    AKH_REGISTER_CONFIG_SECTION(RenderingConfig);
-
-    // ============================================================================
-    // Convenience Access Function
-    // ============================================================================
+    // ========================================================================
+    // Convenience Functions
+    // ========================================================================
 
     inline std::shared_ptr<RenderingConfig> GetRenderingConfig() {
         return GetConfig<RenderingConfig>();
     }
 
+    inline void RegisterRenderingConfig() {
+        RegisterConfigSection<RenderingConfig>();
+    }
+
 } // namespace Akhanda::Configuration
+
+// ============================================================================
+// std::format Support for Configuration Types
+// ============================================================================
+
+template<>
+struct std::formatter<Akhanda::Configuration::RenderingAPI> : std::formatter<std::string> {
+    auto format(Akhanda::Configuration::RenderingAPI api, format_context& ctx) const {
+        return std::formatter<std::string>::format(Akhanda::Configuration::RenderingAPIToString(api), ctx);
+    }
+};
+
+template<>
+struct std::formatter<Akhanda::Configuration::MSAASamples> : std::formatter<std::string> {
+    auto format(Akhanda::Configuration::MSAASamples samples, format_context& ctx) const {
+        return std::formatter<std::string>::format(Akhanda::Configuration::MSAASamplesToString(samples), ctx);
+    }
+};
+
+template<>
+struct std::formatter<Akhanda::Configuration::Resolution> : std::formatter<std::string> {
+    auto format(const Akhanda::Configuration::Resolution& res, format_context& ctx) const {
+        return std::formatter<std::string>::format(
+            std::format("{}x{}", res.width, res.height), ctx);
+    }
+};

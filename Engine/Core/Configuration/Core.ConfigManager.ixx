@@ -444,7 +444,7 @@ export namespace Akhanda::Configuration {
         }
 
         void StartHotReload(const std::filesystem::path& configPath) {
-            auto reloadCallback = [this](const std::filesystem::path& path) {
+            auto reloadCallback = [this]([[maybe_unused]] const std::filesystem::path& path) {
                 auto reloadResult = LoadAllSections();
                 if (!reloadResult) {
                     // LOG_ERROR("Hot-reload failed: {}", reloadResult.Error().message);
@@ -539,6 +539,12 @@ export namespace Akhanda::Configuration {
 
     inline ConfigResult_t<bool> ReloadConfig() {
         return ConfigManager::Instance().LoadAllSections();
+    }
+
+    // Helper for easy section registration
+    template<ConfigSection T>
+    inline void RegisterConfigSection() {
+        ConfigSectionRegistry::RegisterSection<T>();
     }
 
 } // namespace Akhanda::Configuration

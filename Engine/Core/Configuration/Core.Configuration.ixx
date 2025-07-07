@@ -49,6 +49,7 @@ export namespace Akhanda::Configuration {
     class ConfigResult_t {
     public:
         ConfigResult_t(T&& value) : value_(std::forward<T>(value)), hasValue_(true), error_(ConfigResult::Success, "") {}
+        ConfigResult_t(const T& value) : value_(value), hasValue_(true), error_(ConfigResult::Success, "") {}
         ConfigResult_t(ConfigError error) : hasValue_(false), error_(std::move(error)) {}
 
         bool HasValue() const noexcept { return hasValue_ && error_.IsSuccess(); }
@@ -87,9 +88,11 @@ export namespace Akhanda::Configuration {
             : value_(std::move(defaultValue)), defaultValue_(value_), hasValue_(true) {
         }
 
-        ConfigValue(T defaultValue, T min, T max) requires std::totally_ordered<T>
-            : value_(std::move(defaultValue)), defaultValue_(value_),
+        ConfigValue(T defaultValue, T min, T max)
+            requires std::totally_ordered<T>
+        : value_(std::move(defaultValue)), defaultValue_(value_),
             minValue_(min), maxValue_(max), hasValidation_(true), hasValue_(true) {
+            static_assert(std::totally_ordered<T>, "Type must be totally ordered for range validation");
         }
 
         // Get current value
@@ -100,9 +103,11 @@ export namespace Akhanda::Configuration {
         // Set value with validation
         ConfigResult_t<T> Set(T newValue) {
             if (hasValidation_) {
-                if (newValue < minValue_ || newValue > maxValue_) {
-                    return ConfigError(ConfigResult::ValidationError,
-                        std::format("Value {} is outside range [{}, {}]", newValue, minValue_, maxValue_));
+                if constexpr (std::totally_ordered<T>) {
+                    if (newValue < minValue_ || newValue > maxValue_) {
+                        return ConfigError(ConfigResult::ValidationError,
+                            std::format("Value {} is outside range [{}, {}]", newValue, minValue_, maxValue_));
+                    }
                 }
             }
 
@@ -119,7 +124,7 @@ export namespace Akhanda::Configuration {
                 callback(oldValue, value_);
             }
 
-            return value_;
+            return ConfigResult_t<T>(value_);
         }
 
         // Reset to default
@@ -244,8 +249,6 @@ export namespace Akhanda::Configuration {
             instance.creators_[name] = []() -> std::unique_ptr<IConfigSection> {
                 return std::make_unique<T>();
                 };
-
-            instance.typeInfo_[name] = typeid(T);
         }
 
         static std::unique_ptr<IConfigSection> CreateSection(const std::string& name) {
@@ -270,6 +273,12 @@ export namespace Akhanda::Configuration {
             return instance.creators_.contains(name);
         }
 
+        // Helper for easy registration
+        template<ConfigSection T>
+        static void RegisterType() {
+            RegisterSection<T>();
+        }
+
     private:
         static ConfigSectionRegistry& GetInstance() {
             static ConfigSectionRegistry instance;
@@ -277,28 +286,29 @@ export namespace Akhanda::Configuration {
         }
 
         std::unordered_map<std::string, CreateFunc> creators_;
-        std::unordered_map<std::string, std::type_info> typeInfo_;
     };
 
     // ============================================================================
-    // Configuration Helper Macros
+    // Configuration Section Base Template (replaces macros)
     // ============================================================================
 
-#define AKH_DECLARE_CONFIG_SECTION(ClassName, SectionName) \
-        public: \
-            static constexpr const char* SECTION_NAME = SectionName; \
-            const char* GetSectionName() const noexcept override { return SECTION_NAME; } \
-        private:
-
-#define AKH_REGISTER_CONFIG_SECTION(ClassName) \
-        namespace { \
-            struct ClassName##_Registrar { \
-                ClassName##_Registrar() { \
-                    ::Akhanda::Configuration::ConfigSectionRegistry::RegisterSection<ClassName>(); \
-                } \
-            }; \
-            static ClassName##_Registrar g_##ClassName##_registrar; \
+    template<typename Derived>
+    class ConfigSectionBase : public IConfigSection {
+    public:
+        static constexpr const char* GetStaticSectionName() noexcept {
+            return Derived::SECTION_NAME;
         }
+
+        const char* GetSectionName() const noexcept override {
+            return Derived::SECTION_NAME;
+        }
+
+    protected:
+        // Helper for derived classes to notify changes
+        void NotifyChange() {
+            NotifySectionChanged();
+        }
+    };
 
     // ============================================================================
     // Common Configuration Types
