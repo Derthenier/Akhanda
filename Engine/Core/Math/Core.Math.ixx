@@ -135,6 +135,10 @@ export namespace Akhanda::Math {
         static const Vector2 UNIT_Y;
     };
 
+    inline Vector2 operator*(float scalar, const Vector2& vec) noexcept {
+        return vec * scalar;
+    }
+
     struct Vector3 {
         float x, y, z;
 
@@ -191,6 +195,10 @@ export namespace Akhanda::Math {
         static const Vector3 RIGHT;
     };
 
+    inline Vector3 operator*(float scalar, const Vector3& vec) noexcept {
+        return vec * scalar;
+    }
+
     struct Vector4 {
         float x, y, z, w;
 
@@ -242,6 +250,10 @@ export namespace Akhanda::Math {
         static const Vector4 UNIT_Z;
         static const Vector4 UNIT_W;
     };
+
+    inline Vector4 operator*(float scalar, const Vector4& vec) noexcept {
+        return vec * scalar;
+    }
 }
 
 // =============================================================================
@@ -356,6 +368,10 @@ export namespace Akhanda::Math {
 
         constexpr bool operator==(const Quaternion& other) const noexcept;
         constexpr bool operator!=(const Quaternion& other) const noexcept;
+
+        static Quaternion FromAxisAngle(const Vector3& axis, float angle) noexcept {
+            return Quaternion(axis, angle);
+        }
 
         // Static constants
         static const Quaternion IDENTITY;

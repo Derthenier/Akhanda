@@ -1,0 +1,469 @@
+{
+  "vector3_test_data": {
+    "unit_vectors": [
+      {
+        "name": "unit_x",
+        "x": 1.0,
+        "y": 0.0,
+        "z": 0.0,
+        "expected_length": 1.0
+      },
+      {
+        "name": "unit_y",
+        "x": 0.0,
+        "y": 1.0,
+        "z": 0.0,
+        "expected_length": 1.0
+      },
+      {
+        "name": "unit_z",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 1.0,
+        "expected_length": 1.0
+      },
+      {
+        "name": "unit_negative_x",
+        "x": -1.0,
+        "y": 0.0,
+        "z": 0.0,
+        "expected_length": 1.0
+      },
+      {
+        "name": "unit_negative_y",
+        "x": 0.0,
+        "y": -1.0,
+        "z": 0.0,
+        "expected_length": 1.0
+      },
+      {
+        "name": "unit_negative_z",
+        "x": 0.0,
+        "y": 0.0,
+        "z": -1.0,
+        "expected_length": 1.0
+      }
+    ],
+
+    "special_vectors": [
+      {
+        "name": "zero",
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0,
+        "expected_length": 0.0
+      },
+      {
+        "name": "ones",
+        "x": 1.0,
+        "y": 1.0,
+        "z": 1.0,
+        "expected_length": 1.7320508075688772
+      },
+      {
+        "name": "diagonal_normalized",
+        "x": 0.5773502691896258,
+        "y": 0.5773502691896258,
+        "z": 0.5773502691896258,
+        "expected_length": 1.0
+      }
+    ],
+
+    "pythagorean_vectors": [
+      {
+        "name": "3_4_5",
+        "x": 3.0,
+        "y": 4.0,
+        "z": 5.0,
+        "expected_length": 7.0710678118654755
+      },
+      {
+        "name": "5_12_13",
+        "x": 5.0,
+        "y": 12.0,
+        "z": 13.0,
+        "expected_length": 18.384776310850235
+      },
+      {
+        "name": "8_15_17",
+        "x": 8.0,
+        "y": 15.0,
+        "z": 17.0,
+        "expected_length": 24.186773244895647
+      }
+    ],
+
+    "normalized_vectors": [
+      {
+        "name": "sqrt2_diagonal",
+        "x": 0.7071067811865476,
+        "y": 0.7071067811865476,
+        "z": 0.0,
+        "expected_length": 1.0
+      },
+      {
+        "name": "sqrt3_diagonal",
+        "x": 0.5773502691896258,
+        "y": 0.5773502691896258,
+        "z": 0.5773502691896258,
+        "expected_length": 1.0
+      },
+      {
+        "name": "fibonacci_normalized",
+        "x": 0.2672612419124244,
+        "y": 0.5345224838248488,
+        "z": 0.8017837257372732,
+        "expected_length": 1.0
+      }
+    ],
+
+    "cross_product_tests": [
+      {
+        "name": "x_cross_y_equals_z",
+        "a": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "b": {
+          "x": 0.0,
+          "y": 1.0,
+          "z": 0.0
+        },
+        "expected_cross": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 1.0
+        }
+      },
+      {
+        "name": "y_cross_z_equals_x",
+        "a": {
+          "x": 0.0,
+          "y": 1.0,
+          "z": 0.0
+        },
+        "b": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 1.0
+        },
+        "expected_cross": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      {
+        "name": "z_cross_x_equals_y",
+        "a": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 1.0
+        },
+        "b": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "expected_cross": {
+          "x": 0.0,
+          "y": 1.0,
+          "z": 0.0
+        }
+      },
+      {
+        "name": "general_cross_product",
+        "a": {
+          "x": 2.0,
+          "y": 3.0,
+          "z": 4.0
+        },
+        "b": {
+          "x": 5.0,
+          "y": 6.0,
+          "z": 7.0
+        },
+        "expected_cross": {
+          "x": -3.0,
+          "y": 6.0,
+          "z": -3.0
+        }
+      }
+    ],
+
+    "dot_product_tests": [
+      {
+        "name": "orthogonal_vectors",
+        "a": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "b": {
+          "x": 0.0,
+          "y": 1.0,
+          "z": 0.0
+        },
+        "expected_dot": 0.0
+      },
+      {
+        "name": "parallel_vectors",
+        "a": {
+          "x": 2.0,
+          "y": 4.0,
+          "z": 6.0
+        },
+        "b": {
+          "x": 1.0,
+          "y": 2.0,
+          "z": 3.0
+        },
+        "expected_dot": 28.0
+      },
+      {
+        "name": "antiparallel_vectors",
+        "a": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        },
+        "b": {
+          "x": -1.0,
+          "y": -1.0,
+          "z": -1.0
+        },
+        "expected_dot": -3.0
+      },
+      {
+        "name": "general_dot_product",
+        "a": {
+          "x": 1.0,
+          "y": 2.0,
+          "z": 3.0
+        },
+        "b": {
+          "x": 4.0,
+          "y": 5.0,
+          "z": 6.0
+        },
+        "expected_dot": 32.0
+      }
+    ],
+
+    "distance_tests": [
+      {
+        "name": "unit_distance",
+        "a": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "b": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "expected_distance": 1.0
+      },
+      {
+        "name": "pythagorean_distance",
+        "a": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "b": {
+          "x": 3.0,
+          "y": 4.0,
+          "z": 5.0
+        },
+        "expected_distance": 7.0710678118654755
+      },
+      {
+        "name": "negative_coordinates",
+        "a": {
+          "x": -1.0,
+          "y": -1.0,
+          "z": -1.0
+        },
+        "b": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0
+        },
+        "expected_distance": 3.4641016151377544
+      }
+    ],
+
+    "lerp_tests": [
+      {
+        "name": "lerp_start",
+        "a": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "b": {
+          "x": 10.0,
+          "y": 20.0,
+          "z": 30.0
+        },
+        "t": 0.0,
+        "expected": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        }
+      },
+      {
+        "name": "lerp_end",
+        "a": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "b": {
+          "x": 10.0,
+          "y": 20.0,
+          "z": 30.0
+        },
+        "t": 1.0,
+        "expected": {
+          "x": 10.0,
+          "y": 20.0,
+          "z": 30.0
+        }
+      },
+      {
+        "name": "lerp_middle",
+        "a": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "b": {
+          "x": 10.0,
+          "y": 20.0,
+          "z": 30.0
+        },
+        "t": 0.5,
+        "expected": {
+          "x": 5.0,
+          "y": 10.0,
+          "z": 15.0
+        }
+      },
+      {
+        "name": "lerp_quarter",
+        "a": {
+          "x": -10.0,
+          "y": -20.0,
+          "z": -30.0
+        },
+        "b": {
+          "x": 10.0,
+          "y": 20.0,
+          "z": 30.0
+        },
+        "t": 0.25,
+        "expected": {
+          "x": -5.0,
+          "y": -10.0,
+          "z": -15.0
+        }
+      }
+    ],
+
+    "reflection_tests": [
+      {
+        "name": "reflect_x_axis",
+        "incident": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 0.0
+        },
+        "normal": {
+          "x": 0.0,
+          "y": 1.0,
+          "z": 0.0
+        },
+        "expected": {
+          "x": 1.0,
+          "y": -1.0,
+          "z": 0.0
+        }
+      },
+      {
+        "name": "reflect_diagonal",
+        "incident": {
+          "x": 1.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "normal": {
+          "x": 0.7071067811865476,
+          "y": 0.7071067811865476,
+          "z": 0.0
+        },
+        "expected": {
+          "x": 0.0,
+          "y": 1.0,
+          "z": 0.0
+        }
+      }
+    ],
+
+    "edge_cases": [
+      {
+        "name": "very_small_vector",
+        "x": 1e-30,
+        "y": 1e-30,
+        "z": 1e-30,
+        "description": "Tests handling of very small numbers"
+      },
+      {
+        "name": "very_large_vector",
+        "x": 1e30,
+        "y": 1e30,
+        "z": 1e30,
+        "description": "Tests handling of very large numbers"
+      },
+      {
+        "name": "mixed_magnitude",
+        "x": 1e20,
+        "y": 1e-20,
+        "z": 1.0,
+        "description": "Tests mixed magnitude components"
+      },
+      {
+        "name": "denormalized_components",
+        "x": 1e-40,
+        "y": 0.0,
+        "z": 0.0,
+        "description": "Tests denormalized floating point numbers"
+      }
+    ],
+
+    "performance_test_vectors": {
+      "count": 10000,
+      "description": "Large set of vectors for performance testing",
+      "generation_method": "Generated using sin/cos with varying frequencies and phases"
+    }
+  },
+
+  "test_configuration": {
+    "epsilon": 1e-6,
+    "loose_epsilon": 1e-4,
+    "strict_epsilon": 1e-8,
+    "performance_iterations": 1000,
+    "simd_alignment": 16
+  },
+
+  "validation_rules": {
+    "normalized_vector_tolerance": 1e-6,
+    "cross_product_orthogonality_tolerance": 1e-6,
+    "dot_product_commutative_tolerance": 1e-6,
+    "lerp_bounds_tolerance": 1e-6
+  }
+}

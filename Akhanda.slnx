@@ -47,5 +47,10 @@
       <BuildDependency Project="Engine/Engine.vcxproj" />
     </Project>
   </Folder>
+  <Folder Name="/Tests/Core.Math/">
+    <Project Path="Tests/EngineTests/Tests.Core.Math/Tests.Core.Math.vcxproj" Id="71f8208e-8e3b-4c91-870b-2f36c9df6b22">
+      <BuildType Solution="Profile|*" Project="Release" />
+    </Project>
+  </Folder>
   <Project Path="Engine/Engine.vcxproj" Id="6eba6490-35f7-4578-b7e8-eea36ba09570" />
 </Solution>
