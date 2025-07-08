@@ -38,6 +38,15 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <AllProjectIncludesArePublic>true</AllProjectIncludesArePublic>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
+    <AllProjectIncludesArePublic>true</AllProjectIncludesArePublic>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <AllProjectIncludesArePublic>true</AllProjectIncludesArePublic>
+  </PropertyGroup>
   <ItemGroup>
     <!-- Math library -->
     <ClCompile Include="Core\Configuration\Core.ConfigManager.ixx" />
@@ -49,6 +58,8 @@
     <ClCompile Include="Core\Jobs\Core.JobSystem.ixx" />
     <ClCompile Include="Core\Logging\Core.Logging.cpp" />
     <ClCompile Include="Core\Logging\Core.Logging.ixx" />
+    <ClCompile Include="Core\Logging\EditorSink.cpp" />
+    <ClCompile Include="Core\Logging\SpdlogIntegration.cpp" />
     <ClCompile Include="Core\Math\Core.Math.cpp" />
     <ClCompile Include="Core\Math\Core.Math.ixx" />
     <ClCompile Include="Core\Math\Core.Math.Matrix3.cpp" />

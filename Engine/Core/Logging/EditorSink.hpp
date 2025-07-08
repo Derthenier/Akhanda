@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <mutex>
+#include <shared_mutex>
 #include <atomic>
 #include <chrono>
 
@@ -34,7 +35,7 @@ namespace Akhanda::Logging {
         std::string message;
         std::string formattedTime;
         std::chrono::high_resolution_clock::time_point timestamp;
-        uint32_t threadId;
+        std::thread::id threadId;
 
         // Editor-specific metadata
         uint32_t messageId;        // Unique ID for filtering/searching

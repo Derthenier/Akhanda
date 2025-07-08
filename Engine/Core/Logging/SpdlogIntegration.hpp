@@ -7,7 +7,6 @@
 
 // Performance optimizations
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_DEBUG  // Set minimum compile-time level
-#define SPDLOG_NO_EXCEPTIONS                     // Disable exceptions for performance
 #define SPDLOG_PREVENT_CHILD_FD                  // Prevent file descriptor inheritance
 
 // Thread safety configuration
@@ -47,7 +46,10 @@
 #include <vector>
 #include <functional>
 
-import Akhanda.Core.Memory;
+import Akhanda.Core.Logging;
+
+// Note: Direct memory system integration not available due to encapsulation
+// Use callback-based integration instead
 
 // =============================================================================
 // Akhanda spdlog Integration Configuration
@@ -92,13 +94,12 @@ namespace Akhanda::Logging::Integration {
     // Memory integration configuration
     struct MemoryIntegrationConfig {
         bool enableMemoryTracking = true;       // Track memory usage of logging
-        bool enableAllocationHooks = true;      // Hook into allocator for detailed tracking
+        bool enableCallbackHooks = true;        // Use callback-based tracking
         size_t memoryBudget = 50 * 1024 * 1024; // 50MB memory budget for logging
 
-        // Custom allocator integration
-        bool useCustomAllocator = true;         // Use Akhanda's memory system
-        MemoryTag loggerMemoryTag = MemoryTag::Logging;
-        MemoryTag messageMemoryTag = MemoryTag::Logging;
+        // Callback-based integration (since direct MemoryTracker access unavailable)
+        bool useCallbackIntegration = true;     // Use callback-based memory tracking
+        // Custom allocator integration removed due to encapsulation
     };
 
     // =============================================================================
@@ -124,9 +125,9 @@ namespace Akhanda::Logging::Integration {
         std::string GetFilePattern() const;
         std::string GetEditorPattern() const;
 
-        // Memory integration
-        void IntegrateWithMemorySystem();
-        void SetupCustomAllocator();
+        // Memory integration (callback-based due to MemoryTracker encapsulation)
+        void SetupMemoryTrackingCallbacks();
+        void ClearMemoryTrackingCallbacks();
 
         // Performance tuning
         void OptimizeForGameEngine();
@@ -135,9 +136,8 @@ namespace Akhanda::Logging::Integration {
 
         // Sink factory methods
         std::shared_ptr<spdlog::sinks::sink> CreateConsoleSink();
-        std::shared_ptr<spdlog::sinks::sink> CreateFileSink(const std::string& filename);
-        std::shared_ptr<spdlog::sinks::sink> CreateRotatingFileSink(
-            const std::string& filename, size_t maxSize, size_t maxFiles);
+        std::shared_ptr<spdlog::sinks::sink> CreateFileSink(const std::wstring& filename);
+        std::shared_ptr<spdlog::sinks::sink> CreateRotatingFileSink(const std::wstring& filename, size_t maxSize, size_t maxFiles);
         std::shared_ptr<spdlog::sinks::sink> CreateMSVCSink();
 
         // Logger factory methods
@@ -174,51 +174,29 @@ namespace Akhanda::Logging::Integration {
     };
 
     // =============================================================================
-    // Custom Memory Allocator for spdlog Integration
+    // Memory Integration Helper Functions
+    // =============================================================================
+
+    // Callback-based memory tracking (since direct MemoryTracker access unavailable)
+    void SetupMemoryTrackingCallbacks();
+    void ClearMemoryTrackingCallbacks();
+
+    // Helper to create memory tracking callbacks that integrate with your memory system
+    // You can implement these in your memory module to bridge the integration
+    using MemoryAllocationCallback = std::function<void(size_t, const char*)>;
+    using MemoryDeallocationCallback = std::function<void(size_t, const char*)>;
+
+    // Example integration function - implement this in your memory module
+    void IntegrateLoggingWithMemorySystem(MemoryAllocationCallback allocCallback, MemoryDeallocationCallback deallocCallback);
+
+    // =============================================================================
+    // Simple Memory Allocator for spdlog (optional)
     // =============================================================================
 
     class AkhandaLogAllocator {
     public:
-        static void* Allocate(size_t size, MemoryTag tag = MemoryTag::Logging);
-        static void Deallocate(void* ptr, size_t size, MemoryTag tag = MemoryTag::Logging);
-
-        // spdlog allocator interface
-        template<typename T>
-        class allocator {
-        public:
-            using value_type = T;
-            using pointer = T*;
-            using const_pointer = const T*;
-            using reference = T&;
-            using const_reference = const T&;
-            using size_type = std::size_t;
-            using difference_type = std::ptrdiff_t;
-
-            template<typename U>
-            struct rebind {
-                using other = allocator<U>;
-            };
-
-            allocator() noexcept = default;
-            template<typename U>
-            allocator(const allocator<U>&) noexcept {}
-
-            pointer allocate(size_type n) {
-                return static_cast<pointer>(
-                    AkhandaLogAllocator::Allocate(n * sizeof(T))
-                    );
-            }
-
-            void deallocate(pointer p, size_type n) noexcept {
-                AkhandaLogAllocator::Deallocate(p, n * sizeof(T));
-            }
-
-            template<typename U>
-            bool operator==(const allocator<U>&) const noexcept { return true; }
-
-            template<typename U>
-            bool operator!=(const allocator<U>&) const noexcept { return false; }
-        };
+        static void* Allocate(size_t size);
+        static void Deallocate(void* ptr, size_t size);
 
         // Statistics
         static size_t GetTotalAllocated();
@@ -325,6 +303,6 @@ namespace Akhanda::Logging::Integration {
 #define AKHANDA_SHUTDOWN_LOGGING() \
     Akhanda::Logging::Integration::SpdlogSetup::Instance().Shutdown()
 
-// Quick memory integration
+// Quick memory integration (callback-based)
 #define AKHANDA_INTEGRATE_LOGGING_MEMORY() \
-    Akhanda::Logging::Integration::SpdlogSetup::Instance().IntegrateWithMemorySystem()
+    Akhanda::Logging::Integration::SetupMemoryTrackingCallbacks()

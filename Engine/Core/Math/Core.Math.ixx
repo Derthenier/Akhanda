@@ -11,49 +11,12 @@ import <cmath>;
 import <concepts>;
 import <vector>;
 
-// =============================================================================
-// Forward Declarations
-// =============================================================================
-
 export namespace Akhanda::Math {
-    // Basic Types
-    struct Vector2;
-    struct Vector3;
-    struct Vector4;
-    struct Matrix3;
-    struct Matrix4;
-    struct Quaternion;
-
-    // Color Types
-    struct Color3;
-    struct Color4;
-
-    // Geometric Primitives
-    struct Ray;
-    struct Plane;
-    struct AABB;
-    struct OBB;
-    struct Sphere;
-    struct Frustum;
-    struct Triangle;
-
-    // Advanced Math
-    template<typename T, size_t Degree>
-    struct BezierCurve;
-
-    template<typename T>
-    struct CatmullRomSpline;
-
-    // Transform Types
-    struct Transform;
-    struct Transform2D;
-}
 
 // =============================================================================
 // Constants
 // =============================================================================
 
-export namespace Akhanda::Math {
     inline constexpr float PI = 3.14159265358979323846f;
     inline constexpr float TWO_PI = 2.0f * PI;
     inline constexpr float HALF_PI = PI * 0.5f;
@@ -70,13 +33,11 @@ export namespace Akhanda::Math {
 
     inline constexpr float INFINITY_F = std::numeric_limits<float>::infinity();
     inline constexpr float NEG_INFINITY_F = -std::numeric_limits<float>::infinity();
-}
 
 // =============================================================================
 // Concepts
 // =============================================================================
 
-export namespace Akhanda::Math {
     template<typename T>
     concept Arithmetic = std::is_arithmetic_v<T>;
 
@@ -85,13 +46,11 @@ export namespace Akhanda::Math {
 
     template<typename T>
     concept Integral = std::integral<T>;
-}
 
 // =============================================================================
 // Vector Types
 // =============================================================================
 
-export namespace Akhanda::Math {
     struct Vector2 {
         float x, y;
 
@@ -254,13 +213,12 @@ export namespace Akhanda::Math {
     inline Vector4 operator*(float scalar, const Vector4& vec) noexcept {
         return vec * scalar;
     }
-}
+
 
 // =============================================================================
 // Matrix Types
 // =============================================================================
 
-export namespace Akhanda::Math {
     struct Matrix3 {
         float m[9]; // Column-major order
 
@@ -338,13 +296,12 @@ export namespace Akhanda::Math {
         static const Matrix4 ZERO;
         static const Matrix4 IDENTITY;
     };
-}
+
 
 // =============================================================================
 // Quaternion
 // =============================================================================
 
-export namespace Akhanda::Math {
     struct Quaternion {
         float x, y, z, w;
 
@@ -376,13 +333,12 @@ export namespace Akhanda::Math {
         // Static constants
         static const Quaternion IDENTITY;
     };
-}
+
 
 // =============================================================================
 // Color Types
 // =============================================================================
 
-export namespace Akhanda::Math {
     struct Color3 {
         float r, g, b;
 
@@ -443,13 +399,12 @@ export namespace Akhanda::Math {
         static const Color4 CYAN;
         static const Color4 TRANSPARENT;
     };
-}
+
 
 // =============================================================================
 // Geometric Primitives
 // =============================================================================
 
-export namespace Akhanda::Math {
     struct Ray {
         Vector3 origin;
         Vector3 direction;
@@ -554,13 +509,12 @@ export namespace Akhanda::Math {
         constexpr bool Intersects(const Sphere& sphere) const noexcept;
         constexpr bool Intersects(const AABB& aabb) const noexcept;
     };
-}
+
 
 // =============================================================================
 // Advanced Math - Curves and Splines
 // =============================================================================
 
-export namespace Akhanda::Math {
     template<typename T, size_t Degree>
     struct BezierCurve {
         std::array<T, Degree + 1> controlPoints;
@@ -594,13 +548,12 @@ export namespace Akhanda::Math {
 
     using CatmullRomSpline3D = CatmullRomSpline<Vector3>;
     using CatmullRomSpline2D = CatmullRomSpline<Vector2>;
-}
+
 
 // =============================================================================
 // Transform Types
 // =============================================================================
 
-export namespace Akhanda::Math {
     struct Transform {
         Vector3 position;
         Quaternion rotation;
@@ -650,13 +603,12 @@ export namespace Akhanda::Math {
 
         static const Transform2D IDENTITY;
     };
-}
+
 
 // =============================================================================
 // Mathematical Functions
 // =============================================================================
 
-export namespace Akhanda::Math {
     // Basic functions
     constexpr float Abs(float x) noexcept;
     constexpr float Sign(float x) noexcept;
@@ -708,13 +660,12 @@ export namespace Akhanda::Math {
     float EaseInBounce(float t) noexcept;
     float EaseOutBounce(float t) noexcept;
     float EaseInOutBounce(float t) noexcept;
-}
+
 
 // =============================================================================
 // Vector Operations
 // =============================================================================
 
-export namespace Akhanda::Math {
     // Vector2 operations
     constexpr float Dot(const Vector2& a, const Vector2& b) noexcept;
     constexpr float Cross(const Vector2& a, const Vector2& b) noexcept;
@@ -748,13 +699,12 @@ export namespace Akhanda::Math {
     Vector4 Normalize(const Vector4& v) noexcept;
     float Distance(const Vector4& a, const Vector4& b) noexcept;
     constexpr float DistanceSquared(const Vector4& a, const Vector4& b) noexcept;
-}
+
 
 // =============================================================================
 // Matrix Operations
 // =============================================================================
 
-export namespace Akhanda::Math {
     // Matrix3 operations
     constexpr float Determinant(const Matrix3& m) noexcept;
     constexpr Matrix3 Transpose(const Matrix3& m) noexcept;
@@ -784,13 +734,12 @@ export namespace Akhanda::Math {
     // Matrix decomposition
     bool Decompose(const Matrix4& matrix, Vector3& translation, Quaternion& rotation, Vector3& scale) noexcept;
     Matrix4 Compose(const Vector3& translation, const Quaternion& rotation, const Vector3& scale) noexcept;
-}
+
 
 // =============================================================================
 // Quaternion Operations
 // =============================================================================
 
-export namespace Akhanda::Math {
     constexpr float Dot(const Quaternion& a, const Quaternion& b) noexcept;
     float Length(const Quaternion& q) noexcept;
     constexpr float LengthSquared(const Quaternion& q) noexcept;
@@ -805,15 +754,12 @@ export namespace Akhanda::Math {
     constexpr Quaternion FromRotationMatrix(const Matrix3& matrix) noexcept;
     Quaternion LookRotation(const Vector3& forward, const Vector3& up = Vector3::UP) noexcept;
     float Angle(const Quaternion& a, const Quaternion& b) noexcept;
-}
-
 
 
 // =============================================================================
 // Additional Transform Utilities
 // =============================================================================
 
-export namespace Akhanda::Math {
     // Transform interpolation
     Transform LerpTransform(const Transform& a, const Transform& b, float t) noexcept;
     Transform2D LerpTransform2D(const Transform2D& a, const Transform2D& b, float t) noexcept;
@@ -841,14 +787,12 @@ export namespace Akhanda::Math {
     // Transform comparison
     bool AreTransformsEqual(const Transform& a, const Transform& b, float epsilon = EPSILON) noexcept;
     bool AreTransforms2DEqual(const Transform2D& a, const Transform2D& b, float epsilon = EPSILON) noexcept;
-}
 
 
 // =============================================================================
 // Noise Functions
 // =============================================================================
 
-export namespace Akhanda::Math {
     // Noise types
     enum class NoiseType {
         Perlin,
@@ -893,13 +837,11 @@ export namespace Akhanda::Math {
 
     float GenerateNoise2D(float x, float y, const NoiseConfig& config) noexcept;
     float GenerateNoise3D(float x, float y, float z, const NoiseConfig& config) noexcept;
-}
 
 // =============================================================================
 // Physics Math Helpers
 // =============================================================================
 
-export namespace Akhanda::Math {
     // Inertia tensors
     Matrix3 SphereInertiaTensor(float mass, float radius) noexcept;
     Matrix3 BoxInertiaTensor(float mass, const Vector3& dimensions) noexcept;
@@ -924,13 +866,12 @@ export namespace Akhanda::Math {
     Vector3 ClosestPointOnTriangle(const Triangle& triangle, const Vector3& point) noexcept;
     Vector3 ClosestPointOnAABB(const AABB& aabb, const Vector3& point) noexcept;
     Vector3 ClosestPointOnSphere(const Sphere& sphere, const Vector3& point) noexcept;
-}
+
 
 // =============================================================================
 // Random Number Generation
 // =============================================================================
 
-export namespace Akhanda::Math {
     class Random {
     public:
         Random() noexcept;
@@ -975,13 +916,11 @@ export namespace Akhanda::Math {
     Vector3 RandomUnitVector3() noexcept;
     Vector3 RandomPointInSphere() noexcept;
     Vector3 RandomPointOnSphere() noexcept;
-}
 
 // =============================================================================
 // Utility Functions
 // =============================================================================
 
-export namespace Akhanda::Math {
     // Floating point utilities
     constexpr bool IsNearlyEqual(float a, float b, float epsilon = EPSILON) noexcept;
     constexpr bool IsNearlyZero(float value, float epsilon = EPSILON) noexcept;
@@ -1020,27 +959,26 @@ export namespace Akhanda::Math {
 
     // Frustum extraction
     void ExtractFrustumPlanes(const Matrix4& viewProjectionMatrix, std::array<Plane, 6>& planes) noexcept;
-}
+
 
 // =============================================================================
 // SIMD Optimized Functions (Internal)
 // =============================================================================
 
-namespace Akhanda::Math::SIMD {
-    // Internal SIMD implementations - not exported
-    void VectorAdd(const float* a, const float* b, float* result, size_t count) noexcept;
-    void VectorMultiply(const float* a, const float* b, float* result, size_t count) noexcept;
-    void VectorScale(const float* a, float scalar, float* result, size_t count) noexcept;
-    void MatrixMultiply4x4(const float* a, const float* b, float* result) noexcept;
-    void VectorTransform(const float* vector, const float* matrix, float* result) noexcept;
-}
+    namespace SIMD {
+        // Internal SIMD implementations - not exported
+        void VectorAdd(const float* a, const float* b, float* result, size_t count) noexcept;
+        void VectorMultiply(const float* a, const float* b, float* result, size_t count) noexcept;
+        void VectorScale(const float* a, float scalar, float* result, size_t count) noexcept;
+        void MatrixMultiply4x4(const float* a, const float* b, float* result) noexcept;
+        void VectorTransform(const float* vector, const float* matrix, float* result) noexcept;
+    }
 
 
 // =============================================================================
 // Curves and Splines Implementation
 // =============================================================================
 
-export namespace Akhanda::Math {
     // BezierCurve member function implementations
     template<typename T, size_t Degree>
     constexpr T BezierCurve<T, Degree>::Evaluate(float t) const noexcept {

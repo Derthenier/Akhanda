@@ -31,6 +31,8 @@
     <ClCompile Include="Core\Configuration\Core.FileHandler.ixx" />
     <ClCompile Include="Core\Configuration\Core.ConfigManager.ixx" />
     <ClCompile Include="Core\Configuration\Core.RendererConfig.ixx" />
+    <ClCompile Include="Core\Logging\SpdlogIntegration.cpp" />
+    <ClCompile Include="Core\Logging\EditorSink.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />

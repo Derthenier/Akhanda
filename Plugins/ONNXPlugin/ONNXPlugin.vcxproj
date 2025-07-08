@@ -20,6 +20,7 @@
     <ProjectGuid>{7AC4DED5-F7CB-4D90-B7FC-6A91DA5D7A3D}</ProjectGuid>
     <RootNamespace>ONNXPlugin</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />

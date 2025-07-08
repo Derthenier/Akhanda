@@ -11,7 +11,7 @@
     <File Path="Readme.md" />
   </Folder>
   <Folder Name="/Solution Items/Props/">
-    <File Path="Application.props" />
+    <File Path="Build/Props/Application.props" />
     <File Path="Build/Props/Common.props" />
     <File Path="Build/Props/Engine.props" />
     <File Path="Build/Props/Plugin.props" />

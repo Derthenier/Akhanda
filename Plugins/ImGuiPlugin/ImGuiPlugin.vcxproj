@@ -20,6 +20,7 @@
     <ProjectGuid>{24230401-25E4-486E-B558-BF02861DB756}</ProjectGuid>
     <RootNamespace>ImGuiPlugin</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <PlatformToolset>v143</PlatformToolset>
   </PropertyGroup>
   
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
