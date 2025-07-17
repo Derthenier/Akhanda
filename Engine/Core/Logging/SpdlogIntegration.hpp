@@ -240,7 +240,7 @@ namespace Akhanda::Logging::Integration {
 
     // Quick setup functions
     void SetupBasicLogging();         // Console + MSVC output
-    void SetupFileLogging(const std::string& logDirectory);
+    void SetupFileLogging(const std::wstring& logDirectory);
     void SetupAsyncLogging(size_t queueSize = 8192);
     void SetupEditorLogging();        // Enable editor integration
 

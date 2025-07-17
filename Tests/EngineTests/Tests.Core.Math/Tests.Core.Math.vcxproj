@@ -66,11 +66,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <PreprocessorDefinitions>AKH_TESTS;GTEST_HAS_STD_WSTRING=1;_SILENCE_CXX23_DENORM_DEPRECATION_WARNING;_UTF8;_GUARDOVERFLOW_CRT_ALLOCATORS=1;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableModules>true</EnableModules>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <PreprocessorDefinitions>AKH_TESTS;GTEST_HAS_STD_WSTRING=1;_SILENCE_CXX23_DENORM_DEPRECATION_WARNING;_UTF8;_GUARDOVERFLOW_CRT_ALLOCATORS=1;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <EnableModules>true</EnableModules>
     </ClCompile>
   </ItemDefinitionGroup>
   <!-- Source files -->

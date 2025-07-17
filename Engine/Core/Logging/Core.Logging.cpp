@@ -16,6 +16,7 @@ module;
 #include <shared_mutex>
 #include <atomic>
 #include <functional>
+#include <cstdio>
 
 module Akhanda.Core.Logging;
 
@@ -204,30 +205,46 @@ public:
     explicit Impl(std::string_view name)
         : spdlogLogger_(nullptr) {
 
-        // Create appropriate logger based on async mode
-        if (g_asyncMode.load(std::memory_order_relaxed) && g_threadPool) {
-            // Async logger for performance
-            spdlogLogger_ = std::make_shared<spdlog::async_logger>(
-                std::string(name),
-                spdlog::sinks_init_list{},
-                g_threadPool,
-                spdlog::async_overflow_policy::block
-            );
-        }
-        else {
-            // Synchronous logger
-            spdlogLogger_ = std::make_shared<spdlog::logger>(
-                std::string(name),
-                spdlog::sinks_init_list{}
-            );
-        }
+        try {
+            // Create appropriate logger based on async mode
+            if (g_asyncMode.load(std::memory_order_relaxed) && g_threadPool) {
+                // Async logger for performance
+                spdlogLogger_ = std::make_shared<spdlog::async_logger>(
+                    std::string(name),
+                    spdlog::sinks_init_list{},
+                    g_threadPool,
+                    spdlog::async_overflow_policy::block
+                );
+            }
+            else {
+                // Synchronous logger
+                spdlogLogger_ = std::make_shared<spdlog::logger>(
+                    std::string(name),
+                    spdlog::sinks_init_list{}
+                );
+            }
 
-        // Set default level and pattern
-        spdlogLogger_->set_level(spdlog::level::debug);
-        spdlogLogger_->set_pattern("[%Y-%m-%d %H:%M:%S.%f] [%n] [%l] [thread %t] %v");
+            // Set default level and pattern
+            spdlogLogger_->set_level(spdlog::level::debug);
+            spdlogLogger_->set_pattern("[%Y-%m-%d %H:%M:%S.%f] [%n] [%l] [thread %t] %v");
 
-        // Register with spdlog
-        spdlog::register_logger(spdlogLogger_);
+            // Register with spdlog
+            spdlog::register_logger(spdlogLogger_);
+
+#ifdef AKH_DEBUG
+            // Debug output
+            std::printf("Created logger '%.*s' with %zu sinks\n",
+                static_cast<int>(name.size()), name.data(),
+                spdlogLogger_->sinks().size());
+#endif
+        }
+        catch (const std::exception& e) {
+            // Fallback: create a basic logger or handle gracefully
+#ifdef AKH_DEBUG
+            std::printf("Failed to create logger '%.*s': %s\n",
+                static_cast<int>(name.size()), name.data(), e.what());
+#endif
+        }
     }
 
     ~Impl() {
@@ -237,7 +254,11 @@ public:
     }
 
     void Log(LogLevel level, std::string_view message, const std::source_location& location) {
-        if (!spdlogLogger_) return;
+        if (!spdlogLogger_) {
+            // Fallback: direct console output if spdlog logger not available
+            std::printf("[%s] %.*s\n", ToString(level).data(), static_cast<int>(message.size()), message.data());
+            return;
+        }
 
         auto spdLevel = ToSpdlogLevel(level);
 
@@ -268,9 +289,19 @@ public:
     }
 
     void AddSink(std::shared_ptr<spdlog::sinks::sink> sink) {
-        if (spdlogLogger_) {
+        if (spdlogLogger_ && sink) {
             spdlogLogger_->sinks().push_back(sink);
+#ifdef AKH_DEBUG
+            std::printf("Added sink to logger '%s' (now has %zu sinks)\n",
+                spdlogLogger_->name().c_str(), spdlogLogger_->sinks().size());
+#endif
         }
+#ifdef AKH_DEBUG
+        else {
+            std::printf("Failed to add sink: logger=%p, sink=%p\n",
+                spdlogLogger_.get(), sink.get());
+        }
+#endif
     }
 
     void RemoveSink(spdlog::sinks::sink* sink) {
@@ -371,6 +402,16 @@ public:
         // Add existing sinks to new channel
         {
             std::shared_lock<std::shared_mutex> sinkLock(sinksMutex_);
+
+            // Add default console and MSVC sinks
+            if (defaultConsoleSink_) {
+                channel->AddSink(std::static_pointer_cast<void>(defaultConsoleSink_));
+            }
+            if (defaultMsvcSink_) {
+                channel->AddSink(std::static_pointer_cast<void>(defaultMsvcSink_));
+            }
+
+            // Add other sinks
             if (editorSink_) {
                 channel->AddSink(std::static_pointer_cast<void>(editorSink_));
             }
@@ -543,12 +584,17 @@ private:
         auto msvcSink = std::make_shared<spdlog::sinks::msvc_sink_mt>();
         msvcSink->set_level(spdlog::level::debug);
 
-        // Optional memory tracking sink (only if callbacks are configured)
+        // Store default sinks for new channels
+        std::lock_guard<std::shared_mutex> lock(sinksMutex_);
+        defaultConsoleSink_ = consoleSink;
+        defaultMsvcSink_ = msvcSink;
+
+        // Optional memory tracking sink
         if (g_memoryAllocationCallback) {
             memoryTrackingSink_ = std::make_shared<OptionalMemoryTrackingSink>();
         }
 
-        // Apply to all existing channels (should be none at this point)
+        // Apply to all existing channels
         std::shared_lock<std::shared_mutex> channelLock(channelsMutex_);
         for (const auto& [name, channel] : channels_) {
             channel->AddSink(std::static_pointer_cast<void>(consoleSink));
@@ -568,6 +614,9 @@ private:
 
     std::unordered_map<std::string, std::unique_ptr<LogChannel>> channels_;
 
+    std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> defaultConsoleSink_;
+    std::shared_ptr<spdlog::sinks::msvc_sink_mt> defaultMsvcSink_;
+    
     std::shared_ptr<EditorSink> editorSink_;
     std::shared_ptr<OptionalMemoryTrackingSink> memoryTrackingSink_;
     std::vector<std::shared_ptr<AkhandaSinkWrapper>> akhandaSinks_;

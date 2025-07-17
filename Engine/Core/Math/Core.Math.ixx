@@ -47,6 +47,36 @@ export namespace Akhanda::Math {
     template<typename T>
     concept Integral = std::integral<T>;
 
+
+// =============================================================================
+// Utility Functions (inline for performance)
+// =============================================================================
+
+    template<Arithmetic T>
+    constexpr T Min(T a, T b) noexcept { return a < b ? a : b; }
+
+    template<Arithmetic T>
+    constexpr T Max(T a, T b) noexcept { return a > b ? a : b; }
+
+    template<Arithmetic T>
+    constexpr T Clamp(T value, T min, T max) noexcept {
+        return value < min ? min : (value > max ? max : value);
+    }
+
+    template<Arithmetic T>
+    constexpr T Abs(T value) noexcept { return value < T(0) ? -value : value; }
+
+    template<FloatingPoint T>
+    constexpr bool IsNearlyEqual(T a, T b, T tolerance = T(1e-6)) noexcept {
+        return Abs(a - b) <= tolerance;
+    }
+
+    template<FloatingPoint T>
+    constexpr bool IsNearlyZero(T value, T tolerance = T(1e-6)) noexcept {
+        return Abs(value) <= tolerance;
+    }
+
+
 // =============================================================================
 // Vector Types
 // =============================================================================
@@ -57,35 +87,53 @@ export namespace Akhanda::Math {
         // Constructors
         constexpr Vector2() noexcept : x(0), y(0) {}
         constexpr Vector2(float x, float y) noexcept : x(x), y(y) {}
+        constexpr Vector2(const Vector2& xy) noexcept : x(xy.x), y(xy.y) {}
         explicit constexpr Vector2(float scalar) noexcept : x(scalar), y(scalar) {}
 
-        // Element access
-        constexpr float& operator[](size_t index) noexcept;
-        constexpr const float& operator[](size_t index) const noexcept;
+        // Element access - keep constexpr for simple array access
+        constexpr float& operator[](size_t index) noexcept { return (&x)[index]; }
+        constexpr const float& operator[](size_t index) const noexcept { return (&x)[index]; }
 
         // Arithmetic operators
-        constexpr Vector2 operator+(const Vector2& other) const noexcept;
-        constexpr Vector2 operator-(const Vector2& other) const noexcept;
-        constexpr Vector2 operator*(const Vector2& other) const noexcept;
-        constexpr Vector2 operator/(const Vector2& other) const noexcept;
-        constexpr Vector2 operator*(float scalar) const noexcept;
-        constexpr Vector2 operator/(float scalar) const noexcept;
+        Vector2 operator+(const Vector2& other) const noexcept;
+        Vector2 operator-(const Vector2& other) const noexcept;
+        Vector2 operator*(const Vector2& other) const noexcept;
+        Vector2 operator/(const Vector2& other) const noexcept;
+        Vector2 operator*(float scalar) const noexcept;
+        Vector2 operator/(float scalar) const noexcept;
 
         // Assignment operators
-        constexpr Vector2& operator+=(const Vector2& other) noexcept;
-        constexpr Vector2& operator-=(const Vector2& other) noexcept;
-        constexpr Vector2& operator*=(const Vector2& other) noexcept;
-        constexpr Vector2& operator/=(const Vector2& other) noexcept;
-        constexpr Vector2& operator*=(float scalar) noexcept;
-        constexpr Vector2& operator/=(float scalar) noexcept;
+        Vector2& operator+=(const Vector2& other) noexcept;
+        Vector2& operator-=(const Vector2& other) noexcept;
+        Vector2& operator*=(const Vector2& other) noexcept;
+        Vector2& operator/=(const Vector2& other) noexcept;
+        Vector2& operator*=(float scalar) noexcept;
+        Vector2& operator/=(float scalar) noexcept;
 
         // Unary operators
-        constexpr Vector2 operator-() const noexcept;
-        constexpr Vector2 operator+() const noexcept;
+        Vector2 operator-() const noexcept;
+        Vector2 operator+() const noexcept;
 
         // Comparison operators
-        constexpr bool operator==(const Vector2& other) const noexcept;
-        constexpr bool operator!=(const Vector2& other) const noexcept;
+        bool operator==(const Vector2& other) const noexcept;
+        bool operator!=(const Vector2& other) const noexcept;
+
+        // Member functions (implemented externally)
+        float Length() const noexcept;
+        float LengthSquared() const noexcept;
+        Vector2 Normalized() const noexcept;
+        Vector2& Normalize() noexcept;
+        float Dot(const Vector2& other) const noexcept;
+        float Distance(const Vector2& other) const noexcept;
+        float DistanceSquared(const Vector2& other) const noexcept;
+        Vector2 Lerp(const Vector2& other, float t) const noexcept;
+        Vector2 Slerp(const Vector2& other, float t) const noexcept;
+        Vector2 Project(const Vector2& onto) const noexcept;
+        Vector2 Reject(const Vector2& from) const noexcept;
+        Vector2 Reflect(const Vector2& normal) const noexcept;
+        bool IsNearlyZero(float tolerance = EPSILON) const noexcept;
+        bool IsNormalized(float tolerance = EPSILON) const noexcept;
+        bool IsNearlyEqual(const Vector2& other, float tolerance = EPSILON) const noexcept;
 
         // Static constants
         static const Vector2 ZERO;
@@ -101,44 +149,57 @@ export namespace Akhanda::Math {
     struct Vector3 {
         float x, y, z;
 
-        // Constructors
+        // Constructors (can remain constexpr as they're trivial)
         constexpr Vector3() noexcept : x(0), y(0), z(0) {}
         constexpr Vector3(float x, float y, float z) noexcept : x(x), y(y), z(z) {}
         constexpr Vector3(const Vector2& xy, float z) noexcept : x(xy.x), y(xy.y), z(z) {}
+        constexpr Vector3(const Vector3& xyz) noexcept : x(xyz.x), y(xyz.y), z(xyz.z) {}
         explicit constexpr Vector3(float scalar) noexcept : x(scalar), y(scalar), z(scalar) {}
 
-        // Element access
-        constexpr float& operator[](size_t index) noexcept;
-        constexpr const float& operator[](size_t index) const noexcept;
+        // Element access - keep constexpr for simple array access
+        constexpr float& operator[](size_t index) noexcept { return (&x)[index]; }
+        constexpr const float& operator[](size_t index) const noexcept { return (&x)[index]; }
 
-        // Arithmetic operators
-        constexpr Vector3 operator+(const Vector3& other) const noexcept;
-        constexpr Vector3 operator-(const Vector3& other) const noexcept;
-        constexpr Vector3 operator*(const Vector3& other) const noexcept;
-        constexpr Vector3 operator/(const Vector3& other) const noexcept;
-        constexpr Vector3 operator*(float scalar) const noexcept;
-        constexpr Vector3 operator/(float scalar) const noexcept;
+        Vector3 operator+(const Vector3& other) const noexcept;
+        Vector3 operator-(const Vector3& other) const noexcept;
+        Vector3 operator*(const Vector3& other) const noexcept;
+        Vector3 operator/(const Vector3& other) const noexcept;
+        Vector3 operator*(float scalar) const noexcept;
+        Vector3 operator/(float scalar) const noexcept;
 
         // Assignment operators
-        constexpr Vector3& operator+=(const Vector3& other) noexcept;
-        constexpr Vector3& operator-=(const Vector3& other) noexcept;
-        constexpr Vector3& operator*=(const Vector3& other) noexcept;
-        constexpr Vector3& operator/=(const Vector3& other) noexcept;
-        constexpr Vector3& operator*=(float scalar) noexcept;
-        constexpr Vector3& operator/=(float scalar) noexcept;
+        Vector3& operator+=(const Vector3& other) noexcept;
+        Vector3& operator-=(const Vector3& other) noexcept;
+        Vector3& operator*=(const Vector3& other) noexcept;
+        Vector3& operator/=(const Vector3& other) noexcept;
+        Vector3& operator*=(float scalar) noexcept;
+        Vector3& operator/=(float scalar) noexcept;
 
         // Unary operators
-        constexpr Vector3 operator-() const noexcept;
-        constexpr Vector3 operator+() const noexcept;
+        Vector3 operator-() const noexcept;
+        Vector3 operator+() const noexcept;
 
         // Comparison operators
-        constexpr bool operator==(const Vector3& other) const noexcept;
-        constexpr bool operator!=(const Vector3& other) const noexcept;
+        bool operator==(const Vector3& other) const noexcept;
+        bool operator!=(const Vector3& other) const noexcept;
 
-        // Swizzling
-        constexpr Vector2 xy() const noexcept { return Vector2(x, y); }
-        constexpr Vector2 xz() const noexcept { return Vector2(x, z); }
-        constexpr Vector2 yz() const noexcept { return Vector2(y, z); }
+        // Member functions (implemented externally)
+        float Length() const noexcept;
+        float LengthSquared() const noexcept;
+        Vector3 Normalized() const noexcept;
+        Vector3& Normalize() noexcept;
+        float Dot(const Vector3& other) const noexcept;
+        Vector3 Cross(const Vector3& other) const noexcept;
+        float Distance(const Vector3& other) const noexcept;
+        float DistanceSquared(const Vector3& other) const noexcept;
+        Vector3 Lerp(const Vector3& other, float t) const noexcept;
+        Vector3 Slerp(const Vector3& other, float t) const noexcept;
+        Vector3 Project(const Vector3& onto) const noexcept;
+        Vector3 Reject(const Vector3& from) const noexcept;
+        Vector3 Reflect(const Vector3& normal) const noexcept;
+        bool IsNearlyZero(float tolerance = EPSILON) const noexcept;
+        bool IsNormalized(float tolerance = EPSILON) const noexcept;
+        bool IsNearlyEqual(const Vector3& other, float tolerance = EPSILON) const noexcept;
 
         // Static constants
         static const Vector3 ZERO;
@@ -166,40 +227,58 @@ export namespace Akhanda::Math {
         constexpr Vector4(float x, float y, float z, float w) noexcept : x(x), y(y), z(z), w(w) {}
         constexpr Vector4(const Vector3& xyz, float w) noexcept : x(xyz.x), y(xyz.y), z(xyz.z), w(w) {}
         constexpr Vector4(const Vector2& xy, const Vector2& zw) noexcept : x(xy.x), y(xy.y), z(zw.x), w(zw.y) {}
+        constexpr Vector4(const Vector4& xyzw) noexcept : x(xyzw.x), y(xyzw.y), z(xyzw.z), w(xyzw.w) {}
         explicit constexpr Vector4(float scalar) noexcept : x(scalar), y(scalar), z(scalar), w(scalar) {}
 
         // Element access
-        constexpr float& operator[](size_t index) noexcept;
-        constexpr const float& operator[](size_t index) const noexcept;
+        constexpr float& operator[](size_t index) noexcept { return (&x)[index]; }
+        constexpr const float& operator[](size_t index) const noexcept { return (&x)[index]; }
 
         // Arithmetic operators
-        constexpr Vector4 operator+(const Vector4& other) const noexcept;
-        constexpr Vector4 operator-(const Vector4& other) const noexcept;
-        constexpr Vector4 operator*(const Vector4& other) const noexcept;
-        constexpr Vector4 operator/(const Vector4& other) const noexcept;
-        constexpr Vector4 operator*(float scalar) const noexcept;
-        constexpr Vector4 operator/(float scalar) const noexcept;
+        Vector4 operator+(const Vector4& other) const noexcept;
+        Vector4 operator-(const Vector4& other) const noexcept;
+        Vector4 operator*(const Vector4& other) const noexcept;
+        Vector4 operator/(const Vector4& other) const noexcept;
+        Vector4 operator*(float scalar) const noexcept;
+        Vector4 operator/(float scalar) const noexcept;
 
         // Assignment operators
-        constexpr Vector4& operator+=(const Vector4& other) noexcept;
-        constexpr Vector4& operator-=(const Vector4& other) noexcept;
-        constexpr Vector4& operator*=(const Vector4& other) noexcept;
-        constexpr Vector4& operator/=(const Vector4& other) noexcept;
-        constexpr Vector4& operator*=(float scalar) noexcept;
-        constexpr Vector4& operator/=(float scalar) noexcept;
+        Vector4& operator+=(const Vector4& other) noexcept;
+        Vector4& operator-=(const Vector4& other) noexcept;
+        Vector4& operator*=(const Vector4& other) noexcept;
+        Vector4& operator/=(const Vector4& other) noexcept;
+        Vector4& operator*=(float scalar) noexcept;
+        Vector4& operator/=(float scalar) noexcept;
 
         // Unary operators
-        constexpr Vector4 operator-() const noexcept;
-        constexpr Vector4 operator+() const noexcept;
+        Vector4 operator-() const noexcept;
+        Vector4 operator+() const noexcept;
 
         // Comparison operators
-        constexpr bool operator==(const Vector4& other) const noexcept;
-        constexpr bool operator!=(const Vector4& other) const noexcept;
+        bool operator==(const Vector4& other) const noexcept;
+        bool operator!=(const Vector4& other) const noexcept;
 
         // Swizzling
         constexpr Vector2 xy() const noexcept { return Vector2(x, y); }
         constexpr Vector2 zw() const noexcept { return Vector2(z, w); }
         constexpr Vector3 xyz() const noexcept { return Vector3(x, y, z); }
+
+        // Member functions (implemented externally)
+        float Length() const noexcept;
+        float LengthSquared() const noexcept;
+        Vector4 Normalized() const noexcept;
+        Vector4& Normalize() noexcept;
+        float Dot(const Vector4& other) const noexcept;
+        float Distance(const Vector4& other) const noexcept;
+        float DistanceSquared(const Vector4& other) const noexcept;
+        Vector4 Lerp(const Vector4& other, float t) const noexcept;
+        Vector4 Slerp(const Vector4& other, float t) const noexcept;
+        Vector4 Project(const Vector4& onto) const noexcept;
+        Vector4 Reject(const Vector4& from) const noexcept;
+        Vector4 Reflect(const Vector4& normal) const noexcept;
+        bool IsNearlyZero(float tolerance = EPSILON) const noexcept;
+        bool IsNormalized(float tolerance = EPSILON) const noexcept;
+        bool IsNearlyEqual(const Vector4& other, float tolerance = EPSILON) const noexcept;
 
         // Static constants
         static const Vector4 ZERO;
@@ -223,33 +302,41 @@ export namespace Akhanda::Math {
         float m[9]; // Column-major order
 
         // Constructors
-        constexpr Matrix3() noexcept;
+        constexpr Matrix3() noexcept : m{ 0 } {}
         constexpr Matrix3(float m00, float m01, float m02,
             float m10, float m11, float m12,
-            float m20, float m21, float m22) noexcept;
-        explicit constexpr Matrix3(float diagonal) noexcept;
+            float m20, float m21, float m22) noexcept {
+            m[0] = m00; m[1] = m10; m[2] = m20;
+            m[3] = m01; m[4] = m11; m[5] = m21;
+            m[6] = m02; m[7] = m12; m[8] = m22;
+        }
+        explicit constexpr Matrix3(float diagonal) noexcept : m{ 0 } {
+            m[0] = diagonal;
+            m[4] = diagonal;
+            m[8] = diagonal;
+        }
 
         // Element access
-        constexpr float& operator()(size_t row, size_t col) noexcept;
-        constexpr const float& operator()(size_t row, size_t col) const noexcept;
-        constexpr float* operator[](size_t row) noexcept;
-        constexpr const float* operator[](size_t row) const noexcept;
+        constexpr float& operator()(size_t row, size_t col) noexcept { return m[col * 3 + row]; }
+        constexpr const float& operator()(size_t row, size_t col) const noexcept { return m[col * 3 + row]; }
+        constexpr float* operator[](size_t row) noexcept { return &m[row * 3]; }
+        constexpr const float* operator[](size_t row) const noexcept { return &m[row * 3]; }
 
         // Matrix operations
-        constexpr Matrix3 operator+(const Matrix3& other) const noexcept;
-        constexpr Matrix3 operator-(const Matrix3& other) const noexcept;
-        constexpr Matrix3 operator*(const Matrix3& other) const noexcept;
-        constexpr Matrix3 operator*(float scalar) const noexcept;
-        constexpr Vector3 operator*(const Vector3& vector) const noexcept;
+        Matrix3 operator+(const Matrix3& other) const noexcept;
+        Matrix3 operator-(const Matrix3& other) const noexcept;
+        Matrix3 operator*(const Matrix3& other) const noexcept;
+        Matrix3 operator*(float scalar) const noexcept;
+        Vector3 operator*(const Vector3& vector) const noexcept;
 
-        constexpr Matrix3& operator+=(const Matrix3& other) noexcept;
-        constexpr Matrix3& operator-=(const Matrix3& other) noexcept;
-        constexpr Matrix3& operator*=(const Matrix3& other) noexcept;
-        constexpr Matrix3& operator*=(float scalar) noexcept;
+        Matrix3& operator+=(const Matrix3& other) noexcept;
+        Matrix3& operator-=(const Matrix3& other) noexcept;
+        Matrix3& operator*=(const Matrix3& other) noexcept;
+        Matrix3& operator*=(float scalar) noexcept;
 
         // Comparison
-        constexpr bool operator==(const Matrix3& other) const noexcept;
-        constexpr bool operator!=(const Matrix3& other) const noexcept;
+        bool operator==(const Matrix3& other) const noexcept;
+        bool operator!=(const Matrix3& other) const noexcept;
 
         // Static constructors
         static const Matrix3 ZERO;
@@ -260,37 +347,52 @@ export namespace Akhanda::Math {
         float m[16]; // Column-major order
 
         // Constructors
-        constexpr Matrix4() noexcept;
+        constexpr Matrix4() noexcept : m{ 0 } {}
         constexpr Matrix4(float m00, float m01, float m02, float m03,
             float m10, float m11, float m12, float m13,
             float m20, float m21, float m22, float m23,
-            float m30, float m31, float m32, float m33) noexcept;
-        explicit constexpr Matrix4(float diagonal) noexcept;
-        constexpr Matrix4(const Matrix3& mat3) noexcept;
+            float m30, float m31, float m32, float m33) noexcept {
+            m[0] = m00; m[1] = m10; m[2] = m20; m[3] = m30;
+            m[4] = m01; m[5] = m11; m[6] = m21; m[7] = m31;
+            m[8] = m02; m[9] = m12; m[10] = m22; m[11] = m32;
+            m[12] = m03; m[13] = m13; m[14] = m23; m[15] = m33;
+        }
+        explicit constexpr Matrix4(float diagonal) noexcept : m{ 0 } {
+            m[0] = diagonal;
+            m[5] = diagonal;
+            m[10] = diagonal;
+            m[15] = diagonal;
+        }
+        constexpr Matrix4(const Matrix3& mat3) noexcept : m{ 0 } {
+            m[0] = mat3.m[0]; m[1] = mat3.m[1]; m[2] = mat3.m[2];
+            m[4] = mat3.m[3]; m[5] = mat3.m[4]; m[6] = mat3.m[5];
+            m[8] = mat3.m[6]; m[9] = mat3.m[7]; m[10] = mat3.m[8];
+            m[15] = 1.0f;
+        }
 
         // Element access
-        constexpr float& operator()(size_t row, size_t col) noexcept;
-        constexpr const float& operator()(size_t row, size_t col) const noexcept;
-        constexpr float* operator[](size_t row) noexcept;
-        constexpr const float* operator[](size_t row) const noexcept;
+        constexpr float& operator()(size_t row, size_t col) noexcept { return m[col * 4 + row]; }
+        constexpr const float& operator()(size_t row, size_t col) const noexcept { return m[col * 4 + row]; }
+        constexpr float* operator[](size_t row) noexcept { return &m[row * 4]; }
+        constexpr const float* operator[](size_t row) const noexcept { return &m[row * 4]; }
 
         // Matrix operations
-        constexpr Matrix4 operator+(const Matrix4& other) const noexcept;
-        constexpr Matrix4 operator-(const Matrix4& other) const noexcept;
-        constexpr Matrix4 operator*(const Matrix4& other) const noexcept;
-        constexpr Matrix4 operator*(float scalar) const noexcept;
-        constexpr Vector4 operator*(const Vector4& vector) const noexcept;
-        constexpr Vector3 TransformPoint(const Vector3& point) const noexcept;
-        constexpr Vector3 TransformVector(const Vector3& vector) const noexcept;
+        Matrix4 operator+(const Matrix4& other) const noexcept;
+        Matrix4 operator-(const Matrix4& other) const noexcept;
+        Matrix4 operator*(const Matrix4& other) const noexcept;
+        Matrix4 operator*(float scalar) const noexcept;
+        Vector4 operator*(const Vector4& vector) const noexcept;
+        Vector3 TransformPoint(const Vector3& point) const noexcept;
+        Vector3 TransformVector(const Vector3& vector) const noexcept;
 
-        constexpr Matrix4& operator+=(const Matrix4& other) noexcept;
-        constexpr Matrix4& operator-=(const Matrix4& other) noexcept;
-        constexpr Matrix4& operator*=(const Matrix4& other) noexcept;
-        constexpr Matrix4& operator*=(float scalar) noexcept;
+        Matrix4& operator+=(const Matrix4& other) noexcept;
+        Matrix4& operator-=(const Matrix4& other) noexcept;
+        Matrix4& operator*=(const Matrix4& other) noexcept;
+        Matrix4& operator*=(float scalar) noexcept;
 
         // Comparison
-        constexpr bool operator==(const Matrix4& other) const noexcept;
-        constexpr bool operator!=(const Matrix4& other) const noexcept;
+        bool operator==(const Matrix4& other) const noexcept;
+        bool operator!=(const Matrix4& other) const noexcept;
 
         // Static constructors
         static const Matrix4 ZERO;
@@ -312,19 +414,28 @@ export namespace Akhanda::Math {
         Quaternion(const Vector3& eulerAngles) noexcept;
 
         // Operations
-        constexpr Quaternion operator+(const Quaternion& other) const noexcept;
-        constexpr Quaternion operator-(const Quaternion& other) const noexcept;
-        constexpr Quaternion operator*(const Quaternion& other) const noexcept;
-        constexpr Quaternion operator*(float scalar) const noexcept;
-        constexpr Vector3 operator*(const Vector3& vector) const noexcept;
+        Quaternion operator+(const Quaternion& other) const noexcept;
+        Quaternion operator-(const Quaternion& other) const noexcept;
+        Quaternion operator*(const Quaternion& other) const noexcept;
+        Quaternion operator*(float scalar) const noexcept;
+        Vector3 operator*(const Vector3& vector) const noexcept;
 
-        constexpr Quaternion& operator+=(const Quaternion& other) noexcept;
-        constexpr Quaternion& operator-=(const Quaternion& other) noexcept;
-        constexpr Quaternion& operator*=(const Quaternion& other) noexcept;
-        constexpr Quaternion& operator*=(float scalar) noexcept;
+        Quaternion& operator+=(const Quaternion& other) noexcept;
+        Quaternion& operator-=(const Quaternion& other) noexcept;
+        Quaternion& operator*=(const Quaternion& other) noexcept;
+        Quaternion& operator*=(float scalar) noexcept;
 
-        constexpr bool operator==(const Quaternion& other) const noexcept;
-        constexpr bool operator!=(const Quaternion& other) const noexcept;
+        bool operator==(const Quaternion& other) const noexcept;
+        bool operator!=(const Quaternion& other) const noexcept;
+
+        float Length() noexcept;
+        float LengthSquared() noexcept;
+        float Dot(const Quaternion& a) noexcept;
+        void Normalize() noexcept;
+        Quaternion Conjugate() noexcept;
+        Quaternion Inverse() noexcept;
+        Matrix3 ToMatrix3() noexcept;
+        Matrix4 ToMatrix4() noexcept;
 
         static Quaternion FromAxisAngle(const Vector3& axis, float angle) noexcept {
             return Quaternion(axis, angle);
@@ -351,10 +462,10 @@ export namespace Akhanda::Math {
         constexpr operator Vector3() const noexcept { return Vector3(r, g, b); }
 
         // Operations
-        constexpr Color3 operator+(const Color3& other) const noexcept;
-        constexpr Color3 operator-(const Color3& other) const noexcept;
-        constexpr Color3 operator*(const Color3& other) const noexcept;
-        constexpr Color3 operator*(float scalar) const noexcept;
+        constexpr Color3 operator+(const Color3& other) const noexcept { return Color3(r + other.r, g + other.g, b + other.b); }
+        constexpr Color3 operator-(const Color3& other) const noexcept { return Color3(r - other.r, g - other.g, b - other.b); }
+        constexpr Color3 operator*(const Color3& other) const noexcept { return Color3(r * other.r, g * other.g, b * other.b); }
+        constexpr Color3 operator*(float scalar) const noexcept { return Color3(r * scalar, g * scalar, b * scalar); }
 
         // Static colors
         static const Color3 BLACK;
@@ -380,10 +491,10 @@ export namespace Akhanda::Math {
         constexpr operator Vector4() const noexcept { return Vector4(r, g, b, a); }
 
         // Operations
-        constexpr Color4 operator+(const Color4& other) const noexcept;
-        constexpr Color4 operator-(const Color4& other) const noexcept;
-        constexpr Color4 operator*(const Color4& other) const noexcept;
-        constexpr Color4 operator*(float scalar) const noexcept;
+        constexpr Color4 operator+(const Color4& other) const noexcept { return Color4(r + other.r, g + other.g, b + other.b, a + other.a); }
+        constexpr Color4 operator-(const Color4& other) const noexcept { return Color4(r - other.r, g - other.g, b - other.b, a - other.a); }
+        constexpr Color4 operator*(const Color4& other) const noexcept { return Color4(r * other.r, g * other.g, b * other.b, a * other.a); }
+        constexpr Color4 operator*(float scalar) const noexcept { return Color4(r * scalar, g * scalar, b * scalar, a * scalar); }
 
         // RGB extraction
         constexpr Color3 rgb() const noexcept { return Color3(r, g, b); }
@@ -414,7 +525,7 @@ export namespace Akhanda::Math {
             : origin(origin), direction(direction) {
         }
 
-        constexpr Vector3 GetPoint(float t) const noexcept;
+        Vector3 GetPoint(float t) const noexcept;
     };
 
     struct Plane {
@@ -426,8 +537,8 @@ export namespace Akhanda::Math {
         Plane(const Vector3& normal, const Vector3& point) noexcept;
         Plane(const Vector3& p1, const Vector3& p2, const Vector3& p3) noexcept;
 
-        constexpr float DistanceToPoint(const Vector3& point) const noexcept;
-        constexpr Vector3 ClosestPoint(const Vector3& point) const noexcept;
+        float DistanceToPoint(const Vector3& point) const noexcept;
+        Vector3 ClosestPoint(const Vector3& point) const noexcept;
     };
 
     struct AABB {
@@ -436,18 +547,18 @@ export namespace Akhanda::Math {
 
         constexpr AABB() noexcept : min(Vector3::ZERO), max(Vector3::ZERO) {}
         constexpr AABB(const Vector3& min, const Vector3& max) noexcept : min(min), max(max) {}
-        constexpr AABB(const Vector3& center, float radius) noexcept;
+        AABB(const Vector3& center, float radius) noexcept;
 
-        constexpr Vector3 Center() const noexcept;
-        constexpr Vector3 Size() const noexcept;
-        constexpr Vector3 Extents() const noexcept;
-        constexpr float Volume() const noexcept;
-        constexpr bool Contains(const Vector3& point) const noexcept;
-        constexpr bool Intersects(const AABB& other) const noexcept;
-        constexpr AABB Union(const AABB& other) const noexcept;
-        constexpr AABB Intersection(const AABB& other) const noexcept;
-        constexpr void Expand(const Vector3& point) noexcept;
-        constexpr void Expand(float amount) noexcept;
+        Vector3 Center() const noexcept;
+        Vector3 Size() const noexcept;
+        Vector3 Extents() const noexcept;
+        float Volume() const noexcept;
+        bool Contains(const Vector3& point) const noexcept;
+        bool Intersects(const AABB& other) const noexcept;
+        AABB Union(const AABB& other) const noexcept;
+        AABB Intersection(const AABB& other) const noexcept;
+        void Expand(const Vector3& point) noexcept;
+        void Expand(float amount) noexcept;
     };
 
     struct OBB {
@@ -460,9 +571,9 @@ export namespace Akhanda::Math {
             : center(center), extents(extents), rotation(rotation) {
         }
 
-        constexpr bool Contains(const Vector3& point) const noexcept;
-        constexpr bool Intersects(const OBB& other) const noexcept;
-        constexpr AABB ToAABB() const noexcept;
+        bool Contains(const Vector3& point) const noexcept;
+        bool Intersects(const OBB& other) const noexcept;
+        AABB ToAABB() const noexcept;
     };
 
     struct Sphere {
@@ -472,12 +583,12 @@ export namespace Akhanda::Math {
         constexpr Sphere() noexcept : center(Vector3::ZERO), radius(1.0f) {}
         constexpr Sphere(const Vector3& center, float radius) noexcept : center(center), radius(radius) {}
 
-        constexpr bool Contains(const Vector3& point) const noexcept;
-        constexpr bool Intersects(const Sphere& other) const noexcept;
-        constexpr bool Intersects(const AABB& aabb) const noexcept;
-        constexpr AABB ToAABB() const noexcept;
-        constexpr float Volume() const noexcept;
-        constexpr float SurfaceArea() const noexcept;
+        bool Contains(const Vector3& point) const noexcept;
+        bool Intersects(const Sphere& other) const noexcept;
+        bool Intersects(const AABB& aabb) const noexcept;
+        AABB ToAABB() const noexcept;
+        float Volume() const noexcept;
+        float SurfaceArea() const noexcept;
     };
 
     struct Triangle {
@@ -489,10 +600,10 @@ export namespace Akhanda::Math {
         }
 
         Vector3 Normal() const noexcept;
-        constexpr Vector3 Center() const noexcept;
+        Vector3 Center() const noexcept;
         float Area() const noexcept;
-        constexpr bool Contains(const Vector3& point) const noexcept;
-        constexpr Vector3 ClosestPoint(const Vector3& point) const noexcept;
+        bool Contains(const Vector3& point) const noexcept;
+        Vector3 ClosestPoint(const Vector3& point) const noexcept;
     };
 
     struct Frustum {
@@ -503,11 +614,11 @@ export namespace Akhanda::Math {
         };
 
         constexpr Frustum() noexcept = default;
-        constexpr Frustum(const Matrix4& viewProjectionMatrix) noexcept;
+        Frustum(const Matrix4& viewProjectionMatrix) noexcept;
 
-        constexpr bool Contains(const Vector3& point) const noexcept;
-        constexpr bool Intersects(const Sphere& sphere) const noexcept;
-        constexpr bool Intersects(const AABB& aabb) const noexcept;
+        bool Contains(const Vector3& point) const noexcept;
+        bool Intersects(const Sphere& sphere) const noexcept;
+        bool Intersects(const AABB& aabb) const noexcept;
     };
 
 
@@ -568,14 +679,14 @@ export namespace Akhanda::Math {
         }
 
         Matrix4 ToMatrix() const noexcept;
-        constexpr Transform Inverse() const noexcept;
-        constexpr Vector3 TransformPoint(const Vector3& point) const noexcept;
-        constexpr Vector3 TransformVector(const Vector3& vector) const noexcept;
-        constexpr Vector3 InverseTransformPoint(const Vector3& point) const noexcept;
-        constexpr Vector3 InverseTransformVector(const Vector3& vector) const noexcept;
+        Transform Inverse() const noexcept;
+        Vector3 TransformPoint(const Vector3& point) const noexcept;
+        Vector3 TransformVector(const Vector3& vector) const noexcept;
+        Vector3 InverseTransformPoint(const Vector3& point) const noexcept;
+        Vector3 InverseTransformVector(const Vector3& vector) const noexcept;
 
-        constexpr Transform operator*(const Transform& other) const noexcept;
-        constexpr Transform& operator*=(const Transform& other) noexcept;
+        Transform operator*(const Transform& other) const noexcept;
+        Transform& operator*=(const Transform& other) noexcept;
 
         static const Transform IDENTITY;
     };
@@ -610,28 +721,25 @@ export namespace Akhanda::Math {
 // =============================================================================
 
     // Basic functions
-    constexpr float Abs(float x) noexcept;
-    constexpr float Sign(float x) noexcept;
-    constexpr float Min(float a, float b) noexcept;
-    constexpr float Max(float a, float b) noexcept;
-    constexpr float Clamp(float value, float min, float max) noexcept;
-    constexpr float Saturate(float value) noexcept;
+    template<FloatingPoint T> constexpr T Sign(T x) noexcept { return (x > T(0)) ? T(1) : (x < T(0)) ? T(-1) : T(0); }
+    template<FloatingPoint T> constexpr T Saturate(T value) noexcept { return Clamp<T>(value, T(0), T(1)); }
 
     // Angle functions
-    constexpr float ToRadians(float degrees) noexcept;
-    constexpr float ToDegrees(float radians) noexcept;
+    constexpr float ToRadians(float degrees) noexcept { return degrees * DEG_TO_RAD; }
+    constexpr float ToDegrees(float radians) noexcept { return radians * RAD_TO_DEG; }
     float WrapAngle(float angle) noexcept;
     float AngleDifference(float a, float b) noexcept;
 
     // Interpolation
-    constexpr float Lerp(float a, float b, float t) noexcept;
-    constexpr float InverseLerp(float a, float b, float value) noexcept;
-    constexpr float SmoothStep(float edge0, float edge1, float x) noexcept;
-    constexpr float SmootherStep(float edge0, float edge1, float x) noexcept;
+    template<FloatingPoint T> constexpr T Lerp(T a, T b, T t) noexcept { return a + t * (b - a); }
+    template<FloatingPoint T> constexpr T InverseLerp(T a, T b, T t) noexcept { return (t - a) / (b - a); }
+    
+    float SmoothStep(float edge0, float edge1, float x) noexcept;
+    float SmootherStep(float edge0, float edge1, float x) noexcept;
 
-    Vector2 Lerp(const Vector2& a, const Vector2& b, float t) noexcept;
-    Vector3 Lerp(const Vector3& a, const Vector3& b, float t) noexcept;
-    Vector4 Lerp(const Vector4& a, const Vector4& b, float t) noexcept;
+    Vector2 LerpV2(const Vector2& a, const Vector2& b, float t) noexcept;
+    Vector3 LerpV3(const Vector3& a, const Vector3& b, float t) noexcept;
+    Vector4 LerpV4(const Vector4& a, const Vector4& b, float t) noexcept;
     Quaternion Slerp(const Quaternion& a, const Quaternion& b, float t) noexcept;
     Quaternion Nlerp(const Quaternion& a, const Quaternion& b, float t) noexcept;
 
@@ -667,38 +775,38 @@ export namespace Akhanda::Math {
 // =============================================================================
 
     // Vector2 operations
-    constexpr float Dot(const Vector2& a, const Vector2& b) noexcept;
-    constexpr float Cross(const Vector2& a, const Vector2& b) noexcept;
+    float Dot(const Vector2& a, const Vector2& b) noexcept;
+    float Cross(const Vector2& a, const Vector2& b) noexcept;
     float Length(const Vector2& v) noexcept;
-    constexpr float LengthSquared(const Vector2& v) noexcept;
+    float LengthSquared(const Vector2& v) noexcept;
     Vector2 Normalize(const Vector2& v) noexcept;
     float Distance(const Vector2& a, const Vector2& b) noexcept;
-    constexpr float DistanceSquared(const Vector2& a, const Vector2& b) noexcept;
-    constexpr Vector2 Reflect(const Vector2& incident, const Vector2& normal) noexcept;
-    constexpr Vector2 Project(const Vector2& a, const Vector2& b) noexcept;
-    constexpr Vector2 Perpendicular(const Vector2& v) noexcept;
+    float DistanceSquared(const Vector2& a, const Vector2& b) noexcept;
+    Vector2 Reflect(const Vector2& incident, const Vector2& normal) noexcept;
+    Vector2 Project(const Vector2& a, const Vector2& b) noexcept;
+    Vector2 Perpendicular(const Vector2& v) noexcept;
     float Angle(const Vector2& a, const Vector2& b) noexcept;
 
     // Vector3 operations
-    constexpr float Dot(const Vector3& a, const Vector3& b) noexcept;
-    constexpr Vector3 Cross(const Vector3& a, const Vector3& b) noexcept;
+    float Dot(const Vector3& a, const Vector3& b) noexcept;
+    Vector3 Cross(const Vector3& a, const Vector3& b) noexcept;
     float Length(const Vector3& v) noexcept;
-    constexpr float LengthSquared(const Vector3& v) noexcept;
+    float LengthSquared(const Vector3& v) noexcept;
     Vector3 Normalize(const Vector3& v) noexcept;
     float Distance(const Vector3& a, const Vector3& b) noexcept;
-    constexpr float DistanceSquared(const Vector3& a, const Vector3& b) noexcept;
-    constexpr Vector3 Reflect(const Vector3& incident, const Vector3& normal) noexcept;
-    constexpr Vector3 Refract(const Vector3& incident, const Vector3& normal, float ior) noexcept;
-    constexpr Vector3 Project(const Vector3& a, const Vector3& b) noexcept;
+    float DistanceSquared(const Vector3& a, const Vector3& b) noexcept;
+    Vector3 Reflect(const Vector3& incident, const Vector3& normal) noexcept;
+    Vector3 Refract(const Vector3& incident, const Vector3& normal, float ior) noexcept;
+    Vector3 Project(const Vector3& a, const Vector3& b) noexcept;
     float Angle(const Vector3& a, const Vector3& b) noexcept;
 
     // Vector4 operations
-    constexpr float Dot(const Vector4& a, const Vector4& b) noexcept;
+    float Dot(const Vector4& a, const Vector4& b) noexcept;
     float Length(const Vector4& v) noexcept;
-    constexpr float LengthSquared(const Vector4& v) noexcept;
+    float LengthSquared(const Vector4& v) noexcept;
     Vector4 Normalize(const Vector4& v) noexcept;
     float Distance(const Vector4& a, const Vector4& b) noexcept;
-    constexpr float DistanceSquared(const Vector4& a, const Vector4& b) noexcept;
+    float DistanceSquared(const Vector4& a, const Vector4& b) noexcept;
 
 
 // =============================================================================
@@ -706,30 +814,30 @@ export namespace Akhanda::Math {
 // =============================================================================
 
     // Matrix3 operations
-    constexpr float Determinant(const Matrix3& m) noexcept;
-    constexpr Matrix3 Transpose(const Matrix3& m) noexcept;
-    constexpr Matrix3 Inverse(const Matrix3& m) noexcept;
-    constexpr Matrix3 Scale(const Vector2& scale) noexcept;
+    float Determinant(const Matrix3& m) noexcept;
+    Matrix3 Transpose(const Matrix3& m) noexcept;
+    Matrix3 Inverse(const Matrix3& m) noexcept;
+    Matrix3 Scale(const Vector2& scale) noexcept;
     Matrix3 Rotation(float angle) noexcept;
-    constexpr Matrix3 Translation(const Vector2& translation) noexcept;
+    Matrix3 Translation(const Vector2& translation) noexcept;
 
     // Matrix4 operations
-    constexpr float Determinant(const Matrix4& m) noexcept;
-    constexpr Matrix4 Transpose(const Matrix4& m) noexcept;
-    constexpr Matrix4 Inverse(const Matrix4& m) noexcept;
-    constexpr Matrix4 Scale(const Vector3& scale) noexcept;
+    float Determinant(const Matrix4& m) noexcept;
+    Matrix4 Transpose(const Matrix4& m) noexcept;
+    Matrix4 Inverse(const Matrix4& m) noexcept;
+    Matrix4 Scale(const Vector3& scale) noexcept;
     Matrix4 RotationX(float angle) noexcept;
     Matrix4 RotationY(float angle) noexcept;
     Matrix4 RotationZ(float angle) noexcept;
     Matrix4 Rotation(const Vector3& axis, float angle) noexcept;
-    constexpr Matrix4 Translation(const Vector3& translation) noexcept;
+    Matrix4 Translation(const Vector3& translation) noexcept;
     Matrix4 LookAt(const Vector3& eye, const Vector3& target, const Vector3& up) noexcept;
 
     // Projection matrices
     Matrix4 Perspective(float fovY, float aspect, float near, float far) noexcept;
     Matrix4 PerspectiveReversedZ(float fovY, float aspect, float near, float far) noexcept;
-    constexpr Matrix4 Orthographic(float left, float right, float bottom, float top, float near, float far) noexcept;
-    constexpr Matrix4 OrthographicReversedZ(float left, float right, float bottom, float top, float near, float far) noexcept;
+    Matrix4 Orthographic(float left, float right, float bottom, float top, float near, float far) noexcept;
+    Matrix4 OrthographicReversedZ(float left, float right, float bottom, float top, float near, float far) noexcept;
 
     // Matrix decomposition
     bool Decompose(const Matrix4& matrix, Vector3& translation, Quaternion& rotation, Vector3& scale) noexcept;
@@ -740,18 +848,18 @@ export namespace Akhanda::Math {
 // Quaternion Operations
 // =============================================================================
 
-    constexpr float Dot(const Quaternion& a, const Quaternion& b) noexcept;
+    float Dot(const Quaternion& a, const Quaternion& b) noexcept;
     float Length(const Quaternion& q) noexcept;
-    constexpr float LengthSquared(const Quaternion& q) noexcept;
+    float LengthSquared(const Quaternion& q) noexcept;
     Quaternion Normalize(const Quaternion& q) noexcept;
-    constexpr Quaternion Conjugate(const Quaternion& q) noexcept;
-    constexpr Quaternion Inverse(const Quaternion& q) noexcept;
+    Quaternion Conjugate(const Quaternion& q) noexcept;
+    Quaternion Inverse(const Quaternion& q) noexcept;
     Matrix4 ToMatrix(const Quaternion& q) noexcept;
     Matrix3 ToMatrix3(const Quaternion& q) noexcept;
     Vector3 ToEulerAngles(const Quaternion& q) noexcept;
     Quaternion FromEulerAngles(const Vector3& eulerAngles) noexcept;
     Quaternion FromAxisAngle(const Vector3& axis, float angle) noexcept;
-    constexpr Quaternion FromRotationMatrix(const Matrix3& matrix) noexcept;
+    Quaternion FromRotationMatrix(const Matrix3& matrix) noexcept;
     Quaternion LookRotation(const Vector3& forward, const Vector3& up = Vector3::UP) noexcept;
     float Angle(const Quaternion& a, const Quaternion& b) noexcept;
 
@@ -922,21 +1030,19 @@ export namespace Akhanda::Math {
 // =============================================================================
 
     // Floating point utilities
-    constexpr bool IsNearlyEqual(float a, float b, float epsilon = EPSILON) noexcept;
-    constexpr bool IsNearlyZero(float value, float epsilon = EPSILON) noexcept;
-     bool IsFinite(float value) noexcept;
+    bool IsFinite(float value) noexcept;
     bool IsInfinite(float value) noexcept;
     bool IsNaN(float value) noexcept;
 
     // Power of 2 utilities
-    constexpr bool IsPowerOfTwo(uint32_t value) noexcept;
-    constexpr uint32_t NextPowerOfTwo(uint32_t value) noexcept;
-    constexpr uint32_t PreviousPowerOfTwo(uint32_t value) noexcept;
+    bool IsPowerOfTwo(uint32_t value) noexcept;
+    uint32_t NextPowerOfTwo(uint32_t value) noexcept;
+    uint32_t PreviousPowerOfTwo(uint32_t value) noexcept;
 
     // Bit manipulation
-    constexpr uint32_t CountSetBits(uint32_t value) noexcept;
-    constexpr uint32_t CountLeadingZeros(uint32_t value) noexcept;
-    constexpr uint32_t CountTrailingZeros(uint32_t value) noexcept;
+    uint32_t CountSetBits(uint32_t value) noexcept;
+    uint32_t CountLeadingZeros(uint32_t value) noexcept;
+    uint32_t CountTrailingZeros(uint32_t value) noexcept;
 
     // Hash functions
     uint32_t Hash(uint32_t value) noexcept;
