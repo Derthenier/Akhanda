@@ -12,8 +12,8 @@
 :white_check_mark: Configuration system
 
 #### 1.2 - Windowing
-:white_large_square: Platform abstraction layer  
-:white_large_square: Window creation  
+:white_check_mark: Platform abstraction layer  
+:white_check_mark: Window creation  
 
 #### 1.3 - Rendering
 :white_large_square: D3D12 initialization  
