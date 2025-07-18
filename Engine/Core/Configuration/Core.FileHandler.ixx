@@ -1,13 +1,15 @@
-// Core.FileHandler.ixx
+// Core.FileHandler.ixx (Fixed)
 // Akhanda Game Engine - Configuration File Handler Module Interface
 // Copyright (c) 2025 Aditya Vennelakanti. All rights reserved.
 
 module;
 
-#include <nlohmann/json.hpp>
+#include "JsonWrapper.hpp"
 #include <filesystem>
 #include <fstream>
 #include <chrono>
+#include <iomanip>
+#include <sstream>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -16,7 +18,6 @@ module;
 export module Akhanda.Core.Configuration.FileHandler;
 
 import Akhanda.Core.Configuration;
-import Akhanda.Core.Threading;
 import std;
 
 export namespace Akhanda::Configuration {
@@ -63,37 +64,39 @@ export namespace Akhanda::Configuration {
         ConfigFileWatcher() = default;
         ~ConfigFileWatcher() { Stop(); }
 
-        // Non-copyable, movable
+        // Non-copyable, non-movable
         ConfigFileWatcher(const ConfigFileWatcher&) = delete;
         ConfigFileWatcher& operator=(const ConfigFileWatcher&) = delete;
-        ConfigFileWatcher(ConfigFileWatcher&&) = default;
-        ConfigFileWatcher& operator=(ConfigFileWatcher&&) = default;
+        ConfigFileWatcher(ConfigFileWatcher&&) = delete;
+        ConfigFileWatcher& operator=(ConfigFileWatcher&&) = delete;
 
-        ConfigResult_t<bool> StartWatching(const std::filesystem::path& filePath, ChangeCallback callback) {
+        bool Start(const std::filesystem::path& watchPath, ChangeCallback callback) {
             if (isWatching_) {
-                return ConfigError(ConfigResult::ReadOnlyError, "Already watching a file");
+                Stop();
             }
 
-            if (!std::filesystem::exists(filePath)) {
-                return ConfigError(ConfigResult::FileNotFound,
-                    std::format("File not found: {}", filePath.string()));
-            }
-
-            watchPath_ = filePath;
+            watchPath_ = watchPath;
             callback_ = std::move(callback);
-            lastFileInfo_ = FileInfo(filePath);
+
+            if (!std::filesystem::exists(watchPath_)) {
+                return false;
+            }
+
+            lastFileInfo_ = FileInfo(watchPath_);
+            shouldStop_ = false;
 
             // Start watching thread
-            shouldStop_.store(false);
-            watchThread_ = std::jthread([this](std::stop_token token) { WatchLoop(token); });
-            isWatching_ = true;
+            watchThread_ = std::jthread([this](std::stop_token stop_token) {
+                WatchLoop(stop_token);
+                });
 
+            isWatching_ = true;
             return true;
         }
 
         void Stop() {
             if (isWatching_) {
-                shouldStop_.store(true);
+                shouldStop_ = true;
                 if (watchThread_.joinable()) {
                     watchThread_.request_stop();
                     watchThread_.join();
@@ -103,14 +106,16 @@ export namespace Akhanda::Configuration {
         }
 
         bool IsWatching() const noexcept { return isWatching_; }
-        const std::filesystem::path& GetWatchPath() const noexcept { return watchPath_; }
 
     private:
-        void WatchLoop(std::stop_token token) {
-            while (!token.stop_requested() && !shouldStop_.load()) {
-                FileInfo currentInfo(watchPath_);
+        void WatchLoop(std::stop_token stop_token) {
+            while (!stop_token.stop_requested() && !shouldStop_) {
+                if (!std::filesystem::exists(watchPath_)) {
+                    break;
+                }
 
-                if (currentInfo.exists && currentInfo.HasChanged(lastFileInfo_)) {
+                FileInfo currentInfo(watchPath_);
+                if (currentInfo.isValid && currentInfo.HasChanged(lastFileInfo_)) {
                     if (callback_) {
                         callback_(watchPath_);
                     }
@@ -158,7 +163,7 @@ export namespace Akhanda::Configuration {
         // File Loading Operations
         // ========================================================================
 
-        ConfigResult_t<json> LoadJsonFile(const std::filesystem::path& filePath,
+        ConfigResult_t<JsonValue> LoadJsonFile(const std::filesystem::path& filePath,
             const LoadOptions& options = {}) {
 
             // Validate path
@@ -175,7 +180,7 @@ export namespace Akhanda::Configuration {
                     if (!createResult) {
                         return createResult.Error();
                     }
-                    return ConfigResult_t<json>(json::object());
+                    return ConfigJson::CreateObject();
                 }
                 return ConfigError(ConfigResult::FileNotFound,
                     std::format("Configuration file not found: {}", filePath.string()));
@@ -212,7 +217,7 @@ export namespace Akhanda::Configuration {
         }
 
         ConfigResult_t<bool> SaveJsonFile(const std::filesystem::path& filePath,
-            const json& jsonData,
+            const JsonValue& jsonData,
             const SaveOptions& options = {}) {
 
             // Validate path
@@ -233,13 +238,13 @@ export namespace Akhanda::Configuration {
             std::string jsonString;
             try {
                 if (options.prettyPrint) {
-                    jsonString = jsonData.dump(options.indentSize);
+                    jsonString = jsonData.ToString(options.indentSize);
                 }
                 else {
-                    jsonString = jsonData.dump();
+                    jsonString = jsonData.ToString(-1);
                 }
             }
-            catch (const json::exception& e) {
+            catch (const std::exception& e) {
                 return ConfigError(ConfigResult::ParseError,
                     std::format("JSON serialization error: {}", e.what()));
             }
@@ -266,44 +271,81 @@ export namespace Akhanda::Configuration {
                 OnFileChanged(path);
                 };
 
-            return fileWatcher_.StartWatching(filePath, watchCallback);
+            if (!fileWatcher_.Start(filePath, watchCallback)) {
+                return ConfigError(ConfigResult::ValidationError,
+                    std::format("Failed to start file watching: {}", filePath.string()));
+            }
+
+            return true;
         }
 
         void StopFileWatching() {
             fileWatcher_.Stop();
         }
 
-        bool IsWatchingFile() const noexcept {
-            return fileWatcher_.IsWatching();
-        }
+        bool IsWatching() const { return fileWatcher_.IsWatching(); }
 
         // ========================================================================
-        // Path Utilities
+        // Backup Management
         // ========================================================================
 
-        static std::filesystem::path GetConfigDirectory() {
-            // Default to Config/ directory relative to executable
-            static std::filesystem::path configDir = []() {
-                auto exePath = std::filesystem::current_path();
-                return exePath / "Config";
-                }();
-            return configDir;
-        }
-
-        static std::filesystem::path ResolveConfigPath(const std::string& filename) {
-            std::filesystem::path path(filename);
-
-            // If it's already absolute, use as-is
-            if (path.is_absolute()) {
-                return path;
+        ConfigResult_t<bool> CreateBackup(const std::filesystem::path& filePath) {
+            if (!std::filesystem::exists(filePath)) {
+                return ConfigError(ConfigResult::FileNotFound, "Cannot backup non-existent file");
             }
 
-            // Resolve relative to config directory
-            return GetConfigDirectory() / path;
+            auto backupPath = GenerateBackupPath(filePath);
+
+            // Ensure backup directory exists
+            auto backupDir = backupPath.parent_path();
+            std::error_code ec;
+            if (!std::filesystem::exists(backupDir, ec)) {
+                if (!std::filesystem::create_directories(backupDir, ec)) {
+                    return ConfigError(ConfigResult::MemoryError,
+                        std::format("Failed to create backup directory: {}", ec.message()));
+                }
+            }
+
+            // Copy file to backup location
+            if (!std::filesystem::copy_file(filePath, backupPath, ec)) {
+                return ConfigError(ConfigResult::MemoryError,
+                    std::format("Failed to create backup: {}", ec.message()));
+            }
+
+            return true;
         }
 
+        std::vector<std::filesystem::path> GetBackupFiles(const std::filesystem::path& filePath) {
+            auto backupDir = filePath.parent_path() / "Backups";
+            auto baseName = filePath.stem().string();
+
+            std::vector<std::filesystem::path> backups;
+            std::error_code ec;
+
+            if (!std::filesystem::exists(backupDir, ec)) {
+                return backups;
+            }
+
+            for (const auto& entry : std::filesystem::directory_iterator(backupDir, ec)) {
+                if (entry.is_regular_file() && entry.path().stem().string().starts_with(baseName)) {
+                    backups.push_back(entry.path());
+                }
+            }
+
+            // Sort by modification time (newest first)
+            std::sort(backups.begin(), backups.end(), [](const auto& a, const auto& b) {
+                return std::filesystem::last_write_time(a) > std::filesystem::last_write_time(b);
+                });
+
+            return backups;
+        }
+
+        // ========================================================================
+        // Static Utility Methods
+        // ========================================================================
+
         static ConfigResult_t<bool> EnsureConfigDirectory() {
-            auto configDir = GetConfigDirectory();
+            auto configDir = std::filesystem::current_path() / "Config";
             std::error_code ec;
 
             if (!std::filesystem::exists(configDir, ec)) {
@@ -316,69 +358,9 @@ export namespace Akhanda::Configuration {
             return true;
         }
 
-        // ========================================================================
-        // Backup and Recovery
-        // ========================================================================
-
-        ConfigResult_t<bool> CreateBackup(const std::filesystem::path& filePath) {
-            if (!std::filesystem::exists(filePath)) {
-                return ConfigError(ConfigResult::FileNotFound, "Source file does not exist");
-            }
-
-            auto backupPath = GenerateBackupPath(filePath);
-            std::error_code ec;
-
-            std::filesystem::copy_file(filePath, backupPath,
-                std::filesystem::copy_options::overwrite_existing, ec);
-
-            if (ec) {
-                return ConfigError(ConfigResult::MemoryError,
-                    std::format("Failed to create backup: {}", ec.message()));
-            }
-
-            return true;
-        }
-
-        ConfigResult_t<bool> RestoreFromBackup(const std::filesystem::path& filePath) {
-            auto backupPath = GenerateBackupPath(filePath);
-
-            if (!std::filesystem::exists(backupPath)) {
-                return ConfigError(ConfigResult::FileNotFound, "Backup file does not exist");
-            }
-
-            std::error_code ec;
-            std::filesystem::copy_file(backupPath, filePath,
-                std::filesystem::copy_options::overwrite_existing, ec);
-
-            if (ec) {
-                return ConfigError(ConfigResult::MemoryError,
-                    std::format("Failed to restore from backup: {}", ec.message()));
-            }
-
-            return true;
-        }
-
-        std::vector<std::filesystem::path> GetAvailableBackups(const std::filesystem::path& filePath) {
-            std::vector<std::filesystem::path> backups;
-            auto backupDir = filePath.parent_path() / "Backups";
-
-            if (!std::filesystem::exists(backupDir)) {
-                return backups;
-            }
-
-            auto filename = filePath.filename().string();
-            for (const auto& entry : std::filesystem::directory_iterator(backupDir)) {
-                if (entry.path().filename().string().starts_with(filename)) {
-                    backups.push_back(entry.path());
-                }
-            }
-
-            // Sort by modification time (newest first)
-            std::sort(backups.begin(), backups.end(), [](const auto& a, const auto& b) {
-                return std::filesystem::last_write_time(a) > std::filesystem::last_write_time(b);
-                });
-
-            return backups;
+        static std::filesystem::path ResolveConfigPath(const std::string& filename) {
+            auto configDir = std::filesystem::current_path() / "Config";
+            return configDir / filename;
         }
 
     private:
@@ -439,17 +421,13 @@ export namespace Akhanda::Configuration {
             return content;
         }
 
-        ConfigResult_t<json> ParseJsonString(const std::string& jsonString, const std::string& context) {
+        ConfigResult_t<JsonValue> ParseJsonString(const std::string& jsonString, const std::string& context) {
             try {
-                return json::parse(jsonString);
+                return JsonValue::Parse(jsonString);
             }
-            catch (const json::parse_error& e) {
+            catch (const std::exception& e) {
                 return ConfigError(ConfigResult::ParseError,
-                    std::format("JSON parse error in {}: {} at byte {}", context, e.what(), e.byte));
-            }
-            catch (const json::exception& e) {
-                return ConfigError(ConfigResult::ParseError,
-                    std::format("JSON error in {}: {}", context, e.what()));
+                    std::format("JSON parse error in {}: {}", context, e.what()));
             }
         }
 
@@ -495,8 +473,8 @@ export namespace Akhanda::Configuration {
         }
 
         ConfigResult_t<bool> CreateEmptyJsonFile(const std::filesystem::path& filePath) {
-            json emptyObject = json::object();
-            return WriteFileContent(filePath, emptyObject.dump(2));
+            JsonValue emptyObject = ConfigJson::CreateObject();
+            return WriteFileContent(filePath, emptyObject.ToString(2));
         }
 
         std::filesystem::path GenerateBackupPath(const std::filesystem::path& filePath) {

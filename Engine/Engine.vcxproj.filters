@@ -33,6 +33,9 @@
     <ClCompile Include="Core\Configuration\Core.RendererConfig.ixx" />
     <ClCompile Include="Core\Logging\SpdlogIntegration.cpp" />
     <ClCompile Include="Core\Logging\EditorSink.cpp" />
+    <ClCompile Include="Core\Platform\Platform.Interfaces.ixx" />
+    <ClCompile Include="Core\Platform\Windows\Platform.Windows.ixx" />
+    <ClCompile Include="Core\Configuration\JsonWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />
@@ -46,6 +49,7 @@
     <ClInclude Include="Core\Containers\Vector.hpp" />
     <ClInclude Include="Core\Containers\Queue.hpp" />
     <ClInclude Include="Core\Containers\Stack.hpp" />
+    <ClInclude Include="Core\Configuration\JsonWrapper.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

@@ -4,23 +4,34 @@
 #include <Core/Logging/SpdlogIntegration.hpp>
 
 import ThreadsOfKaliyuga.Logging;
+import ThreadsOfKaliyuga.Game;
 
-import Akhanda.Core.Math;
+// ============================================================================
+// Application Entry Point
+// ============================================================================
 
-int main(int, char**) {
-    
-    ThreadsOfKaliyuga::Logging::ToKLogging::Initialize();
+int main() {
+    try {
+        // Create and initialize game
+        ThreadsOfKaliyuga::Game game;
 
-    ThreadsOfKaliyuga::Logging::ToKLogging::Log(Akhanda::Logging::LogLevel::Info, "Hello World!");
+        if (!game.Initialize()) {
+            ThreadsOfKaliyuga::Logging::ToKLogging::Log(Akhanda::Logging::LogLevel::Error, "Failed to initialize game!");
+            return -1;
+        }
 
-    Akhanda::Math::Vector2 v2(1.0f, 2.0f);
-    Akhanda::Math::Vector2 v3(2.0f, 3.0f);
+        // Run the game
+        game.Run();
 
-    Akhanda::Math::Vector2 v1 = v2 + v3;
-
-    ThreadsOfKaliyuga::Logging::ToKLogging::Log(Akhanda::Logging::LogLevel::Info, "{{ {}, {} }}", v1.x, v1.y);
-    
-    ThreadsOfKaliyuga::Logging::ToKLogging::Shutdown();
-
-    return 0;
+        ThreadsOfKaliyuga::Logging::ToKLogging::Log(Akhanda::Logging::LogLevel::Info, "Game completed successfully.");
+        return 0;
+    }
+    catch (const std::exception& e) {
+        ThreadsOfKaliyuga::Logging::ToKLogging::Log(Akhanda::Logging::LogLevel::Error, "Game crashed with exception: {}", e.what());
+        return -1;
+    }
+    catch (...) {
+        ThreadsOfKaliyuga::Logging::ToKLogging::Log(Akhanda::Logging::LogLevel::Error, "Game crashed with unknown exception!");
+        return -1;
+    }
 }

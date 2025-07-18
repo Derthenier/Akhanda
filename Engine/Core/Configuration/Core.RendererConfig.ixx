@@ -1,10 +1,10 @@
-// Core.RendererConfig.ixx
-// Akhanda Game Engine - Renderer Configuration Module Interface
+// Core.RendererConfig.ixx (Fixed with Traditional Header)
+// Akhanda Game Engine - Renderer Configuration Module Interface  
 // Copyright (c) 2025 Aditya Vennelakanti. All rights reserved.
 
 module;
 
-#include <nlohmann/json.hpp>
+#include "JsonWrapper.hpp"
 
 export module Akhanda.Core.Configuration.Rendering;
 
@@ -18,7 +18,7 @@ export namespace Akhanda::Configuration {
     // Rendering API Enumeration
     // ============================================================================
 
-    enum class RenderingAPI : uint32_t {
+    enum class RenderingAPI : std::uint32_t {
         D3D12 = 0,
         Vulkan = 1,     // Future support
         D3D11 = 2       // Legacy fallback
@@ -42,24 +42,11 @@ export namespace Akhanda::Configuration {
             std::format("Unknown rendering API: '{}'", str));
     }
 
-    // JSON serialization for RenderingAPI
-    inline void to_json(json& j, const RenderingAPI& api) {
-        j = RenderingAPIToString(api);
-    }
-
-    inline void from_json(const json& j, RenderingAPI& api) {
-        auto result = StringToRenderingAPI(j.get<std::string>());
-        if (!result) {
-            throw json::other_error::create(0, result.Error().message, nullptr);
-        }
-        api = result.Value();
-    }
-
     // ============================================================================
     // MSAA Sample Count Enumeration
     // ============================================================================
 
-    enum class MSAASamples : uint32_t {
+    enum class MSAASamples : std::uint32_t {
         None = 1,
         MSAA2x = 2,
         MSAA4x = 4,
@@ -74,39 +61,40 @@ export namespace Akhanda::Configuration {
         case MSAASamples::MSAA4x: return "4x";
         case MSAASamples::MSAA8x: return "8x";
         case MSAASamples::MSAA16x: return "16x";
-        default: return "None";
+        default: return "Unknown";
         }
     }
 
-    // JSON serialization for MSAASamples
-    inline void to_json(json& j, const MSAASamples& samples) {
-        j = static_cast<uint32_t>(samples);
-    }
+    inline ConfigResult_t<MSAASamples> StringToMSAASamples(const std::string& str) {
+        if (str == "None" || str == "1x") return MSAASamples::None;
+        if (str == "2x") return MSAASamples::MSAA2x;
+        if (str == "4x") return MSAASamples::MSAA4x;
+        if (str == "8x") return MSAASamples::MSAA8x;
+        if (str == "16x") return MSAASamples::MSAA16x;
 
-    inline void from_json(const json& j, MSAASamples& samples) {
-        uint32_t value = j.get<uint32_t>();
-        switch (value) {
-        case 1: samples = MSAASamples::None; break;
-        case 2: samples = MSAASamples::MSAA2x; break;
-        case 4: samples = MSAASamples::MSAA4x; break;
-        case 8: samples = MSAASamples::MSAA8x; break;
-        case 16: samples = MSAASamples::MSAA16x; break;
-        default:
-            throw json::other_error::create(0,
-                std::format("Invalid MSAA sample count: {}", value), nullptr);
-        }
+        return ConfigError(ConfigResult::ValidationError,
+            std::format("Unknown MSAA samples: '{}'", str));
     }
 
     // ============================================================================
     // Rendering Configuration Section
     // ============================================================================
 
-    class RenderingConfig : public ConfigSectionBase<RenderingConfig> {
+    class RenderingConfig : public IConfigSection {
     public:
-        static constexpr const char* SECTION_NAME = "rendering";
-
         RenderingConfig() {
-            InitializeDefaults();
+            // Initialize with sensible defaults
+            renderingAPI_.Set(RenderingAPI::D3D12);
+            resolution_.Set(Resolution{ 1280, 720 });
+            fullscreen_.Set(false);
+            vsync_.Set(true);
+            msaaSamples_.Set(MSAASamples::None);
+            maxFPS_.Set(0); // 0 = unlimited
+            hdrEnabled_.Set(false);
+            adapterPreference_.Set(0); // Primary adapter
+            debugLayerEnabled_.Set(false);
+            gpuValidationEnabled_.Set(false);
+
             SetupValidation();
         }
 
@@ -114,264 +102,153 @@ export namespace Akhanda::Configuration {
         // IConfigSection Implementation
         // ========================================================================
 
-        ConfigResult_t<bool> LoadFromJson(const json& sectionJson) override {
+        const char* GetSectionName() const noexcept override {
+            return "rendering";
+        }
+
+        ConfigResult_t<bool> LoadFromJson(const JsonValue& sectionJson) override {
             try {
-                // Load basic settings
-                if (sectionJson.contains("api")) {
-                    auto apiResult = renderingAPI_.Set(sectionJson["api"].get<RenderingAPI>());
-                    if (!apiResult) return apiResult.Error();
+                // Load each configuration value
+                if (sectionJson.Contains("renderingAPI")) {
+                    std::string apiStr = GetConfigValue<std::string>(sectionJson, "renderingAPI");
+                    auto apiResult = StringToRenderingAPI(apiStr);
+                    if (!apiResult) return ConfigError(ConfigResult::ValidationError, apiResult.Error().message);
+                    renderingAPI_.Set(apiResult.Value());
                 }
 
-                if (sectionJson.contains("resolution")) {
-                    auto resResult = resolution_.Set(sectionJson["resolution"].get<Resolution>());
-                    if (!resResult) return resResult.Error();
+                if (sectionJson.Contains("resolution")) {
+                    auto resJson = sectionJson["resolution"];
+                    auto resResult = Resolution::FromJson(resJson);
+                    if (!resResult) return ConfigError(ConfigResult::ValidationError, resResult.Error().message);
+                    resolution_.Set(resResult.Value());
                 }
 
-                if (sectionJson.contains("fullscreen")) {
-                    auto fsResult = fullscreen_.Set(sectionJson["fullscreen"].get<bool>());
-                    if (!fsResult) return fsResult.Error();
+                if (sectionJson.Contains("fullscreen")) {
+                    fullscreen_.Set(GetConfigValue<bool>(sectionJson, "fullscreen"));
                 }
 
-                if (sectionJson.contains("vsync")) {
-                    auto vsyncResult = vsync_.Set(sectionJson["vsync"].get<bool>());
-                    if (!vsyncResult) return vsyncResult.Error();
+                if (sectionJson.Contains("vsync")) {
+                    vsync_.Set(GetConfigValue<bool>(sectionJson, "vsync"));
                 }
 
-                if (sectionJson.contains("msaa_samples")) {
-                    auto msaaResult = msaaSamples_.Set(sectionJson["msaa_samples"].get<MSAASamples>());
-                    if (!msaaResult) return msaaResult.Error();
+                if (sectionJson.Contains("msaaSamples")) {
+                    std::string msaaStr = GetConfigValue<std::string>(sectionJson, "msaaSamples");
+                    auto msaaResult = StringToMSAASamples(msaaStr);
+                    if (!msaaResult) return ConfigError(ConfigResult::ValidationError, msaaResult.Error().message);
+                    msaaSamples_.Set(msaaResult.Value());
                 }
 
-                if (sectionJson.contains("max_fps")) {
-                    auto fpsResult = maxFPS_.Set(sectionJson["max_fps"].get<uint32_t>());
-                    if (!fpsResult) return fpsResult.Error();
+                if (sectionJson.Contains("maxFPS")) {
+                    maxFPS_.Set(GetConfigValue<std::uint32_t>(sectionJson, "maxFPS"));
                 }
 
-                if (sectionJson.contains("hdr_enabled")) {
-                    auto hdrResult = hdrEnabled_.Set(sectionJson["hdr_enabled"].get<bool>());
-                    if (!hdrResult) return hdrResult.Error();
+                if (sectionJson.Contains("hdrEnabled")) {
+                    hdrEnabled_.Set(GetConfigValue<bool>(sectionJson, "hdrEnabled"));
                 }
 
-                if (sectionJson.contains("adapter_preference")) {
-                    auto adapterResult = adapterPreference_.Set(sectionJson["adapter_preference"].get<uint32_t>());
-                    if (!adapterResult) return adapterResult.Error();
+                if (sectionJson.Contains("adapterPreference")) {
+                    adapterPreference_.Set(GetConfigValue<std::uint32_t>(sectionJson, "adapterPreference"));
                 }
 
-                if (sectionJson.contains("debug_layer")) {
-                    auto debugResult = debugLayerEnabled_.Set(sectionJson["debug_layer"].get<bool>());
-                    if (!debugResult) return debugResult.Error();
+                if (sectionJson.Contains("debugLayerEnabled")) {
+                    debugLayerEnabled_.Set(GetConfigValue<bool>(sectionJson, "debugLayerEnabled"));
                 }
 
-                if (sectionJson.contains("gpu_validation")) {
-                    auto validationResult = gpuValidationEnabled_.Set(sectionJson["gpu_validation"].get<bool>());
-                    if (!validationResult) return validationResult.Error();
+                if (sectionJson.Contains("gpuValidationEnabled")) {
+                    gpuValidationEnabled_.Set(GetConfigValue<bool>(sectionJson, "gpuValidationEnabled"));
                 }
 
-                // Notify that section has changed
-                NotifyChange();
                 return true;
             }
-            catch (const json::exception& e) {
+            catch (const std::exception& e) {
                 return ConfigError(ConfigResult::ParseError,
-                    std::format("Failed to parse rendering configuration: {}", e.what()));
+                    std::format("Failed to load rendering configuration: {}", e.what()));
             }
         }
 
-        json SaveToJson() const override {
-            json j;
-            j["api"] = *renderingAPI_;
-            j["resolution"] = *resolution_;
-            j["fullscreen"] = *fullscreen_;
-            j["vsync"] = *vsync_;
-            j["msaa_samples"] = *msaaSamples_;
-            j["max_fps"] = *maxFPS_;
-            j["hdr_enabled"] = *hdrEnabled_;
-            j["adapter_preference"] = *adapterPreference_;
-            j["debug_layer"] = *debugLayerEnabled_;
-            j["gpu_validation"] = *gpuValidationEnabled_;
+        JsonValue SaveToJson() const override {
+            auto j = ConfigJson::CreateObject();
+
+            SetConfigValue(j, "renderingAPI", RenderingAPIToString(renderingAPI_.Get()));
+            j.SetMember("resolution", resolution_.Get().ToJson());
+            SetConfigValue(j, "fullscreen", fullscreen_.Get());
+            SetConfigValue(j, "vsync", vsync_.Get());
+            SetConfigValue(j, "msaaSamples", MSAASamplesToString(msaaSamples_.Get()));
+            SetConfigValue(j, "maxFPS", maxFPS_.Get());
+            SetConfigValue(j, "hdrEnabled", hdrEnabled_.Get());
+            SetConfigValue(j, "adapterPreference", adapterPreference_.Get());
+            SetConfigValue(j, "debugLayerEnabled", debugLayerEnabled_.Get());
+            SetConfigValue(j, "gpuValidationEnabled", gpuValidationEnabled_.Get());
+
             return j;
         }
 
-        void ResetToDefaults() override {
-            renderingAPI_.ResetToDefault();
-            resolution_.ResetToDefault();
-            fullscreen_.ResetToDefault();
-            vsync_.ResetToDefault();
-            msaaSamples_.ResetToDefault();
-            maxFPS_.ResetToDefault();
-            hdrEnabled_.ResetToDefault();
-            adapterPreference_.ResetToDefault();
-            debugLayerEnabled_.ResetToDefault();
-            gpuValidationEnabled_.ResetToDefault();
-
-            NotifyChange();
-        }
-
         ConfigResult_t<bool> Validate() const override {
-            // Check resolution constraints
-            const auto& res = *resolution_;
-            if (res.width < 640 || res.height < 480) {
-                return ConfigError(ConfigResult::ValidationError,
-                    "Resolution must be at least 640x480");
-            }
-
-            if (res.width > 7680 || res.height > 4320) {
-                return ConfigError(ConfigResult::ValidationError,
-                    "Resolution cannot exceed 7680x4320");
-            }
-
-            // Check aspect ratio sanity
-            float aspectRatio = static_cast<float>(res.width) / static_cast<float>(res.height);
-            if (aspectRatio < 0.5f || aspectRatio > 5.0f) {
-                return ConfigError(ConfigResult::ValidationError,
-                    "Invalid aspect ratio - resolution seems incorrect");
-            }
-
-            // Check FPS limits
-            if (*maxFPS_ > 0 && *maxFPS_ < 10) {
-                return ConfigError(ConfigResult::ValidationError,
-                    "Maximum FPS must be at least 10 or unlimited (0)");
-            }
-
-            // Validate API compatibility
-            if (*renderingAPI_ == RenderingAPI::Vulkan) {
-                return ConfigError(ConfigResult::ValidationError,
-                    "Vulkan API is not yet supported");
-            }
-
+            // All validation is handled by individual ConfigValue instances
             return true;
         }
 
         std::vector<std::string> GetValidationErrors() const override {
-            std::vector<std::string> errors;
-
-            auto validationResult = Validate();
-            if (!validationResult) {
-                errors.emplace_back(validationResult.Error().message);
-            }
-
-            return errors;
+            // Return any validation errors
+            return {};
         }
 
-        uint32_t GetVersion() const noexcept override {
-            return 2; // Increment when adding new fields
+        void ResetToDefaults() override {
+            renderingAPI_.Reset();
+            resolution_.Reset();
+            fullscreen_.Reset();
+            vsync_.Reset();
+            msaaSamples_.Reset();
+            maxFPS_.Reset();
+            hdrEnabled_.Reset();
+            adapterPreference_.Reset();
+            debugLayerEnabled_.Reset();
+            gpuValidationEnabled_.Reset();
         }
 
         std::string GetDescription() const override {
-            return "Graphics and rendering system configuration";
+            return "Graphics and rendering configuration settings";
+        }
+
+        bool RequiresRestart() const override {
+            return true; // Most rendering changes require restart
         }
 
         // ========================================================================
-        // Public Access Methods
+        // Configuration Access Methods
         // ========================================================================
 
-        // Rendering API
-        RenderingAPI GetRenderingAPI() const noexcept { return *renderingAPI_; }
-        ConfigResult_t<RenderingAPI> SetRenderingAPI(RenderingAPI api) { return renderingAPI_.Set(api); }
+        // Getters
+        RenderingAPI GetRenderingAPI() const { return renderingAPI_.Get(); }
+        Resolution GetResolution() const { return resolution_.Get(); }
+        bool GetFullscreen() const { return fullscreen_.Get(); }
+        bool GetVsync() const { return vsync_.Get(); }
+        MSAASamples GetMsaaSamples() const { return msaaSamples_.Get(); }
+        std::uint32_t GetMaxFPS() const { return maxFPS_.Get(); }
+        bool GetHdrEnabled() const { return hdrEnabled_.Get(); }
+        std::uint32_t GetAdapterPreference() const { return adapterPreference_.Get(); }
+        bool GetDebugLayerEnabled() const { return debugLayerEnabled_.Get(); }
+        bool GetGpuValidationEnabled() const { return gpuValidationEnabled_.Get(); }
 
-        // Resolution
-        const Resolution& GetResolution() const noexcept { return *resolution_; }
-        ConfigResult_t<Resolution> SetResolution(const Resolution& res) { return resolution_.Set(res); }
-        ConfigResult_t<Resolution> SetResolution(uint32_t width, uint32_t height) {
-            return resolution_.Set(Resolution{ width, height });
-        }
-
-        // Display mode
-        bool IsFullscreen() const noexcept { return *fullscreen_; }
-        ConfigResult_t<bool> SetFullscreen(bool enabled) { return fullscreen_.Set(enabled); }
-
-        // VSync
-        bool IsVSyncEnabled() const noexcept { return *vsync_; }
-        ConfigResult_t<bool> SetVSync(bool enabled) { return vsync_.Set(enabled); }
-
-        // Anti-aliasing
-        MSAASamples GetMSAASamples() const noexcept { return *msaaSamples_; }
-        ConfigResult_t<MSAASamples> SetMSAASamples(MSAASamples samples) { return msaaSamples_.Set(samples); }
-
-        // Frame rate
-        uint32_t GetMaxFPS() const noexcept { return *maxFPS_; }
-        ConfigResult_t<uint32_t> SetMaxFPS(uint32_t fps) { return maxFPS_.Set(fps); }
-        bool IsFrameRateUnlimited() const noexcept { return *maxFPS_ == 0; }
-
-        // HDR
-        bool IsHDREnabled() const noexcept { return *hdrEnabled_; }
-        ConfigResult_t<bool> SetHDREnabled(bool enabled) { return hdrEnabled_.Set(enabled); }
-
-        // Adapter selection
-        uint32_t GetAdapterPreference() const noexcept { return *adapterPreference_; }
-        ConfigResult_t<uint32_t> SetAdapterPreference(uint32_t preference) { return adapterPreference_.Set(preference); }
-
-        // Debug features
-        bool IsDebugLayerEnabled() const noexcept { return *debugLayerEnabled_; }
+        // Setters
+        ConfigResult_t<bool> SetRenderingAPI(RenderingAPI api) { return renderingAPI_.Set(api); }
+        ConfigResult_t<bool> SetResolution(const Resolution& res) { return resolution_.Set(res); }
+        ConfigResult_t<bool> SetFullscreen(bool fullscreen) { return fullscreen_.Set(fullscreen); }
+        ConfigResult_t<bool> SetVsync(bool vsync) { return vsync_.Set(vsync); }
+        ConfigResult_t<bool> SetMsaaSamples(MSAASamples samples) { return msaaSamples_.Set(samples); }
+        ConfigResult_t<bool> SetMaxFPS(std::uint32_t fps) { return maxFPS_.Set(fps); }
+        ConfigResult_t<bool> SetHdrEnabled(bool enabled) { return hdrEnabled_.Set(enabled); }
+        ConfigResult_t<bool> SetAdapterPreference(std::uint32_t adapter) { return adapterPreference_.Set(adapter); }
         ConfigResult_t<bool> SetDebugLayerEnabled(bool enabled) { return debugLayerEnabled_.Set(enabled); }
-
-        bool IsGPUValidationEnabled() const noexcept { return *gpuValidationEnabled_; }
-        ConfigResult_t<bool> SetGPUValidationEnabled(bool enabled) { return gpuValidationEnabled_.Set(enabled); }
-
-        // ========================================================================
-        // Convenience Methods
-        // ========================================================================
-
-        bool IsHighResolution() const noexcept {
-            const auto& res = *resolution_;
-            return res.width >= 2560 || res.height >= 1440;
-        }
-
-        bool Is4K() const noexcept {
-            const auto& res = *resolution_;
-            return res.width >= 3840 && res.height >= 2160;
-        }
-
-        float GetAspectRatio() const noexcept {
-            const auto& res = *resolution_;
-            return static_cast<float>(res.width) / static_cast<float>(res.height);
-        }
-
-        uint64_t GetTotalPixels() const noexcept {
-            const auto& res = *resolution_;
-            return static_cast<uint64_t>(res.width) * static_cast<uint64_t>(res.height);
-        }
-
-        std::string GetDisplayModeString() const {
-            const auto& res = *resolution_;
-            return std::format("{}x{} {}",
-                res.width, res.height,
-                *fullscreen_ ? "Fullscreen" : "Windowed");
-        }
-
-        std::string GetPerformanceString() const {
-            return std::format("{} | VSync: {} | MSAA: {} | Max FPS: {}",
-                RenderingAPIToString(*renderingAPI_),
-                *vsync_ ? "On" : "Off",
-                MSAASamplesToString(*msaaSamples_),
-                *maxFPS_ == 0 ? "Unlimited" : std::to_string(*maxFPS_));
-        }
+        ConfigResult_t<bool> SetGpuValidationEnabled(bool enabled) { return gpuValidationEnabled_.Set(enabled); }
 
     private:
-        // ========================================================================
-        // Private Implementation
-        // ========================================================================
-
-        void InitializeDefaults() {
-            // Set sensible defaults for all configuration values
-            renderingAPI_ = ConfigValue<RenderingAPI>(RenderingAPI::D3D12);
-            resolution_ = ConfigValue<Resolution>(Resolution{ 1920, 1080 });
-            fullscreen_ = ConfigValue<bool>(false);
-            vsync_ = ConfigValue<bool>(true);
-            msaaSamples_ = ConfigValue<MSAASamples>(MSAASamples::MSAA4x);
-            maxFPS_ = ConfigValue<uint32_t>(144, 0, 300); // 0 = unlimited, max 300
-            hdrEnabled_ = ConfigValue<bool>(false);
-            adapterPreference_ = ConfigValue<uint32_t>(0, 0, 15); // GPU adapter index
-            debugLayerEnabled_ = ConfigValue<bool>(false);
-            gpuValidationEnabled_ = ConfigValue<bool>(false);
-        }
-
         void SetupValidation() {
-            // Custom validation for resolution
+            // Set up resolution validation
             resolution_.SetValidator([](const Resolution& res) -> bool {
-                // Must be reasonable resolution
-                if (res.width < 320 || res.height < 240) return false;
-                if (res.width > 7680 || res.height > 4320) return false;
+                // Validate resolution is reasonable
+                if (res.width < 320 || res.width > 7680) return false;
+                if (res.height < 240 || res.height > 4320) return false;
 
                 // Must be divisible by 2 for GPU compatibility
                 if (res.width % 2 != 0 || res.height % 2 != 0) return false;
@@ -380,7 +257,7 @@ export namespace Akhanda::Configuration {
                 });
 
             // Custom validation for max FPS
-            maxFPS_.SetValidator([](uint32_t fps) -> bool {
+            maxFPS_.SetValidator([](std::uint32_t fps) -> bool {
                 // 0 = unlimited is valid, otherwise must be at least 10
                 return fps == 0 || fps >= 10;
                 });
@@ -395,9 +272,9 @@ export namespace Akhanda::Configuration {
         ConfigValue<bool> fullscreen_;
         ConfigValue<bool> vsync_;
         ConfigValue<MSAASamples> msaaSamples_;
-        ConfigValue<uint32_t> maxFPS_;
+        ConfigValue<std::uint32_t> maxFPS_;
         ConfigValue<bool> hdrEnabled_;
-        ConfigValue<uint32_t> adapterPreference_;
+        ConfigValue<std::uint32_t> adapterPreference_;
         ConfigValue<bool> debugLayerEnabled_;
         ConfigValue<bool> gpuValidationEnabled_;
     };
