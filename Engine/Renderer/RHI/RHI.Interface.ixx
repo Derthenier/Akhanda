@@ -64,18 +64,18 @@ export namespace Akhanda::RHI {
     };
 
     // Overload the bitwise OR operator for ResourceUsage
-    constexpr ResourceUsage operator|(ResourceUsage lhs, ResourceUsage rhs) {
-        return static_cast<ResourceUsage>(std::to_underlying(lhs) | std::to_underlying(rhs));
+    inline constexpr ResourceUsage operator|(ResourceUsage lhs, ResourceUsage rhs) {
+        return static_cast<ResourceUsage>(static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs));
     }
 
     // Overload the bitwise AND operator for ResourceUsage
-    constexpr ResourceUsage operator&(ResourceUsage lhs, ResourceUsage rhs) {
-        return static_cast<ResourceUsage>(std::to_underlying(lhs) & std::to_underlying(rhs));
+    inline constexpr ResourceUsage operator&(ResourceUsage lhs, ResourceUsage rhs) {
+        return static_cast<ResourceUsage>(static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs));
     }
 
     // Overload the bitwise NOT operator for ResourceUsage
-    constexpr ResourceUsage operator~(ResourceUsage p) {
-        return static_cast<ResourceUsage>(~std::to_underlying(p));
+    inline constexpr ResourceUsage operator~(ResourceUsage p) {
+        return static_cast<ResourceUsage>(~static_cast<uint32_t>(p));
     }
 
     enum class ResourceState : uint32_t {
@@ -98,18 +98,18 @@ export namespace Akhanda::RHI {
     };
 
     // Overload the bitwise OR operator for ResourceState
-    constexpr ResourceState operator|(ResourceState lhs, ResourceState rhs) {
-        return static_cast<ResourceState>(std::to_underlying(lhs) | std::to_underlying(rhs));
+    inline constexpr ResourceState operator|(ResourceState lhs, ResourceState rhs) {
+        return static_cast<ResourceState>(static_cast<uint32_t>(lhs) | static_cast<uint32_t>(rhs));
     }
 
     // Overload the bitwise AND operator for ResourceState
-    constexpr ResourceState operator&(ResourceState lhs, ResourceState rhs) {
-        return static_cast<ResourceState>(std::to_underlying(lhs) & std::to_underlying(rhs));
+    inline constexpr ResourceState operator&(ResourceState lhs, ResourceState rhs) {
+        return static_cast<ResourceState>(static_cast<uint32_t>(lhs) & static_cast<uint32_t>(rhs));
     }
 
     // Overload the bitwise NOT operator for ResourceState
-    constexpr ResourceState operator~(ResourceState p) {
-        return static_cast<ResourceState>(~std::to_underlying(p));
+    inline constexpr ResourceState operator~(ResourceState p) {
+        return static_cast<ResourceState>(~static_cast<uint32_t>(p));
     }
 
     enum class CommandListType : uint32_t {
@@ -485,6 +485,7 @@ export namespace Akhanda::RHI {
         Severity severity = Info;
         std::string category;
         std::string message;
+        uint32_t id = 0;
         uint64_t timestamp = 0;
     };
 
@@ -540,11 +541,21 @@ export namespace Akhanda::RHI {
     struct DeviceCapabilities {
         // Feature levels
         uint32_t maxFeatureLevel = 0;
+
         bool supportsShaderModel6 = false;
         bool supportsRayTracing = false;
         bool supportsVariableRateShading = false;
         bool supportsMeshShaders = false;
         bool supportsDirectStorageGPU = false;
+
+        bool isUMA = false; // Unified Memory Architecture
+        bool isCacheCoherentUMA = false;
+        bool isTileBasedRenderer = false;
+
+        uint32_t raytracingTier = 0;
+        uint32_t variableRateShadingTier = 0;
+        uint32_t meshShaderTier = 0;
+        uint32_t resourceBindingTier = 0;
 
         // Resource limits
         uint32_t maxTexture2DSize = 0;
@@ -566,7 +577,6 @@ export namespace Akhanda::RHI {
         // Debug features
         bool debugLayerAvailable = false;
         bool gpuValidationAvailable = false;
-        bool pixAvailable = false;
 
         // Adapter information
         std::string adapterDescription;

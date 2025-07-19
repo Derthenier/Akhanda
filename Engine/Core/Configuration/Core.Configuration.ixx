@@ -5,10 +5,9 @@
 module;
 
 #include "JsonWrapper.hpp"
+#include <functional>
 
 export module Akhanda.Core.Configuration;
-
-import std;
 
 export namespace Akhanda::Configuration {
 

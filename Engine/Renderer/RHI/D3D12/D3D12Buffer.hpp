@@ -15,7 +15,6 @@ import Akhanda.Engine.RHI.Interfaces;
 import Akhanda.Engine.RHI;
 import Akhanda.Core.Logging;
 import Akhanda.Core.Memory;
-import std;
 
 using Microsoft::WRL::ComPtr;
 

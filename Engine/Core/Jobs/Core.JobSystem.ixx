@@ -2,12 +2,20 @@
 module;
 
 #include <cstdint>
+#include <type_traits>
+#include <span>
+#include <initializer_list>
+#include <array>
+#include <vector>
+#include <coroutine>
+#include <memory>
+#include <string>
+#include <unordered_map>
 
 export module Akhanda.Core.JobSystem;
 
 import Akhanda.Core.Threading;
 import Akhanda.Core.Memory;
-import std;
 
 export namespace Akhanda::JobSystem {
 

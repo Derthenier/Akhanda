@@ -11,6 +11,7 @@ module;
 #include <mutex>
 #include <atomic>
 #include <functional>
+#include <chrono>
 
 export module Akhanda.Engine.Renderer;
 
@@ -22,7 +23,6 @@ import Akhanda.Core.Configuration.Rendering;
 import Akhanda.Core.Math;
 import Akhanda.Core.Memory;
 import Akhanda.Core.Logging;
-import std;
 
 export namespace Akhanda::Renderer {
 

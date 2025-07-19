@@ -1,11 +1,16 @@
 module;
 
 #include <cstdint>
+#include <vector>
+#include <atomic>
+#include <mutex>
+#include <shared_mutex>
+#include <semaphore>
+#include <chrono>
 
 export module Akhanda.Core.Threading;
 
 import Akhanda.Core.Memory;
-import std;
 
 export namespace Akhanda::Threading {
 

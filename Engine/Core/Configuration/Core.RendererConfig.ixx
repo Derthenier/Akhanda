@@ -10,7 +10,6 @@ export module Akhanda.Core.Configuration.Rendering;
 
 import Akhanda.Core.Configuration;
 import Akhanda.Core.Configuration.Manager;
-import std;
 
 export namespace Akhanda::Configuration {
 

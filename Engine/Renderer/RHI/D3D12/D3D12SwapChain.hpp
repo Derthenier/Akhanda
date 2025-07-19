@@ -17,7 +17,6 @@ import Akhanda.Engine.RHI.Interfaces;
 import Akhanda.Platform.RendererIntegration;
 import Akhanda.Core.Configuration.Rendering;
 import Akhanda.Core.Logging;
-import std;
 
 using Microsoft::WRL::ComPtr;
 

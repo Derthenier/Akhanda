@@ -1,22 +1,29 @@
-// D3D12Device.hpp
-// Akhanda Game Engine - D3D12 Render Device Implementation
+// Engine/Renderer/RHI/D3D12/D3D12Device.hpp
+// Akhanda Game Engine - D3D12 Device Header
 // Copyright (c) 2025 Aditya Vennelakanti. All rights reserved.
 
 #pragma once
 
+// Windows and D3D12 includes
+#include <windows.h>
+#include <wrl/client.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
-#include <wrl/client.h>
+#include <d3d12sdklayers.h>
 #include <D3D12MemAlloc.h>
+
+// STL includes
 #include <memory>
+#include <mutex>
 #include <vector>
 #include <queue>
-#include <mutex>
 #include <atomic>
+#include <string>
 #include <unordered_map>
 
 #undef DeviceCapabilities
 
+// Engine includes
 import Akhanda.Engine.RHI;
 import Akhanda.Engine.RHI.Interfaces;
 import Akhanda.Platform.Interfaces;
@@ -25,22 +32,73 @@ import Akhanda.Core.Configuration.Rendering;
 import Akhanda.Core.Logging;
 import Akhanda.Core.Memory;
 
-using Microsoft::WRL::ComPtr;
-
 namespace Akhanda::RHI::D3D12 {
 
-    // ========================================================================
-    // Forward Declarations
-    // ========================================================================
+    using Microsoft::WRL::ComPtr;
 
+    // Forward declarations
+    class D3D12DescriptorHeap;
+    class D3D12SwapChain;
+    class D3D12Pipeline;
     class D3D12CommandList;
     class D3D12Buffer;
     class D3D12Texture;
-    class D3D12Pipeline;
-    class D3D12SwapChain;
-    class D3D12DescriptorHeap;
-    class D3D12ResourceManager;
-    class D3D12CommandQueue;
+
+    // ========================================================================
+    // D3D12 Command Queue Implementation
+    // ========================================================================
+
+    class D3D12CommandQueue {
+    private:
+        // Core D3D12 objects
+        ComPtr<ID3D12CommandQueue> commandQueue_;
+        ComPtr<ID3D12Fence> fence_;
+        HANDLE fenceEvent_ = nullptr;
+        std::atomic<uint64_t> nextFenceValue_;
+
+        // Command allocator management
+        std::queue<ComPtr<ID3D12CommandAllocator>> availableAllocators_;
+        std::queue<std::pair<ComPtr<ID3D12CommandAllocator>, uint64_t>> inFlightAllocators_;
+
+        // Configuration
+        CommandListType type_;
+        std::string debugName_;
+
+        // Logging
+        Logging::LogChannel& logChannel_;
+
+    public:
+        explicit D3D12CommandQueue(CommandListType type);
+        virtual ~D3D12CommandQueue();
+
+        // Initialization
+        bool Initialize(ID3D12Device* device);
+        void Shutdown();
+
+        // Command execution
+        uint64_t ExecuteCommandLists(uint32_t count, ID3D12CommandList* const* commandLists);
+        void WaitForFenceValue(uint64_t fenceValue);
+        void WaitForIdle();
+        uint64_t Signal();
+
+        // Command allocator management
+        ComPtr<ID3D12CommandAllocator> GetCommandAllocator();
+        void ReturnCommandAllocator(ComPtr<ID3D12CommandAllocator> allocator, uint64_t fenceValue);
+
+        // Accessors
+        ID3D12CommandQueue* GetD3D12CommandQueue() const { return commandQueue_.Get(); }
+        ID3D12Fence* GetFence() const { return fence_.Get(); }
+        uint64_t GetNextFenceValue() const { return nextFenceValue_.load(); }
+        uint64_t GetCompletedFenceValue() const { return fence_ ? fence_->GetCompletedValue() : 0; }
+
+        // Debug
+        void SetDebugName(const char* name);
+        const char* GetDebugName() const { return debugName_.c_str(); }
+
+    private:
+        void ProcessCompletedAllocators();
+    };
+
 
     // ========================================================================
     // D3D12 Resource Manager
@@ -105,67 +163,17 @@ namespace Akhanda::RHI::D3D12 {
     };
 
     // ========================================================================
-    // D3D12 Command Queue
-    // ========================================================================
-
-    class D3D12CommandQueue {
-    private:
-        ComPtr<ID3D12CommandQueue> commandQueue_;
-        ComPtr<ID3D12Fence> fence_;
-        std::atomic<uint64_t> fenceValue_{ 0 };
-        HANDLE fenceEvent_ = nullptr;
-
-        std::queue<ComPtr<ID3D12CommandAllocator>> availableAllocators_;
-        std::queue<std::pair<ComPtr<ID3D12CommandAllocator>, uint64_t>> inFlightAllocators_;
-        std::mutex allocatorMutex_;
-
-        D3D12_COMMAND_LIST_TYPE type_;
-        std::string debugName_;
-
-    public:
-        D3D12CommandQueue(D3D12_COMMAND_LIST_TYPE type);
-        ~D3D12CommandQueue();
-
-        bool Initialize(ID3D12Device* device);
-        void Shutdown();
-
-        // Command execution
-        uint64_t ExecuteCommandList(ID3D12CommandList* commandList);
-        uint64_t ExecuteCommandLists(uint32_t count, ID3D12CommandList* const* commandLists);
-
-        // Synchronization
-        void WaitForFence(uint64_t fenceValue);
-        void WaitForIdle();
-        bool IsFenceComplete(uint64_t fenceValue) const;
-        uint64_t GetCompletedFenceValue() const;
-
-        // Command allocator management
-        ComPtr<ID3D12CommandAllocator> GetCommandAllocator();
-        void ReturnCommandAllocator(ComPtr<ID3D12CommandAllocator> allocator, uint64_t fenceValue);
-
-        // Properties
-        ID3D12CommandQueue* GetD3D12CommandQueue() const { return commandQueue_.Get(); }
-        D3D12_COMMAND_LIST_TYPE GetType() const { return type_; }
-
-        void SetDebugName(const char* name);
-        const char* GetDebugName() const { return debugName_.c_str(); }
-
-    private:
-        void ProcessCompletedAllocators();
-    };
-
-    // ========================================================================
     // D3D12 Device Implementation
     // ========================================================================
 
     class D3D12Device : public IRenderDevice {
     private:
         // Core D3D12 objects
-        ComPtr<ID3D12Device> device_;
         ComPtr<IDXGIFactory7> dxgiFactory_;
         ComPtr<IDXGIAdapter4> adapter_;
+        ComPtr<ID3D12Device12> device_;
 
-        // Debug interfaces
+        // Debug layer objects
         ComPtr<ID3D12Debug> d3d12Debug_;
         ComPtr<ID3D12Debug1> d3d12Debug1_;
         ComPtr<ID3D12Debug5> d3d12Debug5_;
@@ -177,50 +185,46 @@ namespace Akhanda::RHI::D3D12 {
         std::unique_ptr<D3D12CommandQueue> computeQueue_;
         std::unique_ptr<D3D12CommandQueue> copyQueue_;
 
-        // Resource management
-        std::unique_ptr<D3D12ResourceManager> resourceManager_;
-
-        // Swap chain
-        std::unique_ptr<D3D12SwapChain> swapChain_;
-
         // Descriptor heaps
         std::unique_ptr<D3D12DescriptorHeap> rtvHeap_;
         std::unique_ptr<D3D12DescriptorHeap> dsvHeap_;
         std::unique_ptr<D3D12DescriptorHeap> srvHeap_;
         std::unique_ptr<D3D12DescriptorHeap> samplerHeap_;
 
-        // Device state
-        DeviceCapabilities capabilities_;
-        RenderStats renderStats_;
-        std::vector<DebugMessage> debugMessages_;
+        // Resource management
+        std::unique_ptr<D3D12ResourceManager> resourceManager_;
+        std::unique_ptr<D3D12SwapChain> swapChain_;
 
-        // Configuration
+        // Configuration and state
         Configuration::RenderingConfig config_;
         Platform::RendererSurfaceInfo surfaceInfo_;
+        std::atomic<bool> isInitialized_;
+        std::atomic<uint64_t> frameNumber_;
 
-        // Synchronization
-        std::mutex deviceMutex_;
-        std::atomic<bool> isInitialized_{ false };
-        std::atomic<uint64_t> frameNumber_{ 0 };
+        // Capabilities and statistics
+        DeviceCapabilities deviceCapabilities_;
+        RenderStats renderStats_;
+
+        // Debug state
+        bool debugLayerEnabled_ = false;
+        bool gpuValidationEnabled_ = false;
+        std::vector<DebugMessage> debugMessages_;
+        std::string debugName_;
 
         // Logging
         Logging::LogChannel& logChannel_;
-
-        // Debug and validation
-        bool debugLayerEnabled_ = false;
-        bool gpuValidationEnabled_ = false;
-        bool dredEnabled_ = false;
 
     public:
         D3D12Device();
         virtual ~D3D12Device();
 
         // IRenderDevice implementation
-        bool Initialize(const Configuration::RenderingConfig& config,
-            const Platform::SurfaceInfo& surfaceInfo) override;
+        bool Initialize(const Configuration::RenderingConfig& config, const Platform::SurfaceInfo& surfaceInfo) override;
         void Shutdown() override;
-        void WaitForIdle() override;
 
+        std::unique_ptr<IDescriptorHeap> CreateDescriptorHeap(uint32_t descriptorCount, bool shaderVisible) override;
+
+        void WaitForIdle() override;
         void BeginFrame() override;
         void EndFrame() override;
         void Present() override;
@@ -241,26 +245,21 @@ namespace Akhanda::RHI::D3D12 {
         IRenderTexture* GetTexture(TextureHandle handle) override;
         IRenderPipeline* GetPipeline(PipelineHandle handle) override;
 
-        // Command lists
+        // Command recording and execution
         std::unique_ptr<ICommandList> CreateCommandList(CommandListType type) override;
-        void ExecuteCommandList(ICommandList* commandList) override;
-        void ExecuteCommandLists(uint32_t count, ICommandList* const* commandLists) override;
-
-        // Swap chain
-        ISwapChain* GetSwapChain() override;
-
-        // Descriptor management
-        std::unique_ptr<IDescriptorHeap> CreateDescriptorHeap(uint32_t descriptorCount,
-            bool shaderVisible) override;
+        uint64_t ExecuteCommandLists(CommandListType queueType, uint32_t count, ICommandList* const* commandLists) override;
+        void ExecuteCommandLists([[maybe_unused]] uint32_t count, [[maybe_unused]] ICommandList* const* commandLists) override {}
+        void WaitForFence(uint64_t fenceValue, CommandListType queueType);
 
         // Device properties
-        const DeviceCapabilities& GetCapabilities() const override { return capabilities_; }
-        const RenderStats& GetStats() const override { return renderStats_; }
+        const DeviceCapabilities& GetCapabilities() const override;
+        const RenderStats& GetStats() const override;
         std::vector<DebugMessage> GetDebugMessages() override;
 
-        // Debug features
+        // Debug support
         void SetDebugName(const char* name) override;
         const char* GetDebugName() const override;
+        // Debug features
         void BeginDebugEvent(const char* name) override;
         void EndDebugEvent() override;
         void InsertDebugMarker(const char* name) override;
@@ -284,14 +283,20 @@ namespace Akhanda::RHI::D3D12 {
         D3D12DescriptorHeap* GetSRVHeap() const { return srvHeap_.get(); }
         D3D12DescriptorHeap* GetSamplerHeap() const { return samplerHeap_.get(); }
 
+        D3D12ResourceManager* GetResourceManager() const { return resourceManager_.get(); }
+        ISwapChain* GetSwapChain() override;
+
+        uint64_t GetFrameNumber() const { return frameNumber_.load(); }
+        bool IsInitialized() const { return isInitialized_.load(); }
+
     private:
         // Initialization helpers
         bool InitializeDebugLayer();
         bool InitializeDevice();
         bool InitializeCommandQueues();
         bool InitializeDescriptorHeaps();
-        bool InitializeSwapChain();
         bool InitializeResourceManager();
+        bool InitializeSwapChain();
 
         // Capability detection
         void DetectCapabilities();
@@ -325,6 +330,7 @@ namespace Akhanda::RHI::D3D12 {
         ComPtr<IDXGIFactory7> dxgiFactory_;
         std::unique_ptr<Platform::IRendererPlatformIntegration> platformIntegration_;
         std::vector<Platform::AdapterInfo> adapters_;
+        std::string debugName_;
         Logging::LogChannel& logChannel_;
 
     public:
@@ -343,11 +349,83 @@ namespace Akhanda::RHI::D3D12 {
         void SetDebugName(const char* name) override;
         const char* GetDebugName() const override;
 
+        // D3D12-specific methods
+        IDXGIFactory7* GetDXGIFactory() const { return dxgiFactory_.Get(); }
+        const std::vector<Platform::AdapterInfo>& GetAdapters() const { return adapters_; }
+
     private:
         bool Initialize();
         void Shutdown();
         void EnumerateAdapters();
         DeviceCapabilities GetAdapterCapabilities(const Platform::AdapterInfo& adapter) const;
     };
+
+    // ========================================================================
+    // Utility Functions
+    // ========================================================================
+
+    namespace Utils {
+        // Format conversion utilities
+        DXGI_FORMAT ConvertFormat(Format format);
+        Format ConvertFormat(DXGI_FORMAT format);
+
+        // Resource state conversion
+        D3D12_RESOURCE_STATES ConvertResourceState(ResourceState state);
+        ResourceState ConvertResourceState(D3D12_RESOURCE_STATES state);
+
+        // Validation helpers
+        bool IsDepthFormat(Format format);
+        bool IsCompressedFormat(Format format);
+        bool IsUAVCompatibleFormat(Format format);
+
+        // Memory helpers
+        uint32_t GetFormatBlockSize(Format format);
+        uint32_t CalculateSubresourceIndex(uint32_t mipLevel, uint32_t arraySlice,
+            uint32_t planeSlice, uint32_t mipLevels,
+            uint32_t arraySize);
+
+        // Debug helpers
+        std::string GetFeatureLevelString(D3D_FEATURE_LEVEL featureLevel);
+        std::string GetResourceStateString(D3D12_RESOURCE_STATES state);
+
+        // Error handling
+        std::string GetHRESULTString(HRESULT hr);
+        void ThrowIfFailed(HRESULT hr, const char* message = nullptr);
+    }
+
+    // ========================================================================
+    // Error Handling Macros
+    // ========================================================================
+
+#define CHECK_HR_RETURN(hr, msg, channel, retval) \
+        if (FAILED(hr)) { \
+            _com_error err(hr); \
+            channel.LogFormat(Logging::LogLevel::Error, "{}: {} (HRESULT: 0x{:08X})", \
+                msg, err.ErrorMessage(), static_cast<uint32_t>(hr)); \
+            return retval; \
+        }
+
+#define CHECK_HR_RETURN_BOOL(hr, msg, channel) \
+        CHECK_HR_RETURN(hr, msg, channel, false)
+
+#define CHECK_HR_RETURN_VOID(hr, msg, channel) \
+        if (FAILED(hr)) { \
+            _com_error err(hr); \
+            channel.LogFormat(Logging::LogLevel::Error, "{}: {} (HRESULT: 0x{:08X})", \
+                msg, err.ErrorMessage(), static_cast<uint32_t>(hr)); \
+            return; \
+        }
+
+#define VERIFY_D3D12_DEVICE(device) \
+        if (!device) { \
+            logChannel_.Log(Logging::LogLevel::Error, "D3D12 device is null"); \
+            return false; \
+        }
+
+#define VERIFY_INITIALIZED() \
+        if (!isInitialized_.load()) { \
+            logChannel_.Log(Logging::LogLevel::Error, "Device not initialized"); \
+            return false; \
+        }
 
 } // namespace Akhanda::RHI::D3D12

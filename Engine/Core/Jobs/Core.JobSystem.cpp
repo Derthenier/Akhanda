@@ -10,15 +10,24 @@ module;
 #undef Yield
 #endif
 
+#include <algorithm>
 #include <chrono>
+#include <coroutine>
+#include <atomic>
+#include <thread>
+#include <vector>
+#include <array>
+#include <memory>
+#include <string>
+#include <unordered_map>
+#include <deque>
+
 #include "Core/Logging/Core.Logging.hpp"
 
 module Akhanda.Core.JobSystem;
 
 import Akhanda.Core.Threading;
 import Akhanda.Core.Memory;
-import std;
-
 
 namespace Akhanda::JobSystem {
 

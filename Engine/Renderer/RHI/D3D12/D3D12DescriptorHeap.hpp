@@ -17,7 +17,6 @@
 import Akhanda.Engine.RHI.Interfaces;
 import Akhanda.Core.Logging;
 import Akhanda.Core.Memory;
-import std;
 
 using Microsoft::WRL::ComPtr;
 
@@ -222,8 +221,7 @@ namespace Akhanda::RHI::D3D12 {
         const char* GetDebugName() const override { return debugName_.c_str(); }
 
         // D3D12-specific methods
-        bool InitializeWithDevice(ID3D12Device* device, uint32_t descriptorCount,
-            D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible);
+        bool InitializeWithDevice(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32_t descriptorCount, bool shaderVisible);
 
         ID3D12DescriptorHeap* GetD3D12DescriptorHeap() const { return descriptorHeap_.Get(); }
         D3D12_DESCRIPTOR_HEAP_TYPE GetHeapType() const { return heapType_; }

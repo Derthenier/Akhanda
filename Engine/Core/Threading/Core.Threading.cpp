@@ -8,6 +8,14 @@ module;
 #pragma intrinsic(_mm_pause)
 #endif
 
+#include <unordered_map>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <chrono>
+#include <xcall_once.h>
+#include <thread>
+
 #undef max
 #undef min
 #undef Yield
@@ -15,7 +23,6 @@ module;
 module Akhanda.Core.Threading;
 
 import Akhanda.Core.Memory;
-import std;
 
 namespace Akhanda::Threading {
 

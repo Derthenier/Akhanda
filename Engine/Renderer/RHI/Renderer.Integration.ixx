@@ -6,6 +6,8 @@ module;
 
 #include <memory>
 #include <string>
+#include <vector>
+#include <format>
 
 export module Akhanda.Engine.Renderer.Integration;
 
@@ -14,7 +16,6 @@ import Akhanda.Engine.RHI.Interfaces;
 import Akhanda.Platform.RendererIntegration;
 import Akhanda.Core.Configuration.Rendering;
 import Akhanda.Core.Logging;
-import std;
 
 export namespace Akhanda::Renderer {
 
@@ -292,7 +293,7 @@ export namespace Akhanda::Renderer {
             logChannel.LogFormat(Logging::LogLevel::Info, "Graphics Adapters: {}", systemInfo.graphicsAdapters.size());
             for (size_t i = 0; i < systemInfo.graphicsAdapters.size(); ++i) {
                 const auto& adapter = systemInfo.graphicsAdapters[i];
-                logChannel.LogFormat(Logging::LogLevel::Info, "  [{}] {}", i, std::string(adapter.description.begin(), adapter.description.end()));
+                logChannel.LogFormat(Logging::LogLevel::Info, L"  [{}] {}", i, adapter.description);
                 logChannel.LogFormat(Logging::LogLevel::Info, "      VRAM: {} MB", adapter.dedicatedVideoMemory / (1024 * 1024));
                 logChannel.LogFormat(Logging::LogLevel::Info, "      Type: {}", adapter.isIntegrated ? "Integrated" : "Discrete");
 

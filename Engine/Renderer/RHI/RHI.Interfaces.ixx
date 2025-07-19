@@ -332,7 +332,7 @@ export namespace Akhanda::RHI {
 
         // Command lists
         virtual std::unique_ptr<ICommandList> CreateCommandList(CommandListType type) = 0;
-        virtual void ExecuteCommandList(ICommandList* commandList) = 0;
+        virtual uint64_t ExecuteCommandLists(CommandListType queueType, uint32_t count, ICommandList* const* commandLists) = 0;
         virtual void ExecuteCommandLists(uint32_t count, ICommandList* const* commandLists) = 0;
 
         // Swap chain

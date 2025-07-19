@@ -19,6 +19,7 @@ module;
 #include <atomic>
 #include <mutex>
 #include <chrono>
+#include <queue>
 
 #pragma comment(lib, "user32.lib")
 #pragma comment(lib, "gdi32.lib")
@@ -31,8 +32,6 @@ export module Akhanda.Platform.Windows;
 import Akhanda.Platform.Interfaces;
 import Akhanda.Core.Math;
 import Akhanda.Core.Configuration.Rendering;
-import std;
-
 
 // ============================================================================
 // Windows-Specific Constants and Utilities
@@ -44,26 +43,6 @@ namespace {
     constexpr DWORD WINDOWED_EX_STYLE = WS_EX_APPWINDOW;
     constexpr DWORD FULLSCREEN_STYLE = WS_POPUP;
     constexpr DWORD FULLSCREEN_EX_STYLE = WS_EX_APPWINDOW | WS_EX_TOPMOST;
-
-    // Convert UTF-8 to wide string
-    std::wstring Utf8ToWide(const std::string& utf8) {
-        if (utf8.empty()) return {};
-
-        int size = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
-        std::wstring result(size - 1, L'\0');
-        MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, result.data(), size);
-        return result;
-    }
-
-    // Convert wide string to UTF-8
-    std::string WideToUtf8(const std::wstring& wide) {
-        if (wide.empty()) return {};
-
-        int size = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
-        std::string result(size - 1, '\0');
-        WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, result.data(), size, nullptr, nullptr);
-        return result;
-    }
 
     // Key code mapping from Windows virtual keys to Akhanda key codes
     Akhanda::Platform::KeyCode VirtualKeyToKeyCode(WPARAM vkey) {
@@ -201,6 +180,26 @@ namespace {
 
 
 export namespace Akhanda::Platform::Windows {
+
+    // Convert UTF-8 to wide string
+    inline std::wstring Utf8ToWide(const std::string& utf8) {
+        if (utf8.empty()) return {};
+
+        int size = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+        std::wstring result(size - 1, L'\0');
+        MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, result.data(), size);
+        return result;
+    }
+
+    // Convert wide string to UTF-8
+    inline std::string WideToUtf8(const std::wstring& wide) {
+        if (wide.empty()) return {};
+
+        int size = WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, nullptr, 0, nullptr, nullptr);
+        std::string result(size - 1, '\0');
+        WideCharToMultiByte(CP_UTF8, 0, wide.c_str(), -1, result.data(), size, nullptr, nullptr);
+        return result;
+    }
 
     // ============================================================================
     // Forward Declarations

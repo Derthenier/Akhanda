@@ -5,11 +5,11 @@
 module;
 
 #include "JsonWrapper.hpp"
+#include <unordered_map>
 
 export module Akhanda.Core.Configuration.Manager;
 
 import Akhanda.Core.Configuration;
-import std;
 
 export namespace Akhanda::Configuration {
 
