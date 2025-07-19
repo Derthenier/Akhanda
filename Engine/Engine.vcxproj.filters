@@ -36,6 +36,12 @@
     <ClCompile Include="Core\Platform\Platform.Interfaces.ixx" />
     <ClCompile Include="Core\Platform\Windows\Platform.Windows.ixx" />
     <ClCompile Include="Core\Configuration\JsonWrapper.cpp" />
+    <ClCompile Include="Renderer\RHI\RHI.Interface.ixx" />
+    <ClCompile Include="Renderer\RHI\RHI.Interfaces.ixx" />
+    <ClCompile Include="Core\Platform\Windows\Platform.RendererIntegration.ixx" />
+    <ClCompile Include="Renderer\RHI\Renderer.ixx" />
+    <ClCompile Include="Renderer\RHI\Renderer.Integration.ixx" />
+    <ClCompile Include="Renderer\RHI\D3D12\D3D12Device.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />
@@ -50,6 +56,14 @@
     <ClInclude Include="Core\Containers\Queue.hpp" />
     <ClInclude Include="Core\Containers\Stack.hpp" />
     <ClInclude Include="Core\Configuration\JsonWrapper.hpp" />
+    <ClInclude Include="Renderer\RHI\D3D12\D3D12Buffer.hpp" />
+    <ClInclude Include="Renderer\RHI\D3D12\D3D12Device.hpp" />
+    <ClInclude Include="Renderer\RHI\D3D12\D3D12Texture.hpp" />
+    <ClInclude Include="Renderer\RHI\D3D12\D3D12CommandList.hpp" />
+    <ClInclude Include="Renderer\RHI\D3D12\D3D12Pipeline.hpp" />
+    <ClInclude Include="Renderer\RHI\D3D12\D3D12SwapChain.hpp" />
+    <ClInclude Include="Renderer\RHI\D3D12\ForwardRenderPass.hpp" />
+    <ClInclude Include="Renderer\RHI\D3D12\D3D12DescriptorHeap.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

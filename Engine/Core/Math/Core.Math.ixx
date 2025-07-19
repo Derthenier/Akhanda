@@ -1257,4 +1257,14 @@ export namespace Akhanda::Math {
         return totalLength;
     }
 
+    // =============================================================================
+    // Type Aliases for Common Names  
+    // =============================================================================
+
+    // BoundingBox is a common alias for AABB in game development
+    using BoundingBox = AABB;
+
+    // Other common aliases
+    using BoundingSphere = Sphere;
+    using BoundingOrientedBox = OBB;
 }

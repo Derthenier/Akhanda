@@ -132,12 +132,14 @@ export namespace Akhanda::Logging {
         LogChannel& operator=(LogChannel&&) = default;
 
         // Core logging methods (unchanged API)
-        void Log(LogLevel level, std::string_view message,
-            const std::source_location& location = std::source_location::current()) const;
+        void Log(LogLevel level, std::string_view message, const std::source_location& location = std::source_location::current()) const;
+        void Log(LogLevel level, std::wstring_view message, const std::source_location& location = std::source_location::current()) const;
 
         // Formatted logging (unchanged API)
         template<typename... Args>
         void LogFormat(LogLevel level, std::format_string<Args...> fmt, Args&&... args) const;
+        template<typename... Args>
+        void LogFormat(LogLevel level, std::wformat_string<Args...> fmt, Args&&... args) const;
 
         // Convenience methods (unchanged API)
         void Debug(std::string_view message,
@@ -328,6 +330,25 @@ export namespace Akhanda::Logging {
 export namespace Akhanda::Logging {
     template<typename... Args>
     void LogChannel::LogFormat(LogLevel level, std::format_string<Args...> fmt, Args&&... args) const {
+
+        // Early exit if this level won't be logged
+        if (!ShouldLog(level)) {
+            return;
+        }
+
+        try {
+            // Use std::format for safe formatting
+            auto formatted = std::format(fmt, std::forward<Args>(args)...);
+            Log(level, formatted, std::source_location::current());
+        }
+        catch (const std::exception&) {
+            // Format error - log the error instead
+            Log(LogLevel::Error, "LOG FORMAT ERROR: Invalid format string", std::source_location::current());
+        }
+    }
+    
+    template<typename... Args>
+    void LogChannel::LogFormat(LogLevel level, std::wformat_string<Args...> fmt, Args&&... args) const {
 
         // Early exit if this level won't be logged
         if (!ShouldLog(level)) {

@@ -619,7 +619,7 @@ uint32_t GetLevelColor(LogLevel level) {
 std::string DetectMessageCategory(const std::string& message, const std::string& channel) {
     // Simple pattern matching for categorization
     std::string lowerMessage = message;
-    std::transform(lowerMessage.begin(), lowerMessage.end(), lowerMessage.begin(), ::tolower);
+    std::transform(message.begin(), message.end(), lowerMessage.begin(), ::tolower);
 
     if (lowerMessage.find("render") != std::string::npos ||
         lowerMessage.find("draw") != std::string::npos ||

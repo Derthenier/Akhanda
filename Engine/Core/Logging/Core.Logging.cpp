@@ -1,6 +1,8 @@
 ﻿// Core.Logging.cpp - Simplified spdlog-based Implementation
 module;
 
+#define SPDLOG_WCHAR_TO_UTF8_SUPPORT
+
 #include <spdlog/spdlog.h>
 #include <spdlog/async.h>
 #include <spdlog/sinks/base_sink.h>
@@ -272,6 +274,21 @@ public:
         LogManager::Instance().UpdateStatistics(message.length());
     }
 
+    void Log(LogLevel level, std::wstring_view message, const std::source_location& location) {
+        if (!spdlogLogger_) {
+            return;
+        }
+
+        auto spdLevel = ToSpdlogLevel(level);
+
+        // Use spdlog's efficient logging with source location
+        spdlog::source_loc loc{ location.file_name(), static_cast<int>(location.line()), location.function_name() };
+        spdlogLogger_->log(loc, spdLevel, L"{}", message);
+
+        // Update statistics through public interface
+        LogManager::Instance().UpdateStatistics(message.length());
+    }
+
     void SetLevel(LogLevel level) {
         if (spdlogLogger_) {
             spdlogLogger_->set_level(ToSpdlogLevel(level));
@@ -456,7 +473,7 @@ public:
             });
 
         if (it != akhandaSinks_.end()) {
-            auto wrapper = *it;
+            auto& wrapper = *it;
             akhandaSinks_.erase(it);
 
             // Remove from all channels
@@ -639,6 +656,11 @@ LogChannel::LogChannel(std::string_view name) noexcept
 }
 
 void LogChannel::Log(LogLevel level, std::string_view message, const std::source_location& location) const {
+    if (!ShouldLog(level)) return;
+    impl_->Log(level, message, location);
+}
+
+void LogChannel::Log(LogLevel level, std::wstring_view message, const std::source_location& location) const {
     if (!ShouldLog(level)) return;
     impl_->Log(level, message, location);
 }
