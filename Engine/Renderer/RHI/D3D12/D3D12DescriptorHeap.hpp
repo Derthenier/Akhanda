@@ -310,6 +310,7 @@ namespace Akhanda::RHI::D3D12 {
         // Debug helpers
         void LogDescriptorCreation(uint32_t index, const char* type, const char* name) const;
         void LogDescriptorFree(uint32_t index) const;
+        void LogDescriptorAllocation(uint32_t index) const;
         const char* GetDescriptorTypeName(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
         // Cleanup helpers
@@ -364,12 +365,20 @@ namespace Akhanda::RHI::D3D12 {
         void Shutdown();
 
         // Heap access
+        std::vector<ID3D12DescriptorHeap*> GetShaderVisibleHeaps() const;
+        D3D12DescriptorHeap* GetHeapByType(D3D12_DESCRIPTOR_HEAP_TYPE type, bool shaderVisible) const;
         D3D12DescriptorHeap* GetRTVHeap() const { return rtvHeap_.get(); }
         D3D12DescriptorHeap* GetDSVHeap() const { return dsvHeap_.get(); }
         D3D12DescriptorHeap* GetCBVSRVUAVHeap() const { return cbvSrvUavHeap_.get(); }
         D3D12DescriptorHeap* GetSamplerHeap() const { return samplerHeap_.get(); }
         D3D12DescriptorHeap* GetShaderVisibleCBVSRVUAVHeap() const { return shaderVisibleCbvSrvUavHeap_.get(); }
         D3D12DescriptorHeap* GetShaderVisibleSamplerHeap() const { return shaderVisibleSamplerHeap_.get(); }
+
+        uint32_t GetTotalDescriptorCount() const;
+        uint32_t GetUsedDescriptorCount() const;
+        float GetOverallUtilization() const;
+
+        void ValidateAllHeaps() const;
 
         // Convenience allocation
         uint32_t AllocateRTV() { return rtvHeap_->AllocateDescriptor(); }
@@ -382,8 +391,12 @@ namespace Akhanda::RHI::D3D12 {
         void EndFrame();
 
         // Statistics
+        void ResetAllStats();
         const ManagerStats& GetStats() const { return stats_; }
         void LogAllHeapInfo() const;
+        void LogHeapConfiguration() const;
+
+        std::string GetDetailedDebugInfo() const;
 
         // Configuration
         void SetHeapSizes(const HeapSizes& sizes) { heapSizes_ = sizes; }
@@ -395,7 +408,15 @@ namespace Akhanda::RHI::D3D12 {
             uint32_t descriptorCount,
             bool shaderVisible,
             const char* debugName);
+        bool CreateRTVHeap();
+        bool CreateDSVHeap();
+        bool CreateCBVSRVUAVHeap();
+        bool CreateSamplerHeap();
+        bool CreateShaderVisibleCBVSRVUAVHeap();
+        bool CreateShaderVisibleSamplerHeap();
         void UpdateManagerStats();
+
+        std::string AddIndentation(const std::string& str, const std::string& indent) const;
     };
 
     // ========================================================================

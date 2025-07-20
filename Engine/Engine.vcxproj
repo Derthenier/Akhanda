@@ -78,6 +78,7 @@
     <ClCompile Include="Core\Platform\Windows\Platform.Windows.ixx" />
     <ClCompile Include="Core\Threading\Core.Threading.cpp" />
     <ClCompile Include="Core\Threading\Core.Threading.ixx" />
+    <ClCompile Include="Renderer\RHI\D3D12\D3D12DescriptorHeap.cpp" />
     <ClCompile Include="Renderer\RHI\D3D12\D3D12Device.cpp" />
     <ClCompile Include="Renderer\RHI\Renderer.ixx" />
     <ClCompile Include="Renderer\RHI\Renderer.Integration.ixx" />
