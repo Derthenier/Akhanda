@@ -32,16 +32,18 @@ export namespace Akhanda::Logging {
 
 export namespace Akhanda::Logging {
     enum class LogLevel : uint8_t {
-        Debug = 0,
-        Info = 1,
-        Warning = 2,
-        Error = 3,
-        Fatal = 4,
+        Trace = 0,
+        Debug = 1,
+        Info = 2,
+        Warning = 3,
+        Error = 4,
+        Fatal = 5,
         Count
     };
 
     constexpr std::string_view ToString(LogLevel level) noexcept {
         switch (level) {
+        case LogLevel::Trace:   return "TRACE";
         case LogLevel::Debug:   return "DEBUG";
         case LogLevel::Info:    return "INFO";
         case LogLevel::Warning: return "WARN";
@@ -52,7 +54,7 @@ export namespace Akhanda::Logging {
     }
 
     constexpr bool IsValidLevel(LogLevel level) noexcept {
-        return level >= LogLevel::Debug && level < LogLevel::Count;
+        return level >= LogLevel::Trace && level < LogLevel::Count;
     }
 
     // Compile-time level filtering for zero-cost logging

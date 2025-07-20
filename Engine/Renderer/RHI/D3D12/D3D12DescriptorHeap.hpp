@@ -199,18 +199,12 @@ namespace Akhanda::RHI::D3D12 {
         void FreeDescriptor(uint32_t index) override;
         void Reset() override;
 
-        void CreateConstantBufferView(uint32_t descriptorIndex,
-            BufferHandle buffer) override;
-        void CreateShaderResourceView(uint32_t descriptorIndex,
-            TextureHandle texture) override;
-        void CreateUnorderedAccessView(uint32_t descriptorIndex,
-            TextureHandle texture) override;
-        void CreateRenderTargetView(uint32_t descriptorIndex,
-            TextureHandle texture) override;
-        void CreateDepthStencilView(uint32_t descriptorIndex,
-            TextureHandle texture) override;
-        void CreateSampler(uint32_t descriptorIndex,
-            const SamplerDesc& desc) override;
+        void CreateConstantBufferView(uint32_t descriptorIndex, BufferHandle buffer) override;
+        void CreateShaderResourceView(uint32_t descriptorIndex, TextureHandle texture) override;
+        void CreateUnorderedAccessView(uint32_t descriptorIndex, TextureHandle texture) override;
+        void CreateRenderTargetView(uint32_t descriptorIndex, TextureHandle texture) override;
+        void CreateDepthStencilView(uint32_t descriptorIndex, TextureHandle texture) override;
+        void CreateSampler(uint32_t descriptorIndex, const SamplerDesc& desc) override;
 
         uint32_t GetDescriptorCount() const override { return descriptorCount_; }
         uint32_t GetFreeDescriptorCount() const override;
@@ -242,23 +236,12 @@ namespace Akhanda::RHI::D3D12 {
             uint32_t srcStartIndex, uint32_t count);
 
         // Advanced view creation
-        void CreateConstantBufferView(uint32_t descriptorIndex,
-            const D3D12_CONSTANT_BUFFER_VIEW_DESC& desc);
-        void CreateShaderResourceView(uint32_t descriptorIndex,
-            ID3D12Resource* resource,
-            const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
-        void CreateUnorderedAccessView(uint32_t descriptorIndex,
-            ID3D12Resource* resource,
-            ID3D12Resource* counterResource = nullptr,
-            const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr);
-        void CreateRenderTargetView(uint32_t descriptorIndex,
-            ID3D12Resource* resource,
-            const D3D12_RENDER_TARGET_VIEW_DESC* desc = nullptr);
-        void CreateDepthStencilView(uint32_t descriptorIndex,
-            ID3D12Resource* resource,
-            const D3D12_DEPTH_STENCIL_VIEW_DESC* desc = nullptr);
-        void CreateSampler(uint32_t descriptorIndex,
-            const D3D12_SAMPLER_DESC& desc);
+        void CreateConstantBufferView(uint32_t descriptorIndex, const D3D12_CONSTANT_BUFFER_VIEW_DESC& desc);
+        void CreateShaderResourceView(uint32_t descriptorIndex, ID3D12Resource* resource, const D3D12_SHADER_RESOURCE_VIEW_DESC* desc = nullptr);
+        void CreateUnorderedAccessView(uint32_t descriptorIndex, ID3D12Resource* resource, ID3D12Resource* counterResource = nullptr, const D3D12_UNORDERED_ACCESS_VIEW_DESC* desc = nullptr);
+        void CreateRenderTargetView(uint32_t descriptorIndex, ID3D12Resource* resource, const D3D12_RENDER_TARGET_VIEW_DESC* desc = nullptr);
+        void CreateDepthStencilView(uint32_t descriptorIndex, ID3D12Resource* resource, const D3D12_DEPTH_STENCIL_VIEW_DESC* desc = nullptr);
+        void CreateSampler(uint32_t descriptorIndex, const D3D12_SAMPLER_DESC& desc);
 
         // Frame management
         void BeginFrame(uint64_t frameNumber);
@@ -292,12 +275,6 @@ namespace Akhanda::RHI::D3D12 {
         D3D12_RENDER_TARGET_VIEW_DESC CreateRTVDesc(const D3D12Texture* texture) const;
         D3D12_DEPTH_STENCIL_VIEW_DESC CreateDSVDesc(const D3D12Texture* texture) const;
         D3D12_SAMPLER_DESC CreateSamplerDesc(const SamplerDesc& desc) const;
-
-        // Format conversion
-        DXGI_FORMAT ConvertFormat(Format format) const;
-        D3D12_FILTER ConvertFilter(Filter filter) const;
-        D3D12_TEXTURE_ADDRESS_MODE ConvertAddressMode(AddressMode mode) const;
-        D3D12_COMPARISON_FUNC ConvertComparisonFunc(CompareFunction func) const;
 
         // Statistics helpers
         void UpdateAllocationStats(D3D12_DESCRIPTOR_HEAP_TYPE type, bool isAllocation);

@@ -2,6 +2,7 @@
 // Akhanda Game Engine - D3D12 Device Implementation
 // Copyright (c) 2025 Aditya Vennelakanti. All rights reserved.
 
+#include "D3D12Core.hpp"
 #include "D3D12Device.hpp"
 #include "D3D12Buffer.hpp"
 #include "D3D12Texture.hpp"
@@ -41,54 +42,6 @@ using namespace Akhanda::Logging;
 namespace Akhanda::RHI::D3D12 {
 
 namespace {
-
-    DXGI_FORMAT ConvertFormat(Format format) {
-        switch (format) {
-        case Format::R32G32B32A32_Float: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-        case Format::R32G32B32_Float: return DXGI_FORMAT_R32G32B32_FLOAT;
-        case Format::R32G32_Float: return DXGI_FORMAT_R32G32_FLOAT;
-        case Format::R32_Float: return DXGI_FORMAT_R32_FLOAT;
-        case Format::R16G16B16A16_Float: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-        //case Format::R11G11B10_Float: return DXGI_FORMAT_R11G11B10_FLOAT;
-        case Format::R8G8B8A8_UNorm: return DXGI_FORMAT_R8G8B8A8_UNORM;
-        //case Format::R8G8B8A8_UNorm_sRGB: return DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-        case Format::B8G8R8A8_UNorm: return DXGI_FORMAT_B8G8R8A8_UNORM;
-        //case Format::B8G8R8A8_UNorm_sRGB: return DXGI_FORMAT_B8G8R8A8_UNORM_SRGB;
-        //case Format::R10G10B10A2_UNorm: return DXGI_FORMAT_R10G10B10A2_UNORM;
-        case Format::D32_Float: return DXGI_FORMAT_D32_FLOAT;
-        case Format::D24_UNorm_S8_UInt: return DXGI_FORMAT_D24_UNORM_S8_UINT;
-        case Format::D16_UNorm: return DXGI_FORMAT_D16_UNORM;
-        case Format::BC1_UNorm: return DXGI_FORMAT_BC1_UNORM;
-        case Format::BC3_UNorm: return DXGI_FORMAT_BC3_UNORM;
-        case Format::BC5_UNorm: return DXGI_FORMAT_BC5_UNORM;
-        case Format::BC7_UNorm: return DXGI_FORMAT_BC7_UNORM;
-        default: return DXGI_FORMAT_UNKNOWN;
-        }
-    }
-
-    D3D12_RESOURCE_STATES ConvertResourceState(ResourceState state) {
-        switch (state) {
-        case ResourceState::Common: return D3D12_RESOURCE_STATE_COMMON;
-        case ResourceState::VertexAndConstantBuffer: return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-        case ResourceState::IndexBuffer: return D3D12_RESOURCE_STATE_INDEX_BUFFER;
-        case ResourceState::RenderTarget: return D3D12_RESOURCE_STATE_RENDER_TARGET;
-        case ResourceState::UnorderedAccess: return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-        case ResourceState::DepthWrite: return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-        case ResourceState::DepthRead: return D3D12_RESOURCE_STATE_DEPTH_READ;
-        //case ResourceState::NonPixelShaderResource: return D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-        //case ResourceState::PixelShaderResource: return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
-        case ResourceState::ShaderResource: return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-        case ResourceState::StreamOut: return D3D12_RESOURCE_STATE_STREAM_OUT;
-        case ResourceState::IndirectArgument: return D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT;
-        //case ResourceState::CopyDest: return D3D12_RESOURCE_STATE_COPY_DEST;
-        case ResourceState::CopySource: return D3D12_RESOURCE_STATE_COPY_SOURCE;
-        case ResourceState::ResolveDest: return D3D12_RESOURCE_STATE_RESOLVE_DEST;
-        case ResourceState::ResolveSource: return D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
-        //case ResourceState::RaytracingAccelerationStructure: return D3D12_RESOURCE_STATE_RAYTRACING_ACCELERATION_STRUCTURE;
-        //case ResourceState::ShadingRateSource: return D3D12_RESOURCE_STATE_SHADING_RATE_SOURCE;
-        default: return D3D12_RESOURCE_STATE_COMMON;
-        }
-    }
 
     // ============================================================================
     // Helper Macros and Utilities

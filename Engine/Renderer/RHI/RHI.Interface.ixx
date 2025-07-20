@@ -129,59 +129,97 @@ export namespace Akhanda::RHI {
     };
 
     enum class Format : uint32_t {
-        Unknown = 0,
+        // Special/Unknown
+        Undefined = 0,
+        Unknown = 0,    // Alias for Undefined
+
+        // 32-bit float formats
         R32G32B32A32_Float,
-        R32G32B32A32_UInt,
-        R32G32B32A32_SInt,
         R32G32B32_Float,
-        R32G32B32_UInt,
-        R32G32B32_SInt,
         R32G32_Float,
-        R32G32_UInt,
-        R32G32_SInt,
         R32_Float,
+
+        // 32-bit unsigned integer formats
+        R32G32B32A32_UInt,
+        R32G32B32_UInt,
+        R32G32_UInt,
         R32_UInt,
+
+        // 32-bit signed integer formats
+        R32G32B32A32_SInt,
+        R32G32B32_SInt,
+        R32G32_SInt,
         R32_SInt,
+
+        // 16-bit float formats
         R16G16B16A16_Float,
-        R16G16B16A16_UNorm,
-        R16G16B16A16_SNorm,
-        R16G16B16A16_UInt,
-        R16G16B16A16_SInt,
         R16G16_Float,
-        R16G16_UNorm,
-        R16G16_SNorm,
-        R16G16_UInt,
-        R16G16_SInt,
         R16_Float,
+
+        // 16-bit unsigned normalized formats
+        R16G16B16A16_UNorm,
+        R16G16_UNorm,
         R16_UNorm,
+
+        // 16-bit signed normalized formats
+        R16G16B16A16_SNorm,
+        R16G16_SNorm,
         R16_SNorm,
+
+        // 16-bit unsigned integer formats
+        R16G16B16A16_UInt,
+        R16G16_UInt,
         R16_UInt,
+
+        // 16-bit signed integer formats
+        R16G16B16A16_SInt,
+        R16G16_SInt,
         R16_SInt,
+
+        // 8-bit unsigned normalized formats
         R8G8B8A8_UNorm,
-        R8G8B8A8_SNorm,
-        R8G8B8A8_UInt,
-        R8G8B8A8_SInt,
+        R8G8B8A8_UNorm_sRGB,   // Added sRGB variant
         R8G8_UNorm,
-        R8G8_SNorm,
-        R8G8_UInt,
-        R8G8_SInt,
         R8_UNorm,
+
+        // 8-bit signed normalized formats
+        R8G8B8A8_SNorm,
+        R8G8_SNorm,
         R8_SNorm,
+
+        // 8-bit unsigned integer formats
+        R8G8B8A8_UInt,
+        R8G8_UInt,
         R8_UInt,
+
+        // 8-bit signed integer formats
+        R8G8B8A8_SInt,
+        R8G8_SInt,
         R8_SInt,
+
+        // BGRA formats
         B8G8R8A8_UNorm,
+        B8G8R8A8_UNorm_sRGB,   // Added sRGB variant
         B8G8R8X8_UNorm,
+
+        // Special formats
+        R11G11B10_Float,        // Added
+        R10G10B10A2_UNorm,      // Added
+        R10G10B10A2_UInt,       // Added
+
         // Depth formats
         D32_Float,
         D24_UNorm_S8_UInt,
         D16_UNorm,
-        // Compressed formats
+        D32_Float_S8X24_UInt,   // Added
+
+        // Block compression formats
         BC1_UNorm,
-        BC1_UNorm_SRGB,
+        BC1_UNorm_sRGB,
         BC2_UNorm,
-        BC2_UNorm_SRGB,
+        BC2_UNorm_sRGB,
         BC3_UNorm,
-        BC3_UNorm_SRGB,
+        BC3_UNorm_sRGB,
         BC4_UNorm,
         BC4_SNorm,
         BC5_UNorm,
@@ -189,13 +227,57 @@ export namespace Akhanda::RHI {
         BC6H_UF16,
         BC6H_SF16,
         BC7_UNorm,
-        BC7_UNorm_SRGB
+        BC7_UNorm_sRGB
     };
 
     enum class Filter : uint32_t {
+        // Basic point/linear/anisotropic (legacy simple values)
         Point = 0,
         Linear,
-        Anisotropic
+        Anisotropic,
+
+        // Detailed filter modes - Min/Mag/Mip combinations
+        MinMagMipPoint,
+        MinMagPointMipLinear,
+        MinPointMagLinearMipPoint,
+        MinPointMagMipLinear,
+        MinLinearMagMipPoint,
+        MinLinearMagPointMipLinear,
+        MinMagLinearMipPoint,
+        MinMagMipLinear,
+
+        // Comparison filters (for shadow mapping)
+        ComparisonMinMagMipPoint,
+        ComparisonMinMagPointMipLinear,
+        ComparisonMinPointMagLinearMipPoint,
+        ComparisonMinPointMagMipLinear,
+        ComparisonMinLinearMagMipPoint,
+        ComparisonMinLinearMagPointMipLinear,
+        ComparisonMinMagLinearMipPoint,
+        ComparisonMinMagMipLinear,
+        ComparisonAnisotropic,
+
+        // Minimum filters (for special effects)
+        MinimumMinMagMipPoint,
+        MinimumMinMagPointMipLinear,
+        MinimumMinPointMagLinearMipPoint,
+        MinimumMinPointMagMipLinear,
+        MinimumMinLinearMagMipPoint,
+        MinimumMinLinearMagPointMipLinear,
+        MinimumMinMagLinearMipPoint,
+        MinimumMinMagMipLinear,
+        MinimumAnisotropic,
+
+        // Maximum filters (for special effects)
+        MaximumMinMagMipPoint,
+        MaximumMinMagPointMipLinear,
+        MaximumMinPointMagLinearMipPoint,
+        MaximumMinPointMagMipLinear,
+        MaximumMinLinearMagMipPoint,
+        MaximumMinLinearMagPointMipLinear,
+        MaximumMinMagLinearMipPoint,
+        MaximumMinMagMipLinear,
+        MaximumAnisotropic
     };
 
     enum class AddressMode : uint32_t {

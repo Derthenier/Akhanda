@@ -2,13 +2,16 @@
 // Akhanda Game Engine - D3D12 Device Implementation
 // Copyright (c) 2025 Aditya Vennelakanti. All rights reserved.
 
+#include "D3D12Core.hpp"
 #include "D3D12DescriptorHeap.hpp"
 
+#include <algorithm>
 #include <format>
 #include <sstream>
 
 #undef max
 #undef min
+#undef clamp
 
 namespace Akhanda::RHI::D3D12 {
 
@@ -914,6 +917,655 @@ namespace Akhanda::RHI::D3D12 {
         }
     }
 
+    void D3D12DescriptorHeap::LogDescriptorAllocation(uint32_t index) const {
+        logChannel_.LogFormat(Logging::LogLevel::Debug,
+            "Allocated descriptor {} in heap '{}' (type: {}, shader visible: {})",
+            index, debugName_, GetDescriptorTypeName(heapType_), isShaderVisible_);
+    }
+
+    void D3D12DescriptorHeap::UpdateAllocationStats(D3D12_DESCRIPTOR_HEAP_TYPE type, bool isAllocation) {
+        if (isAllocation) {
+            stats_.totalAllocations.fetch_add(1);
+
+            // Update type-specific counters based on what's being allocated
+            switch (type) {
+            case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+                // Note: We can't determine if it's CBV/SRV/UAV here, so we increment total allocations only
+                // Individual counters are updated in the specific CreateXXXView methods
+                break;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+                // RTV counter is updated in CreateRenderTargetView
+                break;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+                // DSV counter is updated in CreateDepthStencilView
+                break;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+                // Sampler counter is updated in CreateSampler
+                break;
+            default:
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Unknown descriptor heap type in UpdateAllocationStats: {}", static_cast<int>(type));
+                break;
+            }
+        }
+        else {
+            // Deallocation - decrement total allocations
+            if (stats_.totalAllocations.load() > 0) {
+                stats_.totalAllocations.fetch_sub(1);
+            }
+        }
+    }
+
+    void D3D12DescriptorHeap::UpdateDescriptorInfo(uint32_t index, bool isAllocated, const char* debugName) {
+        if (!IsValidDescriptorIndex(index)) {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Invalid descriptor index {} in UpdateDescriptorInfo", index);
+            return;
+        }
+
+        std::lock_guard<std::mutex> lock(heapMutex_);
+
+        auto& info = descriptorInfos_[index];
+        info.isAllocated = isAllocated;
+        info.type = heapType_;
+        info.creationFrame = currentFrame_.load();
+        info.associatedResource = nullptr; // Will be set by specific view creation methods if needed
+
+        if (debugName) {
+            info.debugName = debugName;
+        }
+        else if (!isAllocated) {
+            info.debugName.clear(); // Clear debug name on deallocation
+        }
+
+        // Log the update for debugging
+        if (isAllocated) {
+            logChannel_.LogFormat(Logging::LogLevel::Trace,
+                "Updated descriptor info for index {}: allocated, type: {}, frame: {}, debug name: '{}'",
+                index, GetDescriptorTypeName(heapType_), info.creationFrame, info.debugName);
+        }
+        else {
+            logChannel_.LogFormat(Logging::LogLevel::Trace,
+                "Updated descriptor info for index {}: deallocated", index);
+        }
+    }
+
+    bool D3D12DescriptorHeap::IsValidDescriptorIndex(uint32_t index) const {
+        if (index >= descriptorCount_) {
+            return false;
+        }
+
+        // Additional validation: check if the heap has been properly initialized
+        if (!descriptorHeap_ || !allocator_) {
+            return false;
+        }
+
+        // Optional: Check if the index is actually allocated in the allocator
+        // This provides an extra layer of validation but adds overhead
+        // Uncomment if you want strict validation:
+        // return allocator_->IsAllocated(index);
+
+        return true;
+    }
+
+    // ========================================================================
+    // Additional Required Helper Methods (Basic Implementations)
+    // ========================================================================
+
+    const char* D3D12DescriptorHeap::GetDescriptorTypeName(D3D12_DESCRIPTOR_HEAP_TYPE type) const {
+        switch (type) {
+        case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+            return "CBV_SRV_UAV";
+        case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+            return "SAMPLER";
+        case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+            return "RTV";
+        case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+            return "DSV";
+        default:
+            return "UNKNOWN";
+        }
+    }
+
+    bool D3D12DescriptorHeap::IsValidDescriptorType(D3D12_DESCRIPTOR_HEAP_TYPE type) const {
+        switch (type) {
+        case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+        case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+        case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+        case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    void D3D12DescriptorHeap::CleanupDescriptors() {
+        std::lock_guard<std::mutex> lock(heapMutex_);
+
+        // Clear all descriptor information
+        for (auto& info : descriptorInfos_) {
+            info = DescriptorInfo{};
+        }
+
+        logChannel_.LogFormat(Logging::LogLevel::Debug,
+            "Cleaned up descriptor information for {} descriptors", descriptorInfos_.size());
+    }
+
+    void D3D12DescriptorHeap::CleanupHeap() {
+        // Reset handles
+        baseCpuHandle_ = D3D12_CPU_DESCRIPTOR_HANDLE{ 0 };
+        baseGpuHandle_ = D3D12_GPU_DESCRIPTOR_HANDLE{ 0 };
+
+        // Release D3D12 heap
+        if (descriptorHeap_) {
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Releasing D3D12 descriptor heap '{}'", debugName_);
+            descriptorHeap_.Reset();
+        }
+
+        // Reset properties
+        descriptorCount_ = 0;
+        descriptorSize_ = 0;
+        device_ = nullptr;
+
+        logChannel_.Log(Logging::LogLevel::Debug, "D3D12 descriptor heap cleanup completed");
+    }
+
+    D3D12Buffer* D3D12DescriptorHeap::GetD3D12Buffer([[maybe_unused]] BufferHandle handle) const {
+        // TODO: Implement when D3D12Buffer class is complete
+        // This would typically get the buffer from the device's resource manager
+        logChannel_.Log(Logging::LogLevel::Warning,
+            "GetD3D12Buffer not yet implemented - D3D12Buffer class needed");
+        return nullptr;
+    }
+
+    D3D12Texture* D3D12DescriptorHeap::GetD3D12Texture([[maybe_unused]] TextureHandle handle) const {
+        // TODO: Implement when D3D12Texture class is complete
+        // This would typically get the texture from the device's resource manager
+        logChannel_.Log(Logging::LogLevel::Warning,
+            "GetD3D12Texture not yet implemented - D3D12Texture class needed");
+        return nullptr;
+    }
+
+    // ========================================================================
+    // View Creation Helper Methods
+    // ========================================================================
+    D3D12_CONSTANT_BUFFER_VIEW_DESC D3D12DescriptorHeap::CreateCBVDesc(const D3D12Buffer* buffer) const {
+        D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+
+        if (!buffer) {
+            logChannel_.Log(Logging::LogLevel::Error, "Null buffer provided to CreateCBVDesc");
+            return cbvDesc;
+        }
+
+        // TODO: Implement when D3D12Buffer class is complete
+        // Get buffer properties from D3D12Buffer
+        // uint64_t bufferSize = buffer->GetSize();
+        // D3D12_GPU_VIRTUAL_ADDRESS bufferAddress = buffer->GetGPUVirtualAddress();
+
+        // Placeholder implementation until D3D12Buffer is ready
+        uint64_t bufferSize = 0;        // buffer->GetSize();
+        D3D12_GPU_VIRTUAL_ADDRESS bufferAddress = 0;  // buffer->GetGPUVirtualAddress();
+
+        // Constant buffer size must be aligned to 256 bytes
+        uint64_t alignedSize = (bufferSize + 255) & ~255;
+
+        cbvDesc.BufferLocation = bufferAddress;
+        cbvDesc.SizeInBytes = static_cast<UINT>(alignedSize);
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Created CBV desc: address=0x{:016X}, size={} (aligned from {})",
+            cbvDesc.BufferLocation, cbvDesc.SizeInBytes, bufferSize);
+
+        return cbvDesc;
+    }
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC D3D12DescriptorHeap::CreateSRVDesc(const D3D12Texture* texture) const {
+        D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+
+        if (!texture) {
+            logChannel_.Log(Logging::LogLevel::Error, "Null texture provided to CreateSRVDesc");
+            return srvDesc;
+        }
+
+        // TODO: Implement when D3D12Texture class is complete
+        // Get texture properties from D3D12Texture
+        // const TextureDesc& texDesc = texture->GetDesc();
+        // DXGI_FORMAT textureFormat = texture->GetDXGIFormat();
+
+        // Placeholder implementation until D3D12Texture is ready
+        TextureDesc texDesc = {};  // texture->GetDesc();
+        texDesc.type = ResourceType::Texture2D;  // Default assumption
+        texDesc.format = Format::R8G8B8A8_UNorm;  // Default format
+        texDesc.mipLevels = 1;
+        texDesc.arraySize = 1;
+
+        DXGI_FORMAT textureFormat = ConvertFormat(texDesc.format);
+
+        // Set format
+        srvDesc.Format = textureFormat;
+        srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+        // Configure view dimension based on texture type
+        switch (texDesc.type) {
+        case ResourceType::Texture1D:
+            if (texDesc.arraySize > 1) {
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+                srvDesc.Texture1DArray.MostDetailedMip = 0;
+                srvDesc.Texture1DArray.MipLevels = texDesc.mipLevels;
+                srvDesc.Texture1DArray.FirstArraySlice = 0;
+                srvDesc.Texture1DArray.ArraySize = texDesc.arraySize;
+                srvDesc.Texture1DArray.ResourceMinLODClamp = 0.0f;
+            }
+            else {
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+                srvDesc.Texture1D.MostDetailedMip = 0;
+                srvDesc.Texture1D.MipLevels = texDesc.mipLevels;
+                srvDesc.Texture1D.ResourceMinLODClamp = 0.0f;
+            }
+            break;
+
+        case ResourceType::Texture2D:
+            if (texDesc.arraySize > 1) {
+                if (texDesc.sampleCount > 1) {
+                    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
+                    srvDesc.Texture2DMSArray.FirstArraySlice = 0;
+                    srvDesc.Texture2DMSArray.ArraySize = texDesc.arraySize;
+                }
+                else {
+                    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+                    srvDesc.Texture2DArray.MostDetailedMip = 0;
+                    srvDesc.Texture2DArray.MipLevels = texDesc.mipLevels;
+                    srvDesc.Texture2DArray.FirstArraySlice = 0;
+                    srvDesc.Texture2DArray.ArraySize = texDesc.arraySize;
+                    srvDesc.Texture2DArray.PlaneSlice = 0;
+                    srvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+                }
+            }
+            else {
+                if (texDesc.sampleCount > 1) {
+                    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+                }
+                else {
+                    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+                    srvDesc.Texture2D.MostDetailedMip = 0;
+                    srvDesc.Texture2D.MipLevels = texDesc.mipLevels;
+                    srvDesc.Texture2D.PlaneSlice = 0;
+                    srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+                }
+            }
+            break;
+
+        case ResourceType::Texture3D:
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+            srvDesc.Texture3D.MostDetailedMip = 0;
+            srvDesc.Texture3D.MipLevels = texDesc.mipLevels;
+            srvDesc.Texture3D.ResourceMinLODClamp = 0.0f;
+            break;
+
+        case ResourceType::TextureCube:
+            if (texDesc.arraySize > 6) {
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+                srvDesc.TextureCubeArray.MostDetailedMip = 0;
+                srvDesc.TextureCubeArray.MipLevels = texDesc.mipLevels;
+                srvDesc.TextureCubeArray.First2DArrayFace = 0;
+                srvDesc.TextureCubeArray.NumCubes = texDesc.arraySize / 6;
+                srvDesc.TextureCubeArray.ResourceMinLODClamp = 0.0f;
+            }
+            else {
+                srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+                srvDesc.TextureCube.MostDetailedMip = 0;
+                srvDesc.TextureCube.MipLevels = texDesc.mipLevels;
+                srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
+            }
+            break;
+
+        default:
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Unknown texture type {} in CreateSRVDesc", static_cast<int>(texDesc.type));
+            srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+            break;
+        }
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Created SRV desc: format={}, dimension={}, mips={}",
+            static_cast<int>(srvDesc.Format), static_cast<int>(srvDesc.ViewDimension), texDesc.mipLevels);
+
+        return srvDesc;
+    }
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC D3D12DescriptorHeap::CreateUAVDesc(const D3D12Texture* texture) const {
+        D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+
+        if (!texture) {
+            logChannel_.Log(Logging::LogLevel::Error, "Null texture provided to CreateUAVDesc");
+            return uavDesc;
+        }
+
+        // TODO: Implement when D3D12Texture class is complete
+        // Get texture properties from D3D12Texture
+        // const TextureDesc& texDesc = texture->GetDesc();
+        // DXGI_FORMAT textureFormat = texture->GetDXGIFormat();
+
+        // Placeholder implementation until D3D12Texture is ready
+        TextureDesc texDesc = {};  // texture->GetDesc();
+        texDesc.type = ResourceType::Texture2D;  // Default assumption
+        texDesc.format = Format::R8G8B8A8_UNorm;  // Default format
+        texDesc.mipLevels = 1;
+        texDesc.arraySize = 1;
+
+        DXGI_FORMAT textureFormat = ConvertFormat(texDesc.format);
+
+        // Set format
+        uavDesc.Format = textureFormat;
+
+        // Configure view dimension based on texture type
+        switch (texDesc.type) {
+        case ResourceType::Texture1D:
+            if (texDesc.arraySize > 1) {
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+                uavDesc.Texture1DArray.MipSlice = 0;
+                uavDesc.Texture1DArray.FirstArraySlice = 0;
+                uavDesc.Texture1DArray.ArraySize = texDesc.arraySize;
+            }
+            else {
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+                uavDesc.Texture1D.MipSlice = 0;
+            }
+            break;
+
+        case ResourceType::Texture2D:
+            if (texDesc.arraySize > 1) {
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+                uavDesc.Texture2DArray.MipSlice = 0;
+                uavDesc.Texture2DArray.FirstArraySlice = 0;
+                uavDesc.Texture2DArray.ArraySize = texDesc.arraySize;
+                uavDesc.Texture2DArray.PlaneSlice = 0;
+            }
+            else {
+                uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+                uavDesc.Texture2D.MipSlice = 0;
+                uavDesc.Texture2D.PlaneSlice = 0;
+            }
+            break;
+
+        case ResourceType::Texture3D:
+            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+            uavDesc.Texture3D.MipSlice = 0;
+            uavDesc.Texture3D.FirstWSlice = 0;
+            uavDesc.Texture3D.WSize = texDesc.depth;
+            break;
+
+        case ResourceType::TextureCube:
+            // Cube textures are treated as 2D arrays for UAV
+            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+            uavDesc.Texture2DArray.MipSlice = 0;
+            uavDesc.Texture2DArray.FirstArraySlice = 0;
+            uavDesc.Texture2DArray.ArraySize = 6; // Cube has 6 faces
+            uavDesc.Texture2DArray.PlaneSlice = 0;
+            break;
+
+        default:
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Unknown texture type {} in CreateUAVDesc", static_cast<int>(texDesc.type));
+            uavDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+            break;
+        }
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Created UAV desc: format={}, dimension={}",
+            static_cast<int>(uavDesc.Format), static_cast<int>(uavDesc.ViewDimension));
+
+        return uavDesc;
+    }
+
+    D3D12_RENDER_TARGET_VIEW_DESC D3D12DescriptorHeap::CreateRTVDesc(const D3D12Texture* texture) const {
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+
+        if (!texture) {
+            logChannel_.Log(Logging::LogLevel::Error, "Null texture provided to CreateRTVDesc");
+            return rtvDesc;
+        }
+
+        // TODO: Implement when D3D12Texture class is complete
+        // Get texture properties from D3D12Texture
+        // const TextureDesc& texDesc = texture->GetDesc();
+        // DXGI_FORMAT textureFormat = texture->GetDXGIFormat();
+
+        // Placeholder implementation until D3D12Texture is ready
+        TextureDesc texDesc = {};  // texture->GetDesc();
+        texDesc.type = ResourceType::Texture2D;  // Default assumption
+        texDesc.format = Format::R8G8B8A8_UNorm;  // Default format
+        texDesc.mipLevels = 1;
+        texDesc.arraySize = 1;
+        texDesc.sampleCount = 1;
+
+        DXGI_FORMAT textureFormat = ConvertFormat(texDesc.format);
+
+        // Set format
+        rtvDesc.Format = textureFormat;
+
+        // Configure view dimension based on texture type
+        switch (texDesc.type) {
+        case ResourceType::Texture1D:
+            if (texDesc.arraySize > 1) {
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+                rtvDesc.Texture1DArray.MipSlice = 0;
+                rtvDesc.Texture1DArray.FirstArraySlice = 0;
+                rtvDesc.Texture1DArray.ArraySize = texDesc.arraySize;
+            }
+            else {
+                rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+                rtvDesc.Texture1D.MipSlice = 0;
+            }
+            break;
+
+        case ResourceType::Texture2D:
+            if (texDesc.arraySize > 1) {
+                if (texDesc.sampleCount > 1) {
+                    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMSARRAY;
+                    rtvDesc.Texture2DMSArray.FirstArraySlice = 0;
+                    rtvDesc.Texture2DMSArray.ArraySize = texDesc.arraySize;
+                }
+                else {
+                    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+                    rtvDesc.Texture2DArray.MipSlice = 0;
+                    rtvDesc.Texture2DArray.FirstArraySlice = 0;
+                    rtvDesc.Texture2DArray.ArraySize = texDesc.arraySize;
+                    rtvDesc.Texture2DArray.PlaneSlice = 0;
+                }
+            }
+            else {
+                if (texDesc.sampleCount > 1) {
+                    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+                }
+                else {
+                    rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+                    rtvDesc.Texture2D.MipSlice = 0;
+                    rtvDesc.Texture2D.PlaneSlice = 0;
+                }
+            }
+            break;
+
+        case ResourceType::Texture3D:
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+            rtvDesc.Texture3D.MipSlice = 0;
+            rtvDesc.Texture3D.FirstWSlice = 0;
+            rtvDesc.Texture3D.WSize = texDesc.depth;
+            break;
+
+        case ResourceType::TextureCube:
+            // Cube textures are treated as 2D arrays for RTV
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+            rtvDesc.Texture2DArray.MipSlice = 0;
+            rtvDesc.Texture2DArray.FirstArraySlice = 0;
+            rtvDesc.Texture2DArray.ArraySize = 6; // Cube has 6 faces
+            rtvDesc.Texture2DArray.PlaneSlice = 0;
+            break;
+
+        default:
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Unknown texture type {} in CreateRTVDesc", static_cast<int>(texDesc.type));
+            rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+            break;
+        }
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Created RTV desc: format={}, dimension={}, mip={}",
+            static_cast<int>(rtvDesc.Format), static_cast<int>(rtvDesc.ViewDimension), 0);
+
+        return rtvDesc;
+    }
+
+    D3D12_DEPTH_STENCIL_VIEW_DESC D3D12DescriptorHeap::CreateDSVDesc(const D3D12Texture* texture) const {
+        D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+
+        if (!texture) {
+            logChannel_.Log(Logging::LogLevel::Error, "Null texture provided to CreateDSVDesc");
+            return dsvDesc;
+        }
+
+        // TODO: Implement when D3D12Texture class is complete
+        // Get texture properties from D3D12Texture
+        // const TextureDesc& texDesc = texture->GetDesc();
+        // DXGI_FORMAT textureFormat = texture->GetDXGIFormat();
+
+        // Placeholder implementation until D3D12Texture is ready
+        TextureDesc texDesc = {};  // texture->GetDesc();
+        texDesc.type = ResourceType::Texture2D;  // Default assumption
+        texDesc.format = Format::D32_Float;     // Default depth format
+        texDesc.mipLevels = 1;
+        texDesc.arraySize = 1;
+        texDesc.sampleCount = 1;
+
+        DXGI_FORMAT textureFormat = ConvertFormat(texDesc.format);
+
+        // Set format
+        dsvDesc.Format = textureFormat;
+        dsvDesc.Flags = D3D12_DSV_FLAG_NONE;
+
+        // Configure view dimension based on texture type
+        switch (texDesc.type) {
+        case ResourceType::Texture1D:
+            if (texDesc.arraySize > 1) {
+                dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+                dsvDesc.Texture1DArray.MipSlice = 0;
+                dsvDesc.Texture1DArray.FirstArraySlice = 0;
+                dsvDesc.Texture1DArray.ArraySize = texDesc.arraySize;
+            }
+            else {
+                dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+                dsvDesc.Texture1D.MipSlice = 0;
+            }
+            break;
+
+        case ResourceType::Texture2D:
+            if (texDesc.arraySize > 1) {
+                if (texDesc.sampleCount > 1) {
+                    dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMSARRAY;
+                    dsvDesc.Texture2DMSArray.FirstArraySlice = 0;
+                    dsvDesc.Texture2DMSArray.ArraySize = texDesc.arraySize;
+                }
+                else {
+                    dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+                    dsvDesc.Texture2DArray.MipSlice = 0;
+                    dsvDesc.Texture2DArray.FirstArraySlice = 0;
+                    dsvDesc.Texture2DArray.ArraySize = texDesc.arraySize;
+                }
+            }
+            else {
+                if (texDesc.sampleCount > 1) {
+                    dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+                }
+                else {
+                    dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+                    dsvDesc.Texture2D.MipSlice = 0;
+                }
+            }
+            break;
+
+        case ResourceType::TextureCube:
+            // Cube textures are treated as 2D arrays for DSV
+            dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+            dsvDesc.Texture2DArray.MipSlice = 0;
+            dsvDesc.Texture2DArray.FirstArraySlice = 0;
+            dsvDesc.Texture2DArray.ArraySize = 6; // Cube has 6 faces
+            break;
+
+        default:
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Unknown texture type {} in CreateDSVDesc", static_cast<int>(texDesc.type));
+            dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+            break;
+        }
+
+        // Special handling for read-only depth/stencil views
+        // This could be configurable in the future
+        if (texDesc.format == Format::D24_UNorm_S8_UInt || texDesc.format == Format::D32_Float_S8X24_UInt) {
+            // For depth-stencil formats, we can set read-only flags if needed
+            // dsvDesc.Flags = D3D12_DSV_FLAG_READ_ONLY_DEPTH | D3D12_DSV_FLAG_READ_ONLY_STENCIL;
+        }
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Created DSV desc: format={}, dimension={}, flags={}",
+            static_cast<int>(dsvDesc.Format), static_cast<int>(dsvDesc.ViewDimension), static_cast<int>(dsvDesc.Flags));
+
+        return dsvDesc;
+    }
+
+    D3D12_SAMPLER_DESC D3D12DescriptorHeap::CreateSamplerDesc(const SamplerDesc& desc) const {
+        D3D12_SAMPLER_DESC samplerDesc = {};
+
+        // Convert filter
+        samplerDesc.Filter = ConvertFilter(desc.filter);
+
+        // Convert address modes
+        samplerDesc.AddressU = ConvertAddressMode(desc.addressU);
+        samplerDesc.AddressV = ConvertAddressMode(desc.addressV);
+        samplerDesc.AddressW = ConvertAddressMode(desc.addressW);
+
+        // Set LOD parameters
+        samplerDesc.MipLODBias = desc.mipLODBias;
+        samplerDesc.MaxAnisotropy = desc.maxAnisotropy;
+
+        // Convert comparison function
+        samplerDesc.ComparisonFunc = ConvertComparisonFunc(desc.compareFunction);
+
+        // Set border color
+        samplerDesc.BorderColor[0] = desc.borderColor[0];
+        samplerDesc.BorderColor[1] = desc.borderColor[1];
+        samplerDesc.BorderColor[2] = desc.borderColor[2];
+        samplerDesc.BorderColor[3] = desc.borderColor[3];
+
+        // Set LOD range
+        samplerDesc.MinLOD = desc.minLOD;
+        samplerDesc.MaxLOD = desc.maxLOD;
+
+        // Validation and adjustments
+        if (samplerDesc.Filter == D3D12_FILTER_ANISOTROPIC ||
+            samplerDesc.Filter == D3D12_FILTER_COMPARISON_ANISOTROPIC ||
+            samplerDesc.Filter == D3D12_FILTER_MINIMUM_ANISOTROPIC ||
+            samplerDesc.Filter == D3D12_FILTER_MAXIMUM_ANISOTROPIC) {
+            // Ensure anisotropy is valid for anisotropic filtering
+            if (samplerDesc.MaxAnisotropy == 0) {
+                samplerDesc.MaxAnisotropy = 1;
+                logChannel_.Log(Logging::LogLevel::Warning,
+                    "Anisotropic filter specified but MaxAnisotropy is 0, setting to 1");
+            }
+            // Clamp to valid range (1-16)
+            samplerDesc.MaxAnisotropy = std::clamp(samplerDesc.MaxAnisotropy, 1u, 16u);
+        }
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Created Sampler desc: filter={}, addressU={}, addressV={}, addressW={}, anisotropy={}",
+            static_cast<int>(samplerDesc.Filter),
+            static_cast<int>(samplerDesc.AddressU),
+            static_cast<int>(samplerDesc.AddressV),
+            static_cast<int>(samplerDesc.AddressW),
+            samplerDesc.MaxAnisotropy);
+
+        return samplerDesc;
+    }
 
     // ========================================================================
     // D3D12DescriptorHeapManager Implementation
@@ -1391,4 +2043,292 @@ namespace Akhanda::RHI::D3D12 {
 
         return result;
     }
+
+
+    uint32_t D3D12DescriptorHeapManager::AllocateCBVSRVUAV(bool shaderVisible) {
+        D3D12DescriptorHeap* heap = shaderVisible ? shaderVisibleCbvSrvUavHeap_.get() : cbvSrvUavHeap_.get();
+
+        if (!heap) {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "CBV/SRV/UAV heap not available (shaderVisible={})", shaderVisible);
+            return UINT32_MAX;
+        }
+
+        uint32_t index = heap->AllocateDescriptor();
+        if (index != UINT32_MAX) {
+            UpdateManagerStats();
+            logChannel_.LogFormat(Logging::LogLevel::Trace,
+                "Allocated CBV/SRV/UAV descriptor {} from {} heap",
+                index, shaderVisible ? "shader-visible" : "non-shader-visible");
+        }
+
+        return index;
+    }
+
+    uint32_t D3D12DescriptorHeapManager::AllocateSampler(bool shaderVisible) {
+        D3D12DescriptorHeap* heap = shaderVisible ? shaderVisibleSamplerHeap_.get() : samplerHeap_.get();
+
+        if (!heap) {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Sampler heap not available (shaderVisible={})", shaderVisible);
+            return UINT32_MAX;
+        }
+
+        uint32_t index = heap->AllocateDescriptor();
+        if (index != UINT32_MAX) {
+            UpdateManagerStats();
+            logChannel_.LogFormat(Logging::LogLevel::Trace,
+                "Allocated Sampler descriptor {} from {} heap",
+                index, shaderVisible ? "shader-visible" : "non-shader-visible");
+        }
+
+        return index;
+    }
+
+    void D3D12DescriptorHeapManager::UpdateManagerStats() {
+        // Calculate total memory usage across all heaps
+        uint64_t totalMemory = 0;
+
+        if (device_) {
+            // Calculate memory usage for each heap type
+            if (rtvHeap_) {
+                totalMemory += DescriptorHeapUtils::CalculateHeapMemoryUsage(
+                    heapSizes_.rtvHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+            }
+            if (dsvHeap_) {
+                totalMemory += DescriptorHeapUtils::CalculateHeapMemoryUsage(
+                    heapSizes_.dsvHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+            }
+            if (cbvSrvUavHeap_) {
+                totalMemory += DescriptorHeapUtils::CalculateHeapMemoryUsage(
+                    heapSizes_.cbvSrvUavHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            }
+            if (samplerHeap_) {
+                totalMemory += DescriptorHeapUtils::CalculateHeapMemoryUsage(
+                    heapSizes_.samplerHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+            }
+            if (shaderVisibleCbvSrvUavHeap_) {
+                totalMemory += DescriptorHeapUtils::CalculateHeapMemoryUsage(
+                    heapSizes_.shaderVisibleCbvSrvUavHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+            }
+            if (shaderVisibleSamplerHeap_) {
+                totalMemory += DescriptorHeapUtils::CalculateHeapMemoryUsage(
+                    heapSizes_.shaderVisibleSamplerHeapSize, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+            }
+        }
+
+        stats_.totalMemoryUsed.store(totalMemory);
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Updated manager stats: {} heaps, {} descriptors, {} bytes",
+            stats_.totalHeaps.load(), stats_.totalDescriptors.load(), totalMemory);
+    }
+
+
+
+    // ========================================================================
+    // DescriptorHeapUtils Namespace Implementation
+    // ========================================================================
+
+    namespace DescriptorHeapUtils {
+
+        const char* GetDescriptorTypeName(D3D12_DESCRIPTOR_HEAP_TYPE type) {
+            switch (type) {
+            case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+                return "CBV_SRV_UAV";
+            case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+                return "SAMPLER";
+            case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+                return "RTV";
+            case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+                return "DSV";
+            default:
+                return "UNKNOWN";
+            }
+        }
+
+        uint32_t GetDescriptorSize(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type) {
+            if (!device) {
+                return 0;
+            }
+
+            return device->GetDescriptorHandleIncrementSize(type);
+        }
+
+        bool IsShaderVisibleType(D3D12_DESCRIPTOR_HEAP_TYPE type) {
+            switch (type) {
+            case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+            case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+                return true;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+            case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+                return false;
+            default:
+                return false;
+            }
+        }
+
+        bool IsValidDescriptorHeapType(D3D12_DESCRIPTOR_HEAP_TYPE type) {
+            switch (type) {
+            case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+            case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+            case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+            case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        bool IsValidDescriptorCount(uint32_t count, D3D12_DESCRIPTOR_HEAP_TYPE type) {
+            if (count == 0) {
+                return false;
+            }
+
+            // D3D12 limits for different heap types
+            switch (type) {
+            case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+                return count <= 1000000; // 1M descriptors max
+            case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+                return count <= 2048;    // 2K samplers max
+            case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+                return count <= 65536;   // 64K RTVs max
+            case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+                return count <= 65536;   // 64K DSVs max
+            default:
+                return false;
+            }
+        }
+
+        bool IsValidDescriptorIndex(uint32_t index, uint32_t maxCount) {
+            return index < maxCount;
+        }
+
+        uint64_t CalculateHeapMemoryUsage(uint32_t descriptorCount, D3D12_DESCRIPTOR_HEAP_TYPE type) {
+            // Approximate memory calculation based on descriptor type
+            // These are rough estimates as actual memory usage depends on the driver
+
+            uint32_t descriptorSize = 0;
+            uint32_t heapOverhead = 64; // Estimated overhead per heap
+
+            switch (type) {
+            case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+                descriptorSize = 32; // ~32 bytes per CBV/SRV/UAV descriptor
+                break;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+                descriptorSize = 32; // ~32 bytes per sampler descriptor
+                break;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+                descriptorSize = 32; // ~32 bytes per RTV descriptor
+                break;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+                descriptorSize = 32; // ~32 bytes per DSV descriptor
+                break;
+            default:
+                return 0;
+            }
+
+            return static_cast<uint64_t>(descriptorCount) * descriptorSize + heapOverhead;
+        }
+
+        uint32_t CalculateOptimalHeapSize(uint32_t estimatedUsage, D3D12_DESCRIPTOR_HEAP_TYPE type) {
+            if (estimatedUsage == 0) {
+                estimatedUsage = 1;
+            }
+
+            // Add growth buffer based on heap type
+            float growthFactor = 1.5f; // 50% overhead by default
+
+            switch (type) {
+            case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+                growthFactor = 2.0f; // CBV/SRV/UAV heaps tend to grow more
+                break;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+                growthFactor = 1.25f; // Samplers are more predictable
+                break;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+                growthFactor = 1.5f;
+                break;
+            case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+                growthFactor = 1.25f; // Depth buffers are usually known upfront
+                break;
+            }
+
+            uint32_t optimalSize = static_cast<uint32_t>(estimatedUsage * growthFactor);
+
+            // Round up to next power of 2 for better memory alignment
+            uint32_t powerOfTwo = 1;
+            while (powerOfTwo < optimalSize) {
+                powerOfTwo <<= 1;
+            }
+
+            // Clamp to valid ranges
+            if (!IsValidDescriptorCount(powerOfTwo, type)) {
+                // Fall back to maximum valid count for this type
+                switch (type) {
+                case D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV:
+                    return 65536; // Reasonable max for most applications
+                case D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER:
+                    return 2048;
+                case D3D12_DESCRIPTOR_HEAP_TYPE_RTV:
+                    return 4096;
+                case D3D12_DESCRIPTOR_HEAP_TYPE_DSV:
+                    return 1024;
+                default:
+                    return estimatedUsage;
+                }
+            }
+
+            return powerOfTwo;
+        }
+
+        std::string FormatDescriptorHandle(const D3D12_CPU_DESCRIPTOR_HANDLE& handle) {
+            return std::format("CPU Handle: 0x{:016X}", handle.ptr);
+        }
+
+        std::string FormatDescriptorHandle(const D3D12_GPU_DESCRIPTOR_HANDLE& handle) {
+            if (handle.ptr == 0) {
+                return "GPU Handle: INVALID (not shader visible)";
+            }
+            return std::format("GPU Handle: 0x{:016X}", handle.ptr);
+        }
+
+        void LogDescriptorHeapInfo(const D3D12DescriptorHeap* heap) {
+            if (!heap) {
+                auto& logChannel = Logging::LogManager::Instance().GetChannel("DescriptorHeapUtils");
+                logChannel.Log(Logging::LogLevel::Warning, "Attempted to log info for null descriptor heap");
+                return;
+            }
+
+            auto& logChannel = Logging::LogManager::Instance().GetChannel("DescriptorHeapUtils");
+
+            logChannel.Log(Logging::LogLevel::Info, "=== Descriptor Heap Information ===");
+            logChannel.LogFormat(Logging::LogLevel::Info, "Name: {}", heap->GetDebugName());
+            logChannel.LogFormat(Logging::LogLevel::Info, "Type: {}", GetDescriptorTypeName(heap->GetHeapType()));
+            logChannel.LogFormat(Logging::LogLevel::Info, "Total Descriptors: {}", heap->GetDescriptorCount());
+            logChannel.LogFormat(Logging::LogLevel::Info, "Free Descriptors: {}", heap->GetFreeDescriptorCount());
+            logChannel.LogFormat(Logging::LogLevel::Info, "Used Descriptors: {}",
+                heap->GetDescriptorCount() - heap->GetFreeDescriptorCount());
+            logChannel.LogFormat(Logging::LogLevel::Info, "Utilization: {:.2f}%", heap->GetUtilization() * 100.0f);
+            logChannel.LogFormat(Logging::LogLevel::Info, "Shader Visible: {}", heap->IsShaderVisible() ? "Yes" : "No");
+            logChannel.LogFormat(Logging::LogLevel::Info, "Descriptor Size: {} bytes", heap->GetDescriptorSize());
+
+            // Memory estimation
+            uint64_t memoryUsage = CalculateHeapMemoryUsage(heap->GetDescriptorCount(), heap->GetHeapType());
+            logChannel.LogFormat(Logging::LogLevel::Info, "Estimated Memory Usage: {} bytes ({:.2f} KB)",
+                memoryUsage, static_cast<double>(memoryUsage) / 1024.0);
+
+            // Handle information
+            if (heap->GetDescriptorCount() > 0) {
+                auto baseHandle = heap->GetDescriptorHandle(0);
+                logChannel.LogFormat(Logging::LogLevel::Info, "Base {}", FormatDescriptorHandle(baseHandle.cpuHandle));
+                if (heap->IsShaderVisible()) {
+                    logChannel.LogFormat(Logging::LogLevel::Info, "Base {}", FormatDescriptorHandle(baseHandle.gpuHandle));
+                }
+            }
+
+            logChannel.Log(Logging::LogLevel::Info, "=== End Descriptor Heap Information ===");
+        }
+
+    } // namespace DescriptorHeapUtils
 } // namespace Akhanda::RHI::D3D12

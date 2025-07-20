@@ -211,6 +211,7 @@ namespace Akhanda::Logging::Integration {
     // Convert Akhanda LogLevel to spdlog level
     constexpr spdlog::level::level_enum ToSpdlogLevel(LogLevel level) noexcept {
         switch (level) {
+        case LogLevel::Trace:   return spdlog::level::trace;
         case LogLevel::Debug:   return spdlog::level::debug;
         case LogLevel::Info:    return spdlog::level::info;
         case LogLevel::Warning: return spdlog::level::warn;
@@ -223,6 +224,7 @@ namespace Akhanda::Logging::Integration {
     // Convert spdlog level to Akhanda LogLevel
     constexpr LogLevel FromSpdlogLevel(spdlog::level::level_enum level) noexcept {
         switch (level) {
+        case spdlog::level::trace:   return LogLevel::Trace;
         case spdlog::level::debug:    return LogLevel::Debug;
         case spdlog::level::info:     return LogLevel::Info;
         case spdlog::level::warn:     return LogLevel::Warning;
