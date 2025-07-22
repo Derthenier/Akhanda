@@ -582,9 +582,6 @@ export namespace Akhanda::RHI {
         uint32_t index = InvalidIndex;
         uint32_t generation = 0;
 
-        constexpr ResourceHandle() = default;
-        constexpr ResourceHandle(uint32_t idx, uint32_t gen) : index(idx), generation(gen) {}
-
         constexpr bool IsValid() const { return index != InvalidIndex; }
         constexpr void Invalidate() { index = InvalidIndex; generation = 0; }
 

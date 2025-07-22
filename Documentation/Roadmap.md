@@ -16,7 +16,7 @@
 :white_check_mark: Window creation  
 
 #### 1.3 - Rendering
-:white_large_square: D3D12 initialization  
+:white_check_mark: D3D12 initialization  
 :white_large_square: Basic renderer  
 :white_large_square: Shaded Triangle rendering
 
