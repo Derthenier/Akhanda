@@ -314,12 +314,13 @@ namespace Akhanda::RHI::D3D12 {
         std::unordered_map<uint32_t, HandleEntry> handleMap_;
         std::queue<uint32_t> availableHandles_;
         std::atomic<uint32_t> nextHandleId_{ 1 };
-        std::mutex handleMutex_;
+
+        mutable std::mutex handleMutex_;
 
     public:
         BufferHandle CreateHandle(std::unique_ptr<D3D12Buffer> buffer);
         D3D12Buffer* GetBuffer(BufferHandle handle);
-        bool IsValid(BufferHandle handle);
+        bool IsValid(BufferHandle handle) const;
         void AddRef(BufferHandle handle);
         void Release(BufferHandle handle);
         void InvalidateHandle(BufferHandle handle);
@@ -382,7 +383,7 @@ namespace Akhanda::RHI::D3D12 {
         const BufferPoolStats& GetStats() const { return stats_; }
         void ResetStats() { std::lock_guard<std::mutex> lock(poolMutex_); stats_.Reset(); }
         void TrimPools(uint32_t maxBuffersPerPool = 0);
-        void LogPoolStatistics() const;
+        void LogPoolStatistics();
     };
 
     // ========================================================================
@@ -402,7 +403,7 @@ namespace Akhanda::RHI::D3D12 {
         // Staging buffer management
         std::array<std::unique_ptr<D3D12StagingBuffer>, 3> stagingBuffers_; // Triple buffered
         uint32_t currentStagingBufferIndex_ = 0;
-        std::mutex stagingBufferMutex_;
+        mutable std::mutex stagingBufferMutex_;
 
         // Configuration
         BufferPoolConfig poolConfig_;
@@ -443,25 +444,18 @@ namespace Akhanda::RHI::D3D12 {
             const void* initialData = nullptr,
             const char* debugName = nullptr);
         BufferHandle CreateStructuredBuffer(uint64_t elementCount, uint32_t elementSize,
+            ResourceUsage usage,
             const void* initialData = nullptr,
             const char* debugName = nullptr);
 
-        // Staging buffer operations
-        struct StagingUpload {
-            void* cpuAddress;
-            D3D12_GPU_VIRTUAL_ADDRESS gpuAddress;
-            uint64_t size;
-            bool valid;
-        };
-
-        StagingUpload AllocateStagingMemory(uint64_t size, uint32_t alignment = 256);
-        void UploadToBuffer(BufferHandle destBuffer, const void* data, uint64_t size,
+        D3D12StagingBuffer::StagingAllocation AllocateStagingMemory(uint64_t size, uint32_t alignment = 256);
+        bool UploadToBuffer(BufferHandle destBuffer, const void* data, uint64_t size,
             uint64_t offset = 0);
         void BeginFrame();
         void EndFrame();
 
         // Memory management
-        void TrimMemory();
+        void TrimMemory(bool aggressive);
         void FlushPendingUploads();
 
         // Statistics and debugging
@@ -484,9 +478,14 @@ namespace Akhanda::RHI::D3D12 {
         void DestroyStagingBuffers();
         D3D12StagingBuffer* GetCurrentStagingBuffer();
         void AdvanceStagingBuffer();
+        void ResetAllStagingBuffers();
+
+        uint64_t GetTotalStagingMemorySize() const;
+        uint64_t GetUsedStagingMemorySize() const;
+        float GetStagingMemoryUsagePercentage() const;
 
         // Statistics helpers
-        void UpdateGlobalStats(const BufferPoolStats& poolStats) const;
+        void UpdateGlobalStats();
         void LogMemoryUsage() const;
 
         // Validation

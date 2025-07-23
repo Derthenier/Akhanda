@@ -1176,7 +1176,7 @@ namespace Akhanda::RHI::D3D12 {
         return nullptr;
     }
 
-    bool D3D12BufferHandleManager::IsValid(BufferHandle handle) {
+    bool D3D12BufferHandleManager::IsValid(BufferHandle handle) const {
         std::lock_guard<std::mutex> lock(handleMutex_);
 
         auto it = handleMap_.find(handle.index);
@@ -1205,6 +1205,53 @@ namespace Akhanda::RHI::D3D12 {
                 handleMap_.erase(it);
             }
         }
+    }
+
+    void D3D12BufferHandleManager::InvalidateHandle(BufferHandle handle) {
+        std::lock_guard<std::mutex> lock(handleMutex_);
+
+        auto it = handleMap_.find(handle.index);
+        if (it != handleMap_.end()) {
+            // Mark handle as invalid but don't immediately destroy
+            // This allows for graceful cleanup of any pending references
+            it->second.isValid = false;
+
+            // If no references remain, clean up immediately
+            if (it->second.refCount == 0) {
+                it->second.buffer.reset();
+                availableHandles_.push(handle.index);
+                handleMap_.erase(it);
+            }
+            // Note: If refCount > 0, cleanup will happen when Release() brings it to 0
+        }
+    }
+
+    uint32_t D3D12BufferHandleManager::GetActiveHandleCount() const {
+        std::lock_guard<std::mutex> lock(handleMutex_);
+
+        uint32_t activeCount = 0;
+        for (const auto& pair : handleMap_) {
+            if (pair.second.isValid) {
+                ++activeCount;
+            }
+        }
+
+        return activeCount;
+    }
+
+    std::vector<BufferHandle> D3D12BufferHandleManager::GetActiveHandles() const {
+        std::lock_guard<std::mutex> lock(handleMutex_);
+
+        std::vector<BufferHandle> activeHandles;
+        activeHandles.reserve(handleMap_.size()); // Reserve for efficiency
+
+        for (const auto& pair : handleMap_) {
+            if (pair.second.isValid) {
+                activeHandles.emplace_back(BufferHandle(pair.first, 0));
+            }
+        }
+
+        return activeHandles;
     }
 
     // ========================================================================
@@ -1315,6 +1362,186 @@ namespace Akhanda::RHI::D3D12 {
             --stats_.activeBuffers;
             stats_.totalMemoryInUse -= desc.size;
         }
+    }
+
+    void D3D12BufferPool::PreallocateBuffers(const BufferDesc& desc, uint32_t count,
+        ID3D12Device* device, D3D12MA::Allocator* allocator) {
+
+        if (!config_.enablePooling || count == 0) {
+            return;
+        }
+
+        if (desc.size < config_.minBufferSize || desc.size > config_.maxBufferSize) {
+            // Don't preallocate buffers outside our pooling range
+            return;
+        }
+
+        PoolKey poolKey = CreatePoolKey(desc);
+
+        std::lock_guard<std::mutex> lock(poolMutex_);
+
+        auto& pool = pools_[poolKey];
+        uint32_t currentPoolSize = static_cast<uint32_t>(pool.size());
+
+        // Don't exceed maximum pool size
+        uint32_t maxAllowed = config_.maxPooledBuffers > currentPoolSize ?
+            config_.maxPooledBuffers - currentPoolSize : 0;
+        uint32_t buffersToCreate = std::min(count, maxAllowed);
+
+        if (buffersToCreate == 0) {
+            return;
+        }
+
+        uint32_t successfullyCreated = 0;
+
+        for (uint32_t i = 0; i < buffersToCreate; ++i) {
+            auto buffer = std::make_unique<D3D12Buffer>();
+
+            if (buffer->InitializeWithDevice(desc, device, allocator)) {
+                pool.push(std::move(buffer));
+                ++successfullyCreated;
+                ++stats_.totalBuffersCreated;
+                ++stats_.pooledBuffers;
+                stats_.totalMemoryAllocated += desc.size;
+
+                // Update peak memory usage if needed
+                if (stats_.totalMemoryAllocated > stats_.peakMemoryUsage) {
+                    stats_.peakMemoryUsage = stats_.totalMemoryAllocated;
+                }
+            }
+            else {
+                // Failed to create buffer, stop trying
+                break;
+            }
+        }
+
+        // Log preallocation results if any buffers were created
+        if (successfullyCreated > 0) {
+            auto& logChannel = Logging::LogManager::Instance().GetChannel("D3D12BufferPool");
+            logChannel.LogFormat(Logging::LogLevel::Debug,
+                "Preallocated {} buffers (size: {}, usage: 0x{:X}, cpuAccessible: {})",
+                successfullyCreated, desc.size, static_cast<uint32_t>(desc.usage), desc.cpuAccessible);
+        }
+    }
+
+    void D3D12BufferPool::TrimPools(uint32_t maxBuffersPerPool) {
+        std::lock_guard<std::mutex> lock(poolMutex_);
+
+        uint32_t trimLimit = (maxBuffersPerPool == 0) ? 0 : maxBuffersPerPool;
+        uint32_t totalBuffersDestroyed = 0;
+        uint64_t memoryFreed = 0;
+
+        auto poolIt = pools_.begin();
+        while (poolIt != pools_.end()) {
+            auto& pool = poolIt->second;
+
+            // Trim this pool to the specified limit
+            while (pool.size() > trimLimit) {
+                auto buffer = std::move(pool.front());
+                pool.pop();
+
+                if (buffer) {
+                    uint64_t bufferSize = buffer->GetSize();
+                    memoryFreed += bufferSize;
+                    ++totalBuffersDestroyed;
+                    --stats_.pooledBuffers;
+                    stats_.totalMemoryAllocated -= bufferSize;
+
+                    // Buffer will be destroyed when unique_ptr goes out of scope
+                }
+            }
+
+            // Remove empty pools to free memory
+            if (pool.empty()) {
+                poolIt = pools_.erase(poolIt);
+            }
+            else {
+                ++poolIt;
+            }
+        }
+
+        // Update statistics
+        stats_.totalBuffersDestroyed += totalBuffersDestroyed;
+
+        // Log trimming results if anything was trimmed
+        if (totalBuffersDestroyed > 0) {
+            auto& logChannel = Logging::LogManager::Instance().GetChannel("D3D12BufferPool");
+            logChannel.LogFormat(Logging::LogLevel::Debug,
+                "Trimmed {} buffers from pools, freed {:.2f} MB memory",
+                totalBuffersDestroyed, memoryFreed / (1024.0 * 1024.0));
+        }
+    }
+
+    void D3D12BufferPool::LogPoolStatistics() {
+        std::lock_guard<std::mutex> lock(poolMutex_);
+
+        auto& logChannel = Logging::LogManager::Instance().GetChannel("D3D12BufferPool");
+
+        // Log overall statistics
+        logChannel.LogFormat(Logging::LogLevel::Info,
+            "=== D3D12 Buffer Pool Statistics ===");
+
+        logChannel.LogFormat(Logging::LogLevel::Info,
+            "Total Buffers: Created={}, Destroyed={}, Active={}, Pooled={}",
+            stats_.totalBuffersCreated, stats_.totalBuffersDestroyed,
+            stats_.activeBuffers, stats_.pooledBuffers);
+
+        logChannel.LogFormat(Logging::LogLevel::Info,
+            "Memory Usage: Allocated={:.2f} MB, In Use={:.2f} MB, Peak={:.2f} MB",
+            stats_.totalMemoryAllocated / (1024.0 * 1024.0),
+            stats_.totalMemoryInUse / (1024.0 * 1024.0),
+            stats_.peakMemoryUsage / (1024.0 * 1024.0));
+
+        logChannel.LogFormat(Logging::LogLevel::Info,
+            "Pool Efficiency: Hits={}, Misses={}, Hit Rate={:.1f}%",
+            stats_.poolHits, stats_.poolMisses,
+            (stats_.poolHits + stats_.poolMisses) > 0 ?
+            (100.0 * stats_.poolHits) / (stats_.poolHits + stats_.poolMisses) : 0.0);
+
+        // Log per-pool statistics
+        if (!pools_.empty()) {
+            logChannel.LogFormat(Logging::LogLevel::Info,
+                "Active Pools: {} pools with details below:", pools_.size());
+
+            size_t poolIndex = 0;
+            for (const auto& poolPair : pools_) {
+                const auto& poolKey = poolPair.first;
+                const auto& pool = poolPair.second;
+
+                // Calculate total memory for this pool
+                uint64_t poolMemory = poolKey.sizeCategory * pool.size();
+
+                logChannel.LogFormat(Logging::LogLevel::Info,
+                    "  Pool {}: Usage=0x{:X}, Size={} KB, CPU={}, Buffers={}, Memory={:.2f} MB",
+                    poolIndex++,
+                    static_cast<uint32_t>(poolKey.usage),
+                    poolKey.sizeCategory / 1024,
+                    poolKey.cpuAccessible ? "Yes" : "No",
+                    pool.size(),
+                    poolMemory / (1024.0 * 1024.0));
+            }
+        }
+        else {
+            logChannel.Log(Logging::LogLevel::Info, "No active pools");
+        }
+
+        // Log configuration
+        if (config_.enablePooling) {
+            logChannel.LogFormat(Logging::LogLevel::Info,
+                "Pool Configuration: MinSize={} KB, MaxSize={} MB, MaxPerPool={}, Pooling=Enabled",
+                config_.minBufferSize / 1024,
+                config_.maxBufferSize / (1024 * 1024),
+                config_.maxPooledBuffers);
+        }
+        else {
+            logChannel.LogFormat(Logging::LogLevel::Info,
+                "Pool Configuration: MinSize={} KB, MaxSize={} MB, MaxPerPool={}, Pooling=Disabled",
+                config_.minBufferSize / 1024,
+                config_.maxBufferSize / (1024 * 1024),
+                config_.maxPooledBuffers);
+        }
+
+        logChannel.Log(Logging::LogLevel::Info, "=== End Pool Statistics ===");
     }
 
     // ========================================================================
@@ -1518,6 +1745,787 @@ namespace Akhanda::RHI::D3D12 {
         }
 
         return true;
+    }
+
+
+    bool D3D12BufferManager::IsValidBuffer(BufferHandle handle) const {
+        if (!isInitialized_.load()) {
+            return false;
+        }
+
+        return handleManager_->IsValid(handle);
+    }
+
+    BufferHandle D3D12BufferManager::CreateIndexBuffer(uint64_t size, Format indexFormat,
+        const void* initialData, const char* debugName) {
+
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Error, "Buffer manager not initialized");
+            return BufferHandle{ 0 };
+        }
+
+        // Determine stride based on index format
+        uint32_t stride = 0;
+        switch (indexFormat) {
+        case Format::R16_UInt:
+            stride = 2;
+            break;
+        case Format::R32_UInt:
+            stride = 4;
+            break;
+        default:
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Invalid index format: {}", static_cast<uint32_t>(indexFormat));
+            return BufferHandle{ 0 };
+        }
+
+        BufferDesc desc = {};
+        desc.size = size;
+        desc.stride = stride;
+        desc.usage = ResourceUsage::IndexBuffer;
+        desc.cpuAccessible = initialData != nullptr; // CPU accessible if we have initial data
+        desc.initialData = initialData;
+        desc.debugName = debugName ? debugName : "Index Buffer";
+
+        BufferHandle handle = CreateBuffer(desc);
+
+        if (handle.index != 0) {
+            logChannel_.LogFormat(Logging::LogLevel::Trace,
+                "Created index buffer handle {}: size={}, format={}, stride={}",
+                handle.index, size, static_cast<uint32_t>(indexFormat), stride);
+        }
+
+        return handle;
+    }
+
+    BufferHandle D3D12BufferManager::CreateStructuredBuffer(uint64_t elementCount, uint32_t elementSize,
+        ResourceUsage usage, const void* initialData, const char* debugName) {
+
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Error, "Buffer manager not initialized");
+            return BufferHandle{ 0 };
+        }
+
+        if (elementCount == 0 || elementSize == 0) {
+            logChannel_.Log(Logging::LogLevel::Error,
+                "Structured buffer must have non-zero element count and size");
+            return BufferHandle{ 0 };
+        }
+
+        // Ensure structured buffer usage flags are set
+        ResourceUsage structuredUsage = usage | ResourceUsage::ShaderResource;
+        if ((usage & ResourceUsage::UnorderedAccess) != ResourceUsage::None) {
+            structuredUsage = structuredUsage | ResourceUsage::UnorderedAccess;
+        }
+
+        uint64_t totalSize = elementCount * elementSize;
+
+        BufferDesc desc = {};
+        desc.size = totalSize;
+        desc.stride = elementSize; // For structured buffers, stride = element size
+        desc.usage = structuredUsage;
+        desc.cpuAccessible = initialData != nullptr;
+        desc.initialData = initialData;
+        desc.debugName = debugName ? debugName : "Structured Buffer";
+
+        BufferHandle handle = CreateBuffer(desc);
+
+        if (handle.index != 0) {
+            logChannel_.LogFormat(Logging::LogLevel::Trace,
+                "Created structured buffer handle {}: elements={}, elementSize={}, totalSize={}",
+                handle.index, elementCount, elementSize, totalSize);
+        }
+
+        return handle;
+    }
+
+    void D3D12BufferManager::AddBufferRef(BufferHandle handle) {
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Warning,
+                "Cannot add reference - buffer manager not initialized");
+            return;
+        }
+
+        if (handle.index == 0) {
+            logChannel_.Log(Logging::LogLevel::Warning, "Cannot add reference to null buffer handle");
+            return;
+        }
+
+        handleManager_->AddRef(handle);
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Added reference to buffer handle {}", handle.index);
+    }
+
+    void D3D12BufferManager::ReleaseBufferRef(BufferHandle handle) {
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Warning,
+                "Cannot release reference - buffer manager not initialized");
+            return;
+        }
+
+        if (handle.index == 0) {
+            logChannel_.Log(Logging::LogLevel::Warning, "Cannot release null buffer handle");
+            return;
+        }
+
+        handleManager_->Release(handle);
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Released reference to buffer handle {}", handle.index);
+    }
+
+    void D3D12BufferManager::DestroyStagingBuffers() {
+        std::lock_guard<std::mutex> lock(stagingBufferMutex_);
+
+        uint32_t destroyedCount = 0;
+        uint64_t memoryFreed = 0;
+
+        for (auto& stagingBuffer : stagingBuffers_) {
+            if (stagingBuffer) {
+                memoryFreed += stagingBuffer->GetSize();
+                stagingBuffer->Shutdown();
+                stagingBuffer.reset();
+                ++destroyedCount;
+            }
+        }
+
+        currentStagingBufferIndex_ = 0;
+
+        if (destroyedCount > 0) {
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Destroyed {} staging buffers, freed {:.2f} MB",
+                destroyedCount, memoryFreed / (1024.0 * 1024.0));
+        }
+    }
+
+    void D3D12BufferManager::UpdatePoolConfiguration(const BufferPoolConfig& newConfig) {
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Warning,
+                "Cannot update pool configuration - buffer manager not initialized");
+            return;
+        }
+
+        // Validate new configuration
+        if (newConfig.maxBufferSize < newConfig.minBufferSize) {
+            logChannel_.Log(Logging::LogLevel::Error,
+                "Invalid pool configuration: maxBufferSize < minBufferSize");
+            return;
+        }
+
+        if (newConfig.maxPooledBuffers == 0) {
+            logChannel_.Log(Logging::LogLevel::Warning,
+                "Pool configuration sets maxPooledBuffers to 0 - pooling will be disabled");
+        }
+
+        BufferPoolConfig oldConfig = poolConfig_;
+        poolConfig_ = newConfig;
+
+        logChannel_.LogFormat(Logging::LogLevel::Info,
+            "Updated pool configuration - MinSize: {} KB -> {} KB, MaxSize: {} MB -> {} MB, MaxPerPool: {} -> {}, Enabled: {} -> {}",
+            oldConfig.minBufferSize / 1024, newConfig.minBufferSize / 1024,
+            oldConfig.maxBufferSize / (1024 * 1024), newConfig.maxBufferSize / (1024 * 1024),
+            oldConfig.maxPooledBuffers, newConfig.maxPooledBuffers,
+            oldConfig.enablePooling ? "Yes" : "No", newConfig.enablePooling ? "Yes" : "No");
+
+        // If pooling was disabled, trim all pools
+        if (!newConfig.enablePooling && bufferPool_) {
+            bufferPool_->TrimPools(0);
+            logChannel_.Log(Logging::LogLevel::Info, "Trimmed all pools due to pooling being disabled");
+        }
+
+        // If buffer size limits changed significantly, consider trimming pools outside new limits
+        if (newConfig.maxBufferSize < oldConfig.maxBufferSize / 2 ||
+            newConfig.minBufferSize > oldConfig.minBufferSize * 2) {
+            logChannel_.Log(Logging::LogLevel::Info,
+                "Significant buffer size limit changes detected - consider calling TrimMemory()");
+        }
+    }
+
+    void D3D12BufferManager::UpdateGlobalStats() {
+        if (!isInitialized_.load()) {
+            return;
+        }
+
+        std::lock_guard<std::mutex> lock(statsMutex_);
+
+        // Get current pool statistics
+        BufferPoolStats poolStats = bufferPool_->GetStats();
+
+        // Update global statistics with pool data
+        globalStats_ = poolStats;
+
+        // Add handle manager statistics
+        uint32_t activeHandles = handleManager_->GetActiveHandleCount();
+        globalStats_.activeBuffers = activeHandles;
+
+        // Calculate staging buffer memory usage
+        uint64_t stagingMemoryUsed = 0;
+        {
+            std::lock_guard<std::mutex> stagingLock(stagingBufferMutex_);
+            for (const auto& stagingBuffer : stagingBuffers_) {
+                if (stagingBuffer) {
+                    stagingMemoryUsed += stagingBuffer->GetUsedSize();
+                }
+            }
+        }
+
+        // Add staging memory to total memory in use
+        globalStats_.totalMemoryInUse += stagingMemoryUsed;
+
+        // Update peak memory usage if needed
+        if (globalStats_.totalMemoryInUse > globalStats_.peakMemoryUsage) {
+            globalStats_.peakMemoryUsage = globalStats_.totalMemoryInUse;
+        }
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Updated global stats - Active: {}, Memory In Use: {:.2f} MB (including {:.2f} MB staging)",
+            globalStats_.activeBuffers,
+            globalStats_.totalMemoryInUse / (1024.0 * 1024.0),
+            stagingMemoryUsed / (1024.0 * 1024.0));
+    }
+
+
+    D3D12StagingBuffer::StagingAllocation D3D12BufferManager::AllocateStagingMemory(uint64_t size, uint32_t alignment) {
+        D3D12StagingBuffer::StagingAllocation invalidAllocation = {};
+        invalidAllocation.valid = false;
+
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Error,
+                "Cannot allocate staging memory - buffer manager not initialized");
+            return invalidAllocation;
+        }
+
+        if (size == 0) {
+            logChannel_.Log(Logging::LogLevel::Error, "Cannot allocate zero-sized staging memory");
+            return invalidAllocation;
+        }
+
+        // Ensure alignment is power of 2 and at least 1
+        if (alignment == 0) alignment = 1;
+        if ((alignment & (alignment - 1)) != 0) {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Staging memory alignment {} is not a power of 2", alignment);
+            return invalidAllocation;
+        }
+
+        std::lock_guard<std::mutex> lock(stagingBufferMutex_);
+
+        // Try current staging buffer first
+        auto currentBuffer = GetCurrentStagingBuffer();
+        if (currentBuffer) {
+            auto allocation = currentBuffer->Allocate(size, alignment);
+            if (allocation.valid) {
+                logChannel_.LogFormat(Logging::LogLevel::Trace,
+                    "Allocated {} bytes from current staging buffer (index: {})",
+                    size, currentStagingBufferIndex_);
+                return allocation;
+            }
+        }
+
+        // Try other staging buffers in round-robin fashion
+        uint32_t originalIndex = currentStagingBufferIndex_;
+        for (uint32_t attempt = 0; attempt < stagingBuffers_.size(); ++attempt) {
+            AdvanceStagingBuffer();
+
+            auto stagingBuffer = GetCurrentStagingBuffer();
+            if (stagingBuffer) {
+                auto allocation = stagingBuffer->Allocate(size, alignment);
+                if (allocation.valid) {
+                    logChannel_.LogFormat(Logging::LogLevel::Trace,
+                        "Allocated {} bytes from staging buffer {} after {} attempts",
+                        size, currentStagingBufferIndex_, attempt + 1);
+                    return allocation;
+                }
+            }
+        }
+
+        // Restore original index if all failed
+        currentStagingBufferIndex_ = originalIndex;
+
+        // All staging buffers are full - log detailed information
+        uint64_t totalStagingSize = 0;
+        uint64_t totalUsedSize = 0;
+        for (const auto& buffer : stagingBuffers_) {
+            if (buffer) {
+                totalStagingSize += buffer->GetSize();
+                totalUsedSize += buffer->GetUsedSize();
+            }
+        }
+
+        logChannel_.LogFormat(Logging::LogLevel::Warning,
+            "Failed to allocate {} bytes staging memory. Total staging: {:.2f} MB, Used: {:.2f} MB ({:.1f}%)",
+            size,
+            totalStagingSize / (1024.0 * 1024.0),
+            totalUsedSize / (1024.0 * 1024.0),
+            totalStagingSize > 0 ? (100.0 * totalUsedSize) / totalStagingSize : 0.0);
+
+        return invalidAllocation;
+    }
+
+    bool D3D12BufferManager::UploadToBuffer(BufferHandle handle, const void* data,
+        uint64_t size, uint64_t offset) {
+
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Error,
+                "Cannot upload to buffer - buffer manager not initialized");
+            return false;
+        }
+
+        if (!data || size == 0) {
+            logChannel_.Log(Logging::LogLevel::Error, "Invalid data or size for buffer upload");
+            return false;
+        }
+
+        D3D12Buffer* targetBuffer = GetBuffer(handle);
+        if (!targetBuffer) {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Cannot upload to invalid buffer handle {}", handle.index);
+            return false;
+        }
+
+        if (offset + size > targetBuffer->GetSize()) {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Upload range (offset: {}, size: {}) exceeds buffer size {}",
+                offset, size, targetBuffer->GetSize());
+            return false;
+        }
+
+        // If target buffer is CPU accessible, do direct update
+        if (targetBuffer->IsCPUAccessible()) {
+            targetBuffer->UpdateData(data, size, offset);
+
+            logChannel_.LogFormat(Logging::LogLevel::Trace,
+                "Direct CPU upload to buffer {}: {} bytes at offset {}",
+                handle.index, size, offset);
+            return true;
+        }
+
+        // For GPU-only buffers, use staging buffer approach
+        auto stagingAllocation = AllocateStagingMemory(size, 256); // D3D12 copy alignment
+        if (!stagingAllocation.valid) {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Failed to allocate staging memory for buffer {} upload", handle.index);
+            return false;
+        }
+
+        // Copy data to staging buffer
+        std::memcpy(stagingAllocation.cpuAddress, data, static_cast<size_t>(size));
+
+        // TODO: Record copy command to command list
+        // This would require a command list parameter or internal command recording system
+        // For now, log that GPU upload is pending implementation
+        logChannel_.LogFormat(Logging::LogLevel::Warning,
+            "GPU buffer upload via staging buffer allocated but command recording not yet implemented. "
+            "Buffer: {}, Size: {}, Offset: {}, Staging GPU Address: 0x{:016X}",
+            handle.index, size, offset, stagingAllocation.gpuAddress);
+
+        // Note: In a complete implementation, you would:
+        // 1. Get or create a command list
+        // 2. Record CopyBufferRegion command from staging to target buffer
+        // 3. Either execute immediately or defer execution
+        // 4. Handle synchronization to ensure upload completes before staging buffer reuse
+
+        return true;
+    }
+
+    D3D12StagingBuffer* D3D12BufferManager::GetCurrentStagingBuffer() {
+        // Note: This method assumes stagingBufferMutex_ is already locked by caller
+        // It's designed to be called from within other methods that handle locking
+
+        if (currentStagingBufferIndex_ >= stagingBuffers_.size()) {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Invalid staging buffer index: {}", currentStagingBufferIndex_);
+            return nullptr;
+        }
+
+        auto& stagingBuffer = stagingBuffers_[currentStagingBufferIndex_];
+        if (!stagingBuffer) {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Staging buffer at index {} is null", currentStagingBufferIndex_);
+            return nullptr;
+        }
+
+        return stagingBuffer.get();
+    }
+
+    void D3D12BufferManager::AdvanceStagingBuffer() {
+        // Note: This method assumes stagingBufferMutex_ is already locked by caller
+        // It's designed to be called from within other methods that handle locking
+
+        uint32_t previousIndex = currentStagingBufferIndex_;
+        currentStagingBufferIndex_ = (currentStagingBufferIndex_ + 1) % stagingBuffers_.size();
+
+        // Reset the new current staging buffer for reuse
+        auto currentBuffer = GetCurrentStagingBuffer();
+        if (currentBuffer) {
+            currentBuffer->Reset();
+
+            logChannel_.LogFormat(Logging::LogLevel::Trace,
+                "Advanced staging buffer from {} to {} and reset for reuse",
+                previousIndex, currentStagingBufferIndex_);
+        }
+        else {
+            logChannel_.LogFormat(Logging::LogLevel::Error,
+                "Failed to get staging buffer after advancing to index {}",
+                currentStagingBufferIndex_);
+        }
+    }
+
+    // ========================================================================
+    // Additional Staging System Helper Methods
+    // ========================================================================
+
+    void D3D12BufferManager::ResetAllStagingBuffers() {
+        std::lock_guard<std::mutex> lock(stagingBufferMutex_);
+
+        for (auto& stagingBuffer : stagingBuffers_) {
+            if (stagingBuffer) {
+                stagingBuffer->Reset();
+            }
+        }
+
+        currentStagingBufferIndex_ = 0;
+
+        logChannel_.Log(Logging::LogLevel::Debug, "Reset all staging buffers");
+    }
+
+    uint64_t D3D12BufferManager::GetTotalStagingMemorySize() const {
+        std::lock_guard<std::mutex> lock(stagingBufferMutex_);
+
+        uint64_t totalSize = 0;
+        for (const auto& stagingBuffer : stagingBuffers_) {
+            if (stagingBuffer) {
+                totalSize += stagingBuffer->GetSize();
+            }
+        }
+
+        return totalSize;
+    }
+
+    uint64_t D3D12BufferManager::GetUsedStagingMemorySize() const {
+        std::lock_guard<std::mutex> lock(stagingBufferMutex_);
+
+        uint64_t usedSize = 0;
+        for (const auto& stagingBuffer : stagingBuffers_) {
+            if (stagingBuffer) {
+                usedSize += stagingBuffer->GetUsedSize();
+            }
+        }
+
+        return usedSize;
+    }
+
+    float D3D12BufferManager::GetStagingMemoryUsagePercentage() const {
+        uint64_t totalSize = GetTotalStagingMemorySize();
+        if (totalSize == 0) {
+            return 0.0f;
+        }
+
+        uint64_t usedSize = GetUsedStagingMemorySize();
+        return (100.0f * usedSize) / totalSize;
+    }
+
+
+
+    // ========================================================================
+    // D3D12BufferManager - Memory Management & Statistics Implementation
+    // ========================================================================
+
+    void D3D12BufferManager::TrimMemory(bool aggressive) {
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Warning,
+                "Cannot trim memory - buffer manager not initialized");
+            return;
+        }
+
+        logChannel_.LogFormat(Logging::LogLevel::Info,
+            "Starting {} memory trim operation", aggressive ? "aggressive" : "normal");
+
+        uint64_t memoryBeforeTrim = 0;
+        uint64_t memoryAfterTrim = 0;
+
+        // Update statistics before trimming
+        UpdateGlobalStats();
+        {
+            std::lock_guard<std::mutex> lock(statsMutex_);
+            memoryBeforeTrim = globalStats_.totalMemoryAllocated;
+        }
+
+        // Trim buffer pools
+        if (bufferPool_) {
+            uint32_t maxBuffersPerPool = aggressive ? 0 : (poolConfig_.maxPooledBuffers / 2);
+            bufferPool_->TrimPools(maxBuffersPerPool);
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Trimmed buffer pools to max {} buffers per pool",
+                aggressive ? 0 : maxBuffersPerPool);
+        }
+
+        // Reset staging buffers if aggressive trimming
+        if (aggressive) {
+            ResetAllStagingBuffers();
+            logChannel_.Log(Logging::LogLevel::Debug, "Reset all staging buffers for aggressive trim");
+        }
+
+        // Force garbage collection of released handles
+        if (handleManager_) {
+            // Get all active handles and check for any that should be cleaned up
+            auto activeHandles = handleManager_->GetActiveHandles();
+            uint32_t handlesBeforeCleanup = static_cast<uint32_t>(activeHandles.size());
+
+            // Note: In a more sophisticated implementation, you might want to:
+            // - Check for handles with zero references that can be cleaned up
+            // - Implement a delayed cleanup system for recently released handles
+            // For now, we log the current handle count
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Handle cleanup check: {} active handles", handlesBeforeCleanup);
+        }
+
+        // Update statistics after trimming
+        UpdateGlobalStats();
+        {
+            std::lock_guard<std::mutex> lock(statsMutex_);
+            memoryAfterTrim = globalStats_.totalMemoryAllocated;
+        }
+
+        uint64_t memoryFreed = memoryBeforeTrim - memoryAfterTrim;
+
+        logChannel_.LogFormat(Logging::LogLevel::Info,
+            "Memory trim completed: freed {:.2f} MB ({:.1f}% reduction)",
+            memoryFreed / (1024.0 * 1024.0),
+            memoryBeforeTrim > 0 ? (100.0 * memoryFreed) / memoryBeforeTrim : 0.0);
+
+        // Log current memory state
+        LogMemoryUsage();
+    }
+
+    void D3D12BufferManager::FlushPendingUploads() {
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Warning,
+                "Cannot flush pending uploads - buffer manager not initialized");
+            return;
+        }
+
+        // TODO: Implement proper upload queue flushing
+        // In a complete implementation, this would:
+        // 1. Execute any pending command lists with copy operations
+        // 2. Wait for GPU completion of upload operations
+        // 3. Reset staging buffers that are no longer in use by GPU
+        // 4. Update synchronization state
+
+        // For now, we can at least ensure staging buffers are properly managed
+        {
+            std::lock_guard<std::mutex> lock(stagingBufferMutex_);
+
+            uint64_t totalPendingUploads = 0;
+            for (const auto& stagingBuffer : stagingBuffers_) {
+                if (stagingBuffer) {
+                    totalPendingUploads += stagingBuffer->GetUsedSize();
+                }
+            }
+
+            if (totalPendingUploads > 0) {
+                logChannel_.LogFormat(Logging::LogLevel::Info,
+                    "Flushing pending uploads: {:.2f} MB of staging data",
+                    totalPendingUploads / (1024.0 * 1024.0));
+
+                // In the absence of proper command list integration, we can at least
+                // log what would need to be flushed and reset staging buffers
+                // NOTE: This is not safe for actual GPU operations without proper synchronization
+
+                logChannel_.Log(Logging::LogLevel::Warning,
+                    "Command list integration not implemented - staging buffers NOT reset");
+
+                // TODO: When command recording is implemented:
+                // - Execute all pending upload command lists
+                // - Wait for GPU fence/completion
+                // - Then call ResetAllStagingBuffers()
+            }
+            else {
+                logChannel_.Log(Logging::LogLevel::Debug, "No pending uploads to flush");
+            }
+        }
+    }
+
+    BufferPoolStats D3D12BufferManager::GetPoolStatistics() const {
+        if (!isInitialized_.load()) {
+            BufferPoolStats emptyStats = {};
+            return emptyStats;
+        }
+
+        // Get pool statistics
+        BufferPoolStats poolStats = bufferPool_->GetStats();
+
+        // Enhance with handle manager data
+        uint32_t activeHandles = handleManager_->GetActiveHandleCount();
+        poolStats.activeBuffers = activeHandles;
+
+        // Add staging buffer statistics
+        uint64_t stagingMemoryTotal = GetTotalStagingMemorySize();
+        uint64_t stagingMemoryUsed = GetUsedStagingMemorySize();
+
+        // Note: Staging memory is separate from pooled buffer memory
+        // but we can track it in separate fields or extend the stats structure
+
+        logChannel_.LogFormat(Logging::LogLevel::Trace,
+            "Retrieved pool statistics: {} active, {} created, {} pooled, {:.2f} MB allocated",
+            poolStats.activeBuffers, poolStats.totalBuffersCreated,
+            poolStats.pooledBuffers, poolStats.totalMemoryAllocated / (1024.0 * 1024.0));
+
+        return poolStats;
+    }
+
+    void D3D12BufferManager::LogDetailedStatistics() const {
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Warning,
+                "Cannot log statistics - buffer manager not initialized");
+            return;
+        }
+
+        logChannel_.Log(Logging::LogLevel::Info, "=== D3D12 Buffer Manager Detailed Statistics ===");
+
+        // Pool statistics
+        if (bufferPool_) {
+            bufferPool_->LogPoolStatistics();
+        }
+
+        // Handle manager statistics
+        if (handleManager_) {
+            uint32_t activeHandleCount = handleManager_->GetActiveHandleCount();
+            auto activeHandles = handleManager_->GetActiveHandles();
+
+            logChannel_.LogFormat(Logging::LogLevel::Info,
+                "Handle Manager: {} active handles", activeHandleCount);
+
+            if (!activeHandles.empty() && activeHandleCount <= 20) {
+                // Log individual handles if there aren't too many
+                std::string handleList;
+                for (size_t i = 0; i < activeHandles.size(); ++i) {
+                    if (i > 0) handleList += ", ";
+                    handleList += std::to_string(activeHandles[i].index);
+                }
+                logChannel_.LogFormat(Logging::LogLevel::Info,
+                    "Active handle IDs: {}", handleList);
+            }
+        }
+
+        // Staging buffer statistics
+        {
+            std::lock_guard<std::mutex> lock(stagingBufferMutex_);
+
+            uint64_t totalStagingSize = 0;
+            uint64_t totalUsedSize = 0;
+            uint32_t activeStagingBuffers = 0;
+
+            logChannel_.LogFormat(Logging::LogLevel::Info,
+                "Staging Buffers: {} total, current index: {}",
+                stagingBuffers_.size(), currentStagingBufferIndex_);
+
+            for (size_t i = 0; i < stagingBuffers_.size(); ++i) {
+                const auto& buffer = stagingBuffers_[i];
+                if (buffer) {
+                    uint64_t bufferSize = buffer->GetSize();
+                    uint64_t usedSize = buffer->GetUsedSize();
+                    uint64_t availableSize = buffer->GetAvailableSize();
+
+                    totalStagingSize += bufferSize;
+                    totalUsedSize += usedSize;
+                    ++activeStagingBuffers;
+
+                    logChannel_.LogFormat(Logging::LogLevel::Info,
+                        "  Staging Buffer {}: {:.2f} MB total, {:.2f} MB used ({:.1f}%), {:.2f} MB available {}",
+                        i, bufferSize / (1024.0 * 1024.0), usedSize / (1024.0 * 1024.0),
+                        bufferSize > 0 ? (100.0 * usedSize) / bufferSize : 0.0,
+                        availableSize / (1024.0 * 1024.0),
+                        i == currentStagingBufferIndex_ ? "(CURRENT)" : "");
+                }
+                else {
+                    logChannel_.LogFormat(Logging::LogLevel::Info,
+                        "  Staging Buffer {}: NULL", i);
+                }
+            }
+
+            logChannel_.LogFormat(Logging::LogLevel::Info,
+                "Staging Summary: {} active buffers, {:.2f} MB total, {:.2f} MB used ({:.1f}%)",
+                activeStagingBuffers, totalStagingSize / (1024.0 * 1024.0),
+                totalUsedSize / (1024.0 * 1024.0),
+                totalStagingSize > 0 ? (100.0 * totalUsedSize) / totalStagingSize : 0.0);
+        }
+
+        // Configuration
+        logChannel_.LogFormat(Logging::LogLevel::Info,
+            "Configuration: Pooling={}, MinSize={} KB, MaxSize={} MB, MaxPerPool={}",
+            poolConfig_.enablePooling ? "Enabled" : "Disabled",
+            poolConfig_.minBufferSize / 1024,
+            poolConfig_.maxBufferSize / (1024 * 1024),
+            poolConfig_.maxPooledBuffers);
+
+        logChannel_.Log(Logging::LogLevel::Info, "=== End Detailed Statistics ===");
+    }
+
+    void D3D12BufferManager::LogMemoryUsage() const {
+        if (!isInitialized_.load()) {
+            logChannel_.Log(Logging::LogLevel::Warning,
+                "Cannot log memory usage - buffer manager not initialized");
+            return;
+        }
+
+        // Update and get current statistics
+        const_cast<D3D12BufferManager*>(this)->UpdateGlobalStats();
+
+        BufferPoolStats stats;
+        {
+            std::lock_guard<std::mutex> lock(statsMutex_);
+            stats = globalStats_;
+        }
+
+        // Get staging memory info
+        uint64_t stagingMemoryTotal = GetTotalStagingMemorySize();
+        uint64_t stagingMemoryUsed = GetUsedStagingMemorySize();
+
+        // Calculate totals
+        uint64_t totalAllocated = stats.totalMemoryAllocated + stagingMemoryTotal;
+        uint64_t totalInUse = stats.totalMemoryInUse + stagingMemoryUsed;
+
+        logChannel_.Log(Logging::LogLevel::Info, "=== D3D12 Buffer Manager Memory Usage ===");
+
+        // Buffer memory
+        logChannel_.LogFormat(Logging::LogLevel::Info,
+            "Buffer Memory: Allocated={:.2f} MB, In Use={:.2f} MB, Peak={:.2f} MB",
+            stats.totalMemoryAllocated / (1024.0 * 1024.0),
+            stats.totalMemoryInUse / (1024.0 * 1024.0),
+            stats.peakMemoryUsage / (1024.0 * 1024.0));
+
+        // Staging memory
+        logChannel_.LogFormat(Logging::LogLevel::Info,
+            "Staging Memory: Total={:.2f} MB, Used={:.2f} MB ({:.1f}%)",
+            stagingMemoryTotal / (1024.0 * 1024.0),
+            stagingMemoryUsed / (1024.0 * 1024.0),
+            stagingMemoryTotal > 0 ? (100.0 * stagingMemoryUsed) / stagingMemoryTotal : 0.0);
+
+        // Combined totals
+        logChannel_.LogFormat(Logging::LogLevel::Info,
+            "Total Memory: Allocated={:.2f} MB, In Use={:.2f} MB ({:.1f}%)",
+            totalAllocated / (1024.0 * 1024.0),
+            totalInUse / (1024.0 * 1024.0),
+            totalAllocated > 0 ? (100.0 * totalInUse) / totalAllocated : 0.0);
+
+        // Buffer counts
+        logChannel_.LogFormat(Logging::LogLevel::Info,
+            "Buffer Counts: Active={}, Created={}, Destroyed={}, Pooled={}",
+            stats.activeBuffers, stats.totalBuffersCreated,
+            stats.totalBuffersDestroyed, stats.pooledBuffers);
+
+        // Pool efficiency
+        uint32_t totalPoolOperations = stats.poolHits + stats.poolMisses;
+        logChannel_.LogFormat(Logging::LogLevel::Info,
+            "Pool Efficiency: Hits={}, Misses={}, Hit Rate={:.1f}%",
+            stats.poolHits, stats.poolMisses,
+            totalPoolOperations > 0 ? (100.0 * stats.poolHits) / totalPoolOperations : 0.0);
+
+        logChannel_.Log(Logging::LogLevel::Info, "=== End Memory Usage ===");
     }
 
 } // namespace Akhanda::RHI::D3D12
