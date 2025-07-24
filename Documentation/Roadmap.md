@@ -1,4 +1,4 @@
-# Akhanda Engine Development Roadmap
+﻿# Akhanda Engine Development Roadmap
 
 ## Overview
 A comprehensive roadmap for building Akhanda, a modular 3D game engine with AI-first design, targeting the development of "Threads of Kaliyuga" RPG.
@@ -34,11 +34,11 @@ A comprehensive roadmap for building Akhanda, a modular 3D game engine with AI-f
 *Timeline: In Progress*
 
 ### 2.1 - Core Renderer Implementation 🔄 **IN PROGRESS**
-- ❌ **StandardRenderer class** - Main renderer implementation
-- ❌ **Frame data management** - Scene data preparation
-- ❌ **Render loop architecture** - Begin/End frame handling
-- ❌ **Command list recording** - D3D12 command buffer management
-- ❌ **Basic render state** - Pipeline state management
+- ✅ **StandardRenderer class** - Main renderer implementation
+- ✅ **Frame data management** - Scene data preparation
+- ✅ **Render loop architecture** - Begin/End frame handling
+- ✅ **Command list recording** - D3D12 command buffer management
+- ✅ **Basic render state** - Pipeline state management
 
 ### 2.2 - Shader System 📋 **NEXT**
 - ❌ **Shader compilation** - Runtime HLSL compilation
