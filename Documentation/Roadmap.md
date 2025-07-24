@@ -33,14 +33,14 @@ A comprehensive roadmap for building Akhanda, a modular 3D game engine with AI-f
 ## Phase 2 - Basic Rendering 🎯 **CURRENT PHASE**
 *Timeline: In Progress*
 
-### 2.1 - Core Renderer Implementation 🔄 **IN PROGRESS**
+### 2.1 - Core Renderer Implementation 🔄 **COMPLETED**
 - ✅ **StandardRenderer class** - Main renderer implementation
 - ✅ **Frame data management** - Scene data preparation
 - ✅ **Render loop architecture** - Begin/End frame handling
 - ✅ **Command list recording** - D3D12 command buffer management
 - ✅ **Basic render state** - Pipeline state management
 
-### 2.2 - Shader System 📋 **NEXT**
+### 2.2 - Shader System 📋 **IN PROGRESS**
 - ❌ **Shader compilation** - Runtime HLSL compilation
 - ❌ **Shader reflection** - Automatic resource binding
 - ❌ **Basic vertex shader** - Simple position transformation
