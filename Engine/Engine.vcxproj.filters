@@ -45,6 +45,7 @@
     <ClCompile Include="Renderer\RHI\D3D12\D3D12DescriptorHeap.cpp" />
     <ClCompile Include="Renderer\RHI\D3D12\D3D12Core.cpp" />
     <ClCompile Include="Renderer\RHI\D3D12\D3D12Buffer.cpp" />
+    <ClCompile Include="Renderer\RHI\D3D12\Renderer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />

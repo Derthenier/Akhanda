@@ -337,6 +337,9 @@ namespace Akhanda::RHI::D3D12 {
         D3D12Factory();
         virtual ~D3D12Factory();
 
+        bool Initialize() override;
+        void Shutdown() override;
+
         // IRHIFactory implementation
         std::unique_ptr<IRenderDevice> CreateDevice(
             const Configuration::RenderingConfig& config,
@@ -354,8 +357,6 @@ namespace Akhanda::RHI::D3D12 {
         const std::vector<Platform::AdapterInfo>& GetAdapters() const { return adapters_; }
 
     private:
-        bool Initialize();
-        void Shutdown();
         void EnumerateAdapters();
         DeviceCapabilities GetAdapterCapabilities(const Platform::AdapterInfo& adapter) const;
     };

@@ -392,7 +392,7 @@ export namespace Akhanda::Renderer {
         float frameTime = 0.0f;
         float cpuTime = 0.0f;
         float gpuTime = 0.0f;
-        uint32_t fps = 0;
+        float fps = 0;
 
         // Draw statistics
         uint32_t drawCalls = 0;
@@ -408,7 +408,9 @@ export namespace Akhanda::Renderer {
 
         // Memory statistics
         uint64_t cpuMemoryUsed = 0;
+        uint64_t cpuMemoryTotal = 0;
         uint64_t gpuMemoryUsed = 0;
+        uint64_t gpuMemoryTotal = 0;
         uint64_t totalMemoryAvailable = 0;
 
         // Culling statistics
@@ -527,7 +529,7 @@ export namespace Akhanda::Renderer {
 
     public:
         StandardRenderer();
-        virtual ~StandardRenderer();
+        ~StandardRenderer() override;
 
         // IRenderer implementation
         bool Initialize(const Configuration::RenderingConfig& config,
@@ -578,7 +580,9 @@ export namespace Akhanda::Renderer {
         // Frame processing
         void UpdateFrameConstants();
         void ProcessDrawCommands(const FrameData& frameData);
-        void ExecuteRenderPasses(const FrameData& frameData);
+        void ExecuteRenderPasses(const FrameData& frameData) const;
+        void WaitForFrameCompletion();
+        void WaitForGPUIdle();
 
         // Resource helpers
         RHI::BufferHandle CreateVertexBuffer(const std::vector<Vertex>& vertices);

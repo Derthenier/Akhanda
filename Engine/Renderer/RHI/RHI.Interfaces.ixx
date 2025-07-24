@@ -4,9 +4,6 @@
 
 module;
 
-#include <d3d12.h>
-#include <dxgi1_6.h>
-#include <wrl/client.h>
 #include <cstdint>
 #include <vector>
 #include <string>
@@ -24,12 +21,6 @@ import Akhanda.Platform.Interfaces;
 
 
 export namespace Akhanda::RHI {
-
-    // ========================================================================
-    // Forward Declarations
-    // ========================================================================
-
-    class RenderDevice;
 
     // ========================================================================
     // SwapChain Interface
@@ -367,6 +358,9 @@ export namespace Akhanda::RHI {
     class IRHIFactory {
     public:
         virtual ~IRHIFactory() = default;
+
+        virtual bool Initialize() = 0;
+        virtual void Shutdown() = 0;
 
         // Device creation
         virtual std::unique_ptr<IRenderDevice> CreateDevice(
