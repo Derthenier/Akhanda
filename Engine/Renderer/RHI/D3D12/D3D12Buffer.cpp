@@ -2366,6 +2366,8 @@ namespace Akhanda::RHI::D3D12 {
         uint64_t stagingMemoryTotal = GetTotalStagingMemorySize();
         uint64_t stagingMemoryUsed = GetUsedStagingMemorySize();
 
+        logChannel_.LogFormat(Logging::LogLevel::Trace, "Retrieved staging statistics: {} total, {} used", stagingMemoryTotal, stagingMemoryUsed);
+
         // Note: Staging memory is separate from pooled buffer memory
         // but we can track it in separate fields or extend the stats structure
 

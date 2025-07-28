@@ -25,7 +25,7 @@
   </PropertyGroup>
   <!-- Project properties -->
   <PropertyGroup>
-    <ProjectName>Tests.Core.Math</ProjectName>
+    <ProjectName>Akhanda.Tests</ProjectName>
     <OutDir>$(SolutionDir)Build\Output\Bin\$(Platform)\$(Configuration)\Tests\</OutDir>
     <IntDir>$(SolutionDir)Build\Output\Intermediate\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <TargetName>$(ProjectName)_$(Configuration)</TargetName>
@@ -79,31 +79,32 @@
   <ItemGroup>
     <ClCompile Include="Source\Main.cpp" />
     <!-- Unit Tests -->
-    <ClCompile Include="Source\UnitTests\Vector3Tests.cpp" />
-    <ClCompile Include="Source\UnitTests\Vector4Tests.cpp" />
-    <ClCompile Include="Source\UnitTests\Matrix4Tests.cpp" />
-    <ClCompile Include="Source\UnitTests\QuaternionTests.cpp" />
-    <ClCompile Include="Source\UnitTests\MathUtilsTests.cpp" />
-    <ClCompile Include="Source\UnitTests\GeometryTests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\UnitTests\Vector3Tests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\UnitTests\Vector4Tests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\UnitTests\Matrix4Tests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\UnitTests\QuaternionTests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\UnitTests\MathUtilsTests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\UnitTests\GeometryTests.cpp" />
     <!-- Integration Tests -->
-    <ClCompile Include="Source\IntegrationTests\TransformationTests.cpp" />
-    <ClCompile Include="Source\IntegrationTests\ProjectionTests.cpp" />
-    <ClCompile Include="Source\IntegrationTests\AnimationMathTests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\IntegrationTests\TransformationTests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\IntegrationTests\ProjectionTests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\IntegrationTests\AnimationMathTests.cpp" />
     <!-- Performance Tests -->
-    <ClCompile Include="Source\PerformanceTests\SIMDPerformanceTests.cpp" />
-    <ClCompile Include="Source\PerformanceTests\MatrixPerformanceTests.cpp" />
-    <ClCompile Include="Source\PerformanceTests\VectorPerformanceTests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\PerformanceTests\SIMDPerformanceTests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\PerformanceTests\MatrixPerformanceTests.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\PerformanceTests\VectorPerformanceTests.cpp" />
     <!-- Test Fixtures and Utilities -->
-    <ClCompile Include="Source\Fixtures\MathTestFixtures.cpp" />
-    <ClCompile Include="Source\Utils\MathTestUtils.cpp" />
-    <ClCompile Include="Source\Utils\PerformanceTestUtils.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\Fixtures\MathTestFixtures.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\Utils\MathTestUtils.cpp" />
+    <ClCompile Include="Source\Core.Math\Source\Utils\PerformanceTestUtils.cpp" />
+    <ClCompile Include="Source\Renderer\Source\ShaderSystemTest.cpp" />
   </ItemGroup>
   <!-- Header files -->
   <ItemGroup>
-    <ClInclude Include="Source\Fixtures\MathTestFixtures.hpp" />
-    <ClInclude Include="Source\Utils\MathTestUtils.hpp" />
-    <ClInclude Include="Source\Utils\PerformanceTestUtils.hpp" />
-    <ClInclude Include="Source\TestConstants.hpp" />
+    <ClInclude Include="Source\Core.Math\Source\Fixtures\MathTestFixtures.hpp" />
+    <ClInclude Include="Source\Core.Math\Source\Utils\MathTestUtils.hpp" />
+    <ClInclude Include="Source\Core.Math\Source\Utils\PerformanceTestUtils.hpp" />
+    <ClInclude Include="Source\Core.Math\Source\TestConstants.hpp" />
   </ItemGroup>
   <!-- Test data files -->
   <ItemGroup>

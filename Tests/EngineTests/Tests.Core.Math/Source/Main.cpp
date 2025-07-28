@@ -14,7 +14,7 @@ public:
         // Verify test data directory exists
         std::filesystem::path testDataPath = "Data";
         if (!std::filesystem::exists(testDataPath)) {
-            std::cerr << "Warning: Test data directory not found: " << testDataPath << std::endl;
+            std::cerr << "Warning: Test data directory not found: " << testDataPath << "\n";
         }
 
         // Enable floating point exceptions for more robust testing
@@ -37,36 +37,69 @@ public:
     }
 };
 
+
+// Test environment setup
+class ShaderTestEnvironment : public ::testing::Environment {
+public:
+    void SetUp() override {
+        std::cout << "Setting up Renderer.Shader test environment...\n";
+
+        // Verify test data directory exists
+        std::filesystem::path testDataPath = "Data";
+        if (!std::filesystem::exists(testDataPath)) {
+            std::cerr << "Warning: Test data directory not found: " << testDataPath << "\n";
+        }
+
+        // Enable floating point exceptions for more robust testing
+#ifdef _WIN32
+        _controlfp_s(nullptr, 0, _MCW_EM); // Enable all floating point exceptions
+#endif
+
+        std::cout << "Renderer.Shader test environment ready.\n";
+    }
+
+    void TearDown() override {
+        std::cout << "Cleaning up Renderer.Shader test environment...\n";
+
+        // Restore floating point control
+#ifdef _WIN32
+        _controlfp_s(nullptr, _CW_DEFAULT, _MCW_EM); // Restore default FP behavior
+#endif
+
+        std::cout << "Renderer.Shader test environment cleanup complete.\n";
+    }
+};
+
 // Custom test event listener for detailed reporting
 class MathTestEventListener : public ::testing::EmptyTestEventListener {
 private:
     void OnTestStart(const ::testing::TestInfo& test_info) override {
         std::cout << "[ RUNNING  ] " << test_info.test_suite_name()
-            << "." << test_info.name() << std::endl;
+            << "." << test_info.name() << "\n";
     }
 
     void OnTestEnd(const ::testing::TestInfo& test_info) override {
         if (test_info.result()->Passed()) {
             std::cout << "[       OK ] " << test_info.test_suite_name()
                 << "." << test_info.name()
-                << " (" << test_info.result()->elapsed_time() << " ms)" << std::endl;
+                << " (" << test_info.result()->elapsed_time() << " ms)" << "\n";
         }
         else {
             std::cout << "[  FAILED  ] " << test_info.test_suite_name()
                 << "." << test_info.name()
-                << " (" << test_info.result()->elapsed_time() << " ms)" << std::endl;
+                << " (" << test_info.result()->elapsed_time() << " ms)" << "\n";
         }
     }
 
     void OnTestSuiteStart(const ::testing::TestSuite& test_suite) override {
         std::cout << "[----------] " << test_suite.test_to_run_count()
-            << " tests from " << test_suite.name() << std::endl;
+            << " tests from " << test_suite.name() << "\n";
     }
 
     void OnTestSuiteEnd(const ::testing::TestSuite& test_suite) override {
         std::cout << "[----------] " << test_suite.test_to_run_count()
             << " tests from " << test_suite.name()
-            << " (" << test_suite.elapsed_time() << " ms total)" << std::endl;
+            << " (" << test_suite.elapsed_time() << " ms total)" << "\n";
     }
 };
 
@@ -76,6 +109,7 @@ int main(int argc, char** argv) {
 
     // Add our custom environment
     ::testing::AddGlobalTestEnvironment(new MathTestEnvironment);
+    ::testing::AddGlobalTestEnvironment(new ShaderTestEnvironment);
 
     // Add custom event listener for detailed output
     ::testing::TestEventListeners& listeners = ::testing::UnitTest::GetInstance()->listeners();
@@ -97,7 +131,7 @@ int main(int argc, char** argv) {
 #else
         "Unknown"
 #endif
-        << std::endl;
+        << "\n";
 
     std::cout << "  - Architecture: " <<
 #ifdef _M_X64
@@ -107,7 +141,7 @@ int main(int argc, char** argv) {
 #else
         "Unknown"
 #endif
-        << std::endl;
+        << "\n";
 
     std::cout << "  - SIMD Support: " <<
 #ifdef __AVX2__
@@ -121,7 +155,7 @@ int main(int argc, char** argv) {
 #else
         "None detected"
 #endif
-        << std::endl;
+        << "\n";
 
     std::cout << "\n";
 

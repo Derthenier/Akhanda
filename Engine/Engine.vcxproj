@@ -56,6 +56,7 @@
     <ClCompile Include="Core\Configuration\Core.FileHandler.ixx" />
     <ClCompile Include="Core\Configuration\JsonWrapper.cpp" />
     <ClCompile Include="Core\Containers\Core.Containers.ixx" />
+    <ClCompile Include="Core\Core.Result.ixx" />
     <ClCompile Include="Core\Jobs\Core.JobSystem.cpp" />
     <ClCompile Include="Core\Jobs\Core.JobSystem.ixx" />
     <ClCompile Include="Core\Logging\Core.Logging.cpp" />
@@ -87,6 +88,9 @@
     <ClCompile Include="Renderer\RHI\Renderer.Integration.ixx" />
     <ClCompile Include="Renderer\RHI\RHI.Interface.ixx" />
     <ClCompile Include="Renderer\RHI\RHI.Interfaces.ixx" />
+    <ClCompile Include="Renderer\Shaders\D3D12\D3D12ShaderManager.cpp" />
+    <ClCompile Include="Renderer\Shaders\D3D12\D3D12ShaderManager.ixx" />
+    <ClCompile Include="Renderer\Shaders\ShaderManager.ixx" />
     <!-- Renderer -->
   </ItemGroup>
   <ItemGroup>

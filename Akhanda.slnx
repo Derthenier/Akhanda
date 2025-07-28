@@ -5,6 +5,12 @@
     <BuildType Name="Release" />
     <Platform Name="x64" />
   </Configurations>
+  <Folder Name="/Shaders/">
+    <File Path="Shaders/BasicPixel.hlsl" />
+    <File Path="Shaders/BasicVertex.hlsl" />
+    <File Path="Shaders/Common.hlsli" />
+    <File Path="Shaders/Constants.hlsli" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitignore" />
     <File Path="LICENSE" />
@@ -37,7 +43,11 @@
       <BuildDependency Project="Engine/Engine.vcxproj" />
     </Project>
   </Folder>
-  <Folder Name="/Tests/" />
+  <Folder Name="/Tests/">
+    <Project Path="Tests/EngineTests/Tests.Core.Math/Tests.Core.Math.vcxproj" Id="71f8208e-8e3b-4c91-870b-2f36c9df6b22">
+      <BuildType Solution="Profile|*" Project="Release" />
+    </Project>
+  </Folder>
   <Folder Name="/Application/">
     <Project Path="Editor/Editor.vcxproj" Id="56f93d34-f55f-4e1f-b3e4-98c4dc3763c0">
       <BuildDependency Project="Engine/Engine.vcxproj" />
@@ -45,11 +55,6 @@
     </Project>
     <Project Path="Game/ThreadsOfKaliyuga.vcxproj" Id="b4e2fa56-c13d-4912-b9c0-7625395965a0">
       <BuildDependency Project="Engine/Engine.vcxproj" />
-    </Project>
-  </Folder>
-  <Folder Name="/Tests/Core.Math/">
-    <Project Path="Tests/EngineTests/Tests.Core.Math/Tests.Core.Math.vcxproj" Id="71f8208e-8e3b-4c91-870b-2f36c9df6b22">
-      <BuildType Solution="Profile|*" Project="Release" />
     </Project>
   </Folder>
   <Project Path="Engine/Engine.vcxproj" Id="6eba6490-35f7-4578-b7e8-eea36ba09570" />

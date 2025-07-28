@@ -536,6 +536,7 @@ namespace Akhanda::Renderer {
         for (const auto& command : drawCommands) {
             // TODO: Process individual draw commands
             // For now, just count them
+            logChannel_.LogFormat(Logging::LogLevel::Trace, "Command: {}", command.instanceCount);
             ++stats_.drawCalls;
         }
 

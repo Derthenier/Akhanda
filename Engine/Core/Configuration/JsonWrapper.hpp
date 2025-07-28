@@ -7,7 +7,6 @@
 #include <string>
 #include <filesystem>
 #include <memory>
-#include <stdexcept>
 #include <cstdint>
 
 namespace Akhanda::Configuration {
@@ -147,6 +146,7 @@ namespace Akhanda::Configuration {
     template<> std::uint32_t JsonValue::GetValue<std::uint32_t>() const;
     template<> float JsonValue::GetValue<float>() const;
     template<> double JsonValue::GetValue<double>() const;
+    template<> std::vector<std::string> JsonValue::GetValue<std::vector<std::string>>() const;
 
     template<> std::string JsonValue::GetValueOr<std::string>(const std::string& defaultValue) const;
     template<> bool JsonValue::GetValueOr<bool>(const bool& defaultValue) const;
@@ -154,6 +154,7 @@ namespace Akhanda::Configuration {
     template<> std::uint32_t JsonValue::GetValueOr<std::uint32_t>(const std::uint32_t& defaultValue) const;
     template<> float JsonValue::GetValueOr<float>(const float& defaultValue) const;
     template<> double JsonValue::GetValueOr<double>(const double& defaultValue) const;
+    template<> std::vector<std::string> JsonValue::GetValueOr<std::vector<std::string>>(const std::vector<std::string>& defaultValue) const;
 
     template<> void JsonValue::SetValue<std::string>(const std::string& value);
     template<> void JsonValue::SetValue<bool>(const bool& value);
@@ -161,5 +162,6 @@ namespace Akhanda::Configuration {
     template<> void JsonValue::SetValue<std::uint32_t>(const std::uint32_t& value);
     template<> void JsonValue::SetValue<float>(const float& value);
     template<> void JsonValue::SetValue<double>(const double& value);
+    template<> void JsonValue::SetValue<std::vector<std::string>>(const std::vector<std::string>& value);
 
 } // namespace Akhanda::Configuration

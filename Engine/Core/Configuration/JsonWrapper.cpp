@@ -98,6 +98,19 @@ namespace Akhanda::Configuration {
         return impl_->data.get<double>();
     }
 
+    template<>
+    std::vector<std::string> JsonValue::GetValue<std::vector<std::string>>() const {
+        std::vector<std::string> result;
+        if (impl_->data.is_array()) {
+            for (const auto& item : impl_->data) {
+                if (item.is_string()) {
+                    result.push_back(item.get<std::string>());
+                }
+            }
+        }
+        return result;
+    }
+
     // Template specializations for GetValueOr
     template<>
     std::string JsonValue::GetValueOr<std::string>(const std::string& defaultValue) const {
@@ -159,6 +172,16 @@ namespace Akhanda::Configuration {
         }
     }
 
+    template<>
+    std::vector<std::string> JsonValue::GetValueOr<std::vector<std::string>>(const std::vector<std::string>& defaultValue) const {
+        try {
+            return GetValue<std::vector<std::string>>();
+        }
+        catch (...) {
+            return defaultValue;
+        }
+    }
+
     // Template specializations for SetValue
     template<>
     void JsonValue::SetValue<std::string>(const std::string& value) {
@@ -188,6 +211,14 @@ namespace Akhanda::Configuration {
     template<>
     void JsonValue::SetValue<double>(const double& value) {
         impl_->data = value;
+    }
+
+    template<>
+    void JsonValue::SetValue<std::vector<std::string>>(const std::vector<std::string>& value) {
+        impl_->data = nlohmann::json::array();
+        for (const auto& str : value) {
+            impl_->data.push_back(str);
+        }
     }
 
     bool JsonValue::Contains(const std::string& key) const {

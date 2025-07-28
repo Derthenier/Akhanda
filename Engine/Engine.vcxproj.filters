@@ -46,6 +46,10 @@
     <ClCompile Include="Renderer\RHI\D3D12\D3D12Core.cpp" />
     <ClCompile Include="Renderer\RHI\D3D12\D3D12Buffer.cpp" />
     <ClCompile Include="Renderer\RHI\D3D12\Renderer.cpp" />
+    <ClCompile Include="Renderer\Shaders\ShaderManager.ixx" />
+    <ClCompile Include="Core\Core.Result.ixx" />
+    <ClCompile Include="Renderer\Shaders\D3D12\D3D12ShaderManager.cpp" />
+    <ClCompile Include="Renderer\Shaders\D3D12\D3D12ShaderManager.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />

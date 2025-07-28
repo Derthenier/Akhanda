@@ -1252,7 +1252,7 @@ export namespace Akhanda::Platform::Windows {
             return GetDisplaySize(0);
         }
 
-        Math::Vector2 GetDisplayDPI(uint32_t displayIndex) const override {
+        Math::Vector2 GetDisplayDPI([[maybe_unused]] uint32_t displayIndex) const override {
             HDC hdc = GetDC(nullptr);
             if (hdc) {
                 float dpiX = static_cast<float>(GetDeviceCaps(hdc, LOGPIXELSX));
