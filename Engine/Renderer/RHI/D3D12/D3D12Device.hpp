@@ -359,6 +359,7 @@ namespace Akhanda::RHI::D3D12 {
     private:
         void EnumerateAdapters();
         DeviceCapabilities GetAdapterCapabilities(const Platform::AdapterInfo& adapter) const;
+        void QueryPreciseCapabilities(const Platform::AdapterInfo& adapter, DeviceCapabilities& caps) const;
     };
 
     // ========================================================================

@@ -50,6 +50,10 @@
     <ClCompile Include="Core\Core.Result.ixx" />
     <ClCompile Include="Renderer\Shaders\D3D12\D3D12ShaderManager.cpp" />
     <ClCompile Include="Renderer\Shaders\D3D12\D3D12ShaderManager.ixx" />
+    <ClCompile Include="Renderer\RHI\D3D12\D3D12Factory.cpp" />
+    <ClCompile Include="Core\Platform\Windows\RendererPlatformIntegration.cpp" />
+    <ClCompile Include="Renderer\RHI\D3D12\D3D12Pipeline.cpp" />
+    <ClCompile Include="Renderer\RHI\D3D12\D3D12CommandList.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />

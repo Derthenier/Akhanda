@@ -5,12 +5,11 @@
 module;
 
 #include <d3d12.h>
-#include <dxgi1_6.h>
 #include <wrl/client.h>
 #include <cstdint>
 #include <vector>
 #include <string>
-#include <type_traits>
+#include <format>
 
 #undef DeviceCapabilities // Avoid macro conflicts
 
@@ -618,52 +617,377 @@ export namespace Akhanda::RHI {
     // ========================================================================
 
     struct DeviceCapabilities {
-        // Feature levels
-        uint32_t maxFeatureLevel = 0;
+        // ====================================================================
+        // Basic Device Information
+        // ====================================================================
 
-        bool supportsShaderModel6 = false;
-        bool supportsRayTracing = false;
-        bool supportsVariableRateShading = false;
-        bool supportsMeshShaders = false;
-        bool supportsDirectStorageGPU = false;
+        // Adapter identification (existing)
+        std::string adapterDescription;        // Existing: Wide string description converted to UTF-8
+        std::string adapterName;              // NEW: Friendly name for display/logging
+        uint32_t vendorId = 0;                // Existing
+        uint32_t deviceId = 0;                // Existing  
+        uint32_t subSysId = 0;                // Existing
+        uint32_t revision = 0;                // Existing
+        uint64_t driverVersion = 0;           // Existing
 
-        bool isUMA = false; // Unified Memory Architecture
-        bool isCacheCoherentUMA = false;
-        bool isTileBasedRenderer = false;
+        // NEW: Enhanced identification properties
+        uint64_t adapterLuid = 0;             // NEW: Adapter LUID for multi-GPU scenarios
+        uint32_t nodeIndex = 0;               // NEW: GPU node index
+        bool isDiscrete = false;              // NEW: True for discrete GPUs vs integrated
+        bool isWarpAdapter = false;           // NEW: True for software WARP adapter
 
-        uint32_t raytracingTier = 0;
-        uint32_t variableRateShadingTier = 0;
-        uint32_t meshShaderTier = 0;
-        uint32_t resourceBindingTier = 0;
+        // ====================================================================
+        // Feature Level and Shader Model Support
+        // ====================================================================
 
-        // Resource limits
-        uint32_t maxTexture2DSize = 0;
-        uint32_t maxTexture3DSize = 0;
-        uint32_t maxTextureCubeSize = 0;
-        uint32_t maxTextureArraySize = 0;
-        uint32_t maxRenderTargets = 0;
-        uint32_t maxVertexInputElements = 0;
-        uint32_t maxConstantBufferSize = 0;
+        // Feature levels (existing)
+        uint32_t maxFeatureLevel = 0;         // Existing: D3D_FEATURE_LEVEL value
 
-        // Memory information
-        uint64_t dedicatedVideoMemory = 0;
-        uint64_t sharedSystemMemory = 0;
-        uint64_t availableVideoMemory = 0;
+        // Shader model support (existing and enhanced)
+        bool supportsShaderModel6 = false;    // Existing: SM 6.0+ support
+        bool supportsShaderModel6_6 = false;  // NEW: SM 6.6+ support (enhanced features)
+        bool supportsShaderModel6_7 = false;  // NEW: SM 6.7+ support (latest features)
+        uint32_t highestShaderModel = 0;      // NEW: Highest supported shader model as uint
 
-        // Multi-sampling
-        std::vector<uint32_t> supportedSampleCounts;
+        // ====================================================================
+        // Graphics Pipeline Capabilities
+        // ====================================================================
 
-        // Debug features
-        bool debugLayerAvailable = false;
-        bool gpuValidationAvailable = false;
+        // Modern graphics features (existing)
+        bool supportsRayTracing = false;              // Existing
+        bool supportsVariableRateShading = false;     // Existing  
+        bool supportsMeshShaders = false;             // Existing
+        bool supportsDirectStorageGPU = false;        // Existing
 
-        // Adapter information
-        std::string adapterDescription;
-        uint32_t vendorId = 0;
-        uint32_t deviceId = 0;
-        uint32_t subSysId = 0;
-        uint32_t revision = 0;
-        uint64_t driverVersion = 0;
+        // Tier information (existing)
+        uint32_t raytracingTier = 0;                   // Existing: D3D12_RAYTRACING_TIER value
+        uint32_t variableRateShadingTier = 0;          // Existing: D3D12_VARIABLE_SHADING_RATE_TIER value
+        uint32_t meshShaderTier = 0;                   // Existing: D3D12_MESH_SHADER_TIER value
+        uint32_t resourceBindingTier = 0;              // Existing: D3D12_RESOURCE_BINDING_TIER value
+
+        // NEW: Additional pipeline capabilities
+        bool supportsSamplerfeedback = false;          // NEW: Sampler feedback support
+        bool supportsWorkGraphs = false;               // NEW: Work graphs support
+        bool supportsExecuteIndirect = false;          // NEW: Enhanced ExecuteIndirect
+        bool supportsBarrierExtensions = false;        // NEW: Enhanced barriers (D3D12_OPTIONS12)
+        bool supportsDirectML = false;                 // NEW: DirectML meta-commands
+        uint32_t directMLFeatureLevel = 0;             // NEW: DirectML feature level
+
+        // ====================================================================
+        // Architecture and Memory Properties
+        // ====================================================================
+
+        // Architecture (existing)
+        bool isUMA = false;                    // Existing: Unified Memory Architecture
+        bool isCacheCoherentUMA = false;       // Existing: Cache-coherent UMA
+        bool isTileBasedRenderer = false;      // Existing: Tile-based deferred renderer
+
+        // Memory information (existing and enhanced)
+        uint64_t dedicatedVideoMemory = 0;     // Existing: Dedicated VRAM
+        uint64_t sharedSystemMemory = 0;       // Existing: Shared system memory
+        uint64_t availableVideoMemory = 0;     // Existing: Currently available VRAM
+
+        // NEW: Enhanced memory information
+        uint64_t dedicatedSystemMemory = 0;    // NEW: Dedicated system memory
+        uint64_t totalPhysicalMemory = 0;      // NEW: Total physical memory
+        uint64_t currentUsage = 0;             // NEW: Current memory usage
+        uint64_t currentAvailable = 0;         // NEW: Current available memory
+        uint64_t currentReservation = 0;       // NEW: Current reservation
+        uint32_t memorySegmentCount = 0;       // NEW: Number of memory segments
+
+        // ====================================================================
+        // Resource Limits and Constraints
+        // ====================================================================
+
+        // Texture limits (existing)
+        uint32_t maxTexture2DSize = 16384;         // Existing: Maximum 2D texture dimension
+        uint32_t maxTexture3DSize = 2048;          // Existing: Maximum 3D texture dimension  
+        uint32_t maxTextureCubeSize = 16384;       // Existing: Maximum cube texture dimension
+        uint32_t maxTextureArraySize = 2048;       // Existing: Maximum texture array size
+
+        // Render target limits (existing)
+        uint32_t maxRenderTargets = 8;             // Existing: Maximum simultaneous render targets
+        uint32_t maxViewports = 16;                // NEW: Maximum simultaneous viewports
+
+        // Buffer and vertex limits (existing and enhanced)
+        uint32_t maxVertexInputElements = 32;      // Existing: Maximum vertex input elements
+        uint32_t maxConstantBufferSize = 65536;    // Existing: Maximum constant buffer size in bytes
+
+        // NEW: Additional resource limits
+        uint32_t maxStructuredBufferSize = 0;      // NEW: Maximum structured buffer size
+        uint32_t maxRawBufferSize = 0;              // NEW: Maximum raw buffer size
+        uint32_t maxTexture1DSize = 16384;          // NEW: Maximum 1D texture dimension
+        uint32_t maxIndices = UINT32_MAX;           // NEW: Maximum index count
+        uint32_t maxVertices = UINT32_MAX;          // NEW: Maximum vertex count
+        uint32_t maxDrawIndirectCount = 0;          // NEW: Maximum indirect draw count
+        uint32_t maxComputeSharedMemory = 0;        // NEW: Maximum compute shared memory
+
+        // ====================================================================
+        // Sampling and Multisampling Support
+        // ====================================================================
+
+        // Multi-sampling (existing and enhanced)
+        std::vector<uint32_t> supportedSampleCounts;  // Existing: Supported MSAA sample counts
+
+        // NEW: Enhanced sampling capabilities
+        uint32_t maxAnisotropy = 16;                   // NEW: Maximum anisotropic filtering
+        bool supportsMinMaxFiltering = false;          // NEW: Min/Max filtering support  
+        bool supportsBorderColorSamplers = false;      // NEW: Border color sampler support
+        bool supportsProgrammableSamplePositions = false; // NEW: Programmable sample positions
+
+        // ====================================================================
+        // Compute and Async Capabilities
+        // ====================================================================
+
+        // NEW: Compute shader capabilities
+        uint32_t maxComputeThreadsPerGroup[3] = { 1024, 1024, 64 }; // NEW: Max threads per group (X,Y,Z)
+        uint32_t maxComputeThreadGroupsPerDispatch[3] = { 65535, 65535, 65535 }; // NEW: Max groups per dispatch
+        uint32_t maxComputeSMMemory = 32768;           // NEW: Max shared memory per thread group
+        bool supportsWaveIntrinsics = false;           // NEW: Wave intrinsics support
+        uint32_t waveSize = 32;                        // NEW: Wave size (typically 32 or 64)
+
+        // NEW: Async compute capabilities  
+        bool supportsAsyncCompute = false;             // NEW: Async compute queue support
+        uint32_t numAsyncComputeQueues = 0;            // NEW: Number of async compute queues
+        bool supportsCopyQueues = false;               // NEW: Dedicated copy queue support
+        uint32_t numCopyQueues = 0;                    // NEW: Number of copy queues
+
+        // ====================================================================
+        // Debug and Development Features
+        // ====================================================================
+
+        // Debug features (existing and enhanced)
+        bool debugLayerAvailable = false;             // Existing: D3D12 debug layer available
+        bool gpuValidationAvailable = false;          // Existing: GPU-based validation available
+
+        // NEW: Enhanced debug capabilities
+        bool dredAvailable = false;                    // NEW: Device Removed Extended Data available
+        bool pixSupportAvailable = false;             // NEW: PIX support available
+        bool aftermathAvailable = false;               // NEW: NVIDIA Nsight Aftermath available
+        bool supportsDebugMarkers = false;            // NEW: Debug marker/annotation support
+        bool supportsTimestampQueries = false;        // NEW: Timestamp query support
+        bool supportsPipelineStatistics = false;      // NEW: Pipeline statistics queries
+
+        // ====================================================================
+        // Performance and Optimization Hints
+        // ====================================================================
+
+        // NEW: Performance characteristics
+        uint32_t recommendedSwapChainBuffers = 3;     // NEW: Recommended swap chain buffer count
+        bool prefersBundledCommandLists = false;       // NEW: Benefits from command list bundles
+        bool prefersResourceBarrierBatching = false;   // NEW: Benefits from batched barriers
+        bool supportsGPUUploadHeaps = false;          // NEW: GPU upload heap support
+        uint32_t minResourceAlignment = 256;           // NEW: Minimum resource alignment
+        uint64_t nonLocalMemoryBandwidth = 0;         // NEW: System memory bandwidth (bytes/sec)
+        uint64_t localMemoryBandwidth = 0;            // NEW: Video memory bandwidth (bytes/sec)
+
+        // NEW: Vendor-specific optimizations
+        bool supportsNVIDIAExtensions = false;        // NEW: NVIDIA-specific extensions
+        bool supportsAMDExtensions = false;           // NEW: AMD-specific extensions  
+        bool supportsIntelExtensions = false;         // NEW: Intel-specific extensions
+
+        // ====================================================================
+        // Display and Output Capabilities
+        // ====================================================================
+
+        // NEW: Display and presentation features
+        bool supportsTearing = false;                 // NEW: Variable refresh rate/tearing support
+        bool supportsHDR10 = false;                   // NEW: HDR10 output support
+        bool supportsHDR10Plus = false;               // NEW: HDR10+ support
+        bool supportsDolbyVision = false;             // NEW: Dolby Vision support
+        std::vector<uint32_t> supportedColorSpaces;   // NEW: Supported color spaces (DXGI_COLOR_SPACE_TYPE)
+        float maxDisplayLuminance = 80.0f;            // NEW: Maximum display luminance (nits)
+        float minDisplayLuminance = 0.1f;             // NEW: Minimum display luminance (nits)
+
+        // ====================================================================
+        // Helper Methods for Capability Checking
+        // ====================================================================
+
+        /// Check if a specific raytracing tier is supported
+        bool SupportsRaytracingTier(uint32_t tier) const {
+            return supportsRayTracing && raytracingTier >= tier;
+        }
+
+        /// Check if a specific variable rate shading tier is supported
+        bool SupportsVRSTier(uint32_t tier) const {
+            return supportsVariableRateShading && variableRateShadingTier >= tier;
+        }
+
+        /// Check if a specific mesh shader tier is supported
+        bool SupportsMeshShaderTier(uint32_t tier) const {
+            return supportsMeshShaders && meshShaderTier >= tier;
+        }
+
+        /// Check if a specific shader model is supported
+        bool SupportsShaderModel(uint32_t major, uint32_t minor) const {
+            uint32_t requestedSM = (major << 8) | minor; // e.g., 6.6 -> 0x0606
+            return highestShaderModel >= requestedSM;
+        }
+
+        /// Check if a specific sample count is supported for MSAA
+        bool SupportsSampleCount(uint32_t sampleCount) const {
+            return std::find(supportedSampleCounts.begin(), supportedSampleCounts.end(), sampleCount)
+                != supportedSampleCounts.end();
+        }
+
+        /// Get maximum supported sample count for MSAA
+        uint32_t GetMaxSampleCount() const {
+            if (supportedSampleCounts.empty()) return 1;
+            return *std::max_element(supportedSampleCounts.begin(), supportedSampleCounts.end());
+        }
+
+        /// Check if sufficient memory is available for allocation
+        bool HasSufficientMemory(uint64_t requiredBytes) const {
+            return availableVideoMemory >= requiredBytes;
+        }
+
+        /// Get memory pressure level (0.0 = no pressure, 1.0 = fully utilized)
+        float GetMemoryPressure() const {
+            if (dedicatedVideoMemory == 0) return 0.0f;
+            return static_cast<float>(currentUsage) / static_cast<float>(dedicatedVideoMemory);
+        }
+
+        /// Check if this is a high-end discrete GPU
+        bool IsHighEndGPU() const {
+            return isDiscrete &&
+                dedicatedVideoMemory >= (4ULL * 1024 * 1024 * 1024) && // >= 4 GB VRAM
+                supportsRayTracing &&
+                SupportsShaderModel(6, 6);
+        }
+
+        /// Check if this is a low-power/mobile GPU
+        bool IsLowPowerGPU() const {
+            return isUMA ||
+                dedicatedVideoMemory < (2ULL * 1024 * 1024 * 1024) || // < 2 GB VRAM
+                (vendorId == 0x8086); // Intel integrated graphics
+        }
+
+        /// Get vendor name from vendor ID
+        std::string GetVendorName() const {
+            switch (vendorId) {
+            case 0x10DE: return "NVIDIA";
+            case 0x1002: return "AMD";
+            case 0x8086: return "Intel";
+            case 0x1414: return "Microsoft"; // WARP
+            default: return "Unknown";
+            }
+        }
+
+        /// Get a human-readable capability summary
+        std::string GetCapabilitySummary() const {
+            std::string summary = GetVendorName() + " " + adapterName;
+            summary += std::format(" ({:.1f} GB VRAM)",
+                static_cast<double>(dedicatedVideoMemory) / (1024.0 * 1024.0 * 1024.0));
+
+            if (supportsRayTracing) {
+                summary += ", RT Tier " + std::to_string(raytracingTier);
+            }
+            if (supportsVariableRateShading) {
+                summary += ", VRS Tier " + std::to_string(variableRateShadingTier);
+            }
+            if (supportsMeshShaders) {
+                summary += ", MS Tier " + std::to_string(meshShaderTier);
+            }
+            if (supportsDirectML) {
+                summary += ", DirectML";
+            }
+
+            return summary;
+        }
+
+        /// Update capabilities from D3D12 device (similar to AdapterInfo::UpdateFromD3D12Capabilities)
+        void UpdateFromD3D12Device(ID3D12Device* device) {
+            if (!device) return;
+
+            // Query feature levels
+            D3D12_FEATURE_DATA_FEATURE_LEVELS featureLevels = {};
+            D3D_FEATURE_LEVEL levels[] = {
+                D3D_FEATURE_LEVEL_12_2, D3D_FEATURE_LEVEL_12_1, D3D_FEATURE_LEVEL_12_0,
+                D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0
+            };
+            featureLevels.NumFeatureLevels = _countof(levels);
+            featureLevels.pFeatureLevelsRequested = levels;
+
+            if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_FEATURE_LEVELS, &featureLevels, sizeof(featureLevels)))) {
+                maxFeatureLevel = static_cast<uint32_t>(featureLevels.MaxSupportedFeatureLevel);
+            }
+
+            // Query raytracing support  
+            D3D12_FEATURE_DATA_D3D12_OPTIONS5 options5 = {};
+            if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS5, &options5, sizeof(options5)))) {
+                supportsRayTracing = (options5.RaytracingTier >= D3D12_RAYTRACING_TIER_1_0);
+                raytracingTier = static_cast<uint32_t>(options5.RaytracingTier);
+            }
+
+            // Query variable rate shading
+            D3D12_FEATURE_DATA_D3D12_OPTIONS6 options6 = {};
+            if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS6, &options6, sizeof(options6)))) {
+                supportsVariableRateShading = (options6.VariableShadingRateTier >= D3D12_VARIABLE_SHADING_RATE_TIER_1);
+                variableRateShadingTier = static_cast<uint32_t>(options6.VariableShadingRateTier);
+            }
+
+            // Query mesh shader support
+            D3D12_FEATURE_DATA_D3D12_OPTIONS7 options7 = {};
+            if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS7, &options7, sizeof(options7)))) {
+                supportsMeshShaders = (options7.MeshShaderTier >= D3D12_MESH_SHADER_TIER_1);
+                meshShaderTier = static_cast<uint32_t>(options7.MeshShaderTier);
+            }
+
+            // Query architecture
+            D3D12_FEATURE_DATA_ARCHITECTURE architecture = {};
+            architecture.NodeIndex = 0;
+            if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_ARCHITECTURE, &architecture, sizeof(architecture)))) {
+                isTileBasedRenderer = architecture.TileBasedRenderer;
+                isUMA = architecture.UMA;
+                isCacheCoherentUMA = architecture.CacheCoherentUMA;
+            }
+
+            // Query resource binding tier
+            D3D12_FEATURE_DATA_D3D12_OPTIONS options = {};
+            if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_D3D12_OPTIONS, &options, sizeof(options)))) {
+                resourceBindingTier = static_cast<uint32_t>(options.ResourceBindingTier);
+            }
+
+            // Query shader model support
+            D3D12_FEATURE_DATA_SHADER_MODEL shaderModel = { D3D_SHADER_MODEL_6_7 };
+            if (SUCCEEDED(device->CheckFeatureSupport(D3D12_FEATURE_SHADER_MODEL, &shaderModel, sizeof(shaderModel)))) {
+                highestShaderModel = static_cast<uint32_t>(shaderModel.HighestShaderModel);
+                supportsShaderModel6 = (shaderModel.HighestShaderModel >= D3D_SHADER_MODEL_6_0);
+                supportsShaderModel6_6 = (shaderModel.HighestShaderModel >= D3D_SHADER_MODEL_6_6);
+                supportsShaderModel6_7 = (shaderModel.HighestShaderModel >= D3D_SHADER_MODEL_6_7);
+            }
+
+            // Additional capability queries can be added here as needed
+        }
+
+        // ====================================================================
+        // Initialization and Default Values
+        // ====================================================================
+
+        /// Set reasonable default values for development/testing
+        void SetDefaults() {
+            // Basic limits
+            maxTexture2DSize = 16384;
+            maxTexture3DSize = 2048;
+            maxTextureCubeSize = 16384;
+            maxTextureArraySize = 2048;
+            maxRenderTargets = 8;
+            maxViewports = 16;
+            maxVertexInputElements = 32;
+            maxConstantBufferSize = 65536;
+
+            // Default sample counts
+            supportedSampleCounts = { 1, 2, 4, 8 };
+
+            // Performance defaults
+            recommendedSwapChainBuffers = 3;
+            minResourceAlignment = 256;
+
+            // Assume modern DirectX 12 baseline
+            maxFeatureLevel = static_cast<uint32_t>(D3D_FEATURE_LEVEL_12_0);
+            supportsShaderModel6 = true;
+            highestShaderModel = static_cast<uint32_t>(D3D_SHADER_MODEL_6_0);
+        }
     };
 
 } // namespace Akhanda::RHI

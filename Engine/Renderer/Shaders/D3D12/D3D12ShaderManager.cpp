@@ -14,6 +14,8 @@ module;
 #include <mutex>
 #include <shared_mutex>
 
+#pragma comment(lib, "d3dcompiler.lib")
+
 module Akhanda.Engine.Shaders.D3D12;
 
 import Akhanda.Core.Logging;

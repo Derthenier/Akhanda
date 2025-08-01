@@ -11,6 +11,7 @@
 #include <stack>
 #include <mutex>
 #include <atomic>
+#include <queue>
 
 import Akhanda.Engine.RHI;
 import Akhanda.Engine.RHI.Interfaces;

@@ -917,6 +917,23 @@ namespace Akhanda::RHI::D3D12 {
         }
     }
 
+    void D3D12DescriptorHeap::LogDescriptorCreation(uint32_t descriptorIndex,
+        const char* viewType,
+        const char* resourceName) const {
+        auto& logChannel = Logging::LogManager::Instance().GetChannel("D3D12DescriptorHeap");
+        logChannel.LogFormat(Logging::LogLevel::Debug,
+            "Created {} at descriptor index {} for resource '{}'",
+            viewType ? viewType : "view",
+            descriptorIndex,
+            resourceName ? resourceName : "unnamed");
+    }
+
+    void D3D12DescriptorHeap::LogDescriptorFree(uint32_t descriptorIndex) const {
+        auto& logChannel = Logging::LogManager::Instance().GetChannel("D3D12DescriptorHeap");
+        logChannel.LogFormat(Logging::LogLevel::Debug,
+            "Freed descriptor at index {}", descriptorIndex);
+    }
+
     void D3D12DescriptorHeap::LogDescriptorAllocation(uint32_t index) const {
         logChannel_.LogFormat(Logging::LogLevel::Debug,
             "Allocated descriptor {} in heap '{}' (type: {}, shader visible: {})",

@@ -25,58 +25,14 @@ export namespace Akhanda::Renderer {
 
     namespace RHI {
 
-        // Create D3D12 Factory
-        std::unique_ptr<Akhanda::RHI::IRHIFactory> CreateD3D12Factory() {
-            try {
-                // This would be implemented in D3D12Factory.cpp
-                // For now, return nullptr as placeholder
-                // return std::make_unique<D3D12::D3D12Factory>();
-                return {};
-            }
-            catch (const std::exception& e) {
-                auto& logChannel = Logging::LogManager::Instance().GetChannel("RHI");
-                logChannel.LogFormat(Logging::LogLevel::Error, "Failed to create D3D12 factory: {}", e.what());
-                return {};
-            }
-        }
-
-        // Create RHI Factory based on API selection
-        std::unique_ptr<Akhanda::RHI::IRHIFactory> CreateRHIFactory(Configuration::RenderingAPI api) {
-            switch (api) {
-            case Configuration::RenderingAPI::D3D12:
-                return CreateD3D12Factory();
-
-            case Configuration::RenderingAPI::Vulkan:
-                // Future implementation
-            {
-                auto& logChannel = Logging::LogManager::Instance().GetChannel("RHI");
-                logChannel.Log(Logging::LogLevel::Warning, "Vulkan RHI not yet implemented, falling back to D3D12");
-                return CreateD3D12Factory();
-            }
-
-            case Configuration::RenderingAPI::D3D11:
-                // Legacy fallback
-            {
-                auto& logChannel = Logging::LogManager::Instance().GetChannel("RHI");
-                logChannel.Log(Logging::LogLevel::Warning, "D3D11 RHI not implemented, falling back to D3D12");
-                return CreateD3D12Factory();
-            }
-
-            default:
-            {
-                auto& logChannel = Logging::LogManager::Instance().GetChannel("RHI");
-                logChannel.LogFormat(Logging::LogLevel::Error, "Unknown rendering API: {}", static_cast<uint32_t>(api));
-                return nullptr;
-            }
-            }
-        }
+        
 
         // Get supported RHI APIs on current platform
         std::vector<Configuration::RenderingAPI> GetSupportedAPIs() {
             std::vector<Configuration::RenderingAPI> supportedAPIs;
 
             // Check D3D12 support
-            auto d3d12Factory = CreateD3D12Factory();
+            auto d3d12Factory = Akhanda::RHI::CreateD3D12Factory();
             if (d3d12Factory && d3d12Factory->IsSupported()) {
                 supportedAPIs.push_back(Configuration::RenderingAPI::D3D12);
             }

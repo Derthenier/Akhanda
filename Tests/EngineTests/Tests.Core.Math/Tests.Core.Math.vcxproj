@@ -108,18 +108,16 @@
   </ItemGroup>
   <!-- Test data files -->
   <ItemGroup>
-    <None Include="$(TestDataDir)TestVectors.json" />
-    <None Include="$(TestDataDir)TestMatrices.json" />
-    <None Include="$(TestDataDir)TestQuaternions.json" />
-    <None Include="$(TestDataDir)BenchmarkData.json" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\..\..\Engine\Engine.vcxproj">
       <Project>{6eba6490-35f7-4578-b7e8-eea36ba09570}</Project>
       <LinkLibraryDependencies>true</LinkLibraryDependencies>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Data\BenchmarkData.json" />
+    <None Include="Data\TestMatrices.json" />
+    <None Include="Data\TestQuaternions.json" />
+    <None Include="Data\TestVectors.json" />
     <None Include="packages.config" />
   </ItemGroup>
   <!-- Copy test data to output -->

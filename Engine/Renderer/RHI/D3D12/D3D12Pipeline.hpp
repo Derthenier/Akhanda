@@ -14,6 +14,7 @@
 #include <atomic>
 
 import Akhanda.Engine.RHI.Interfaces;
+import Akhanda.Engine.RHI;
 import Akhanda.Core.Logging;
 import Akhanda.Core.Memory;
 
