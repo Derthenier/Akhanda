@@ -56,6 +56,7 @@
     <ClCompile Include="Core\Configuration\Core.FileHandler.ixx" />
     <ClCompile Include="Core\Configuration\JsonWrapper.cpp" />
     <ClCompile Include="Core\Containers\Core.Containers.ixx" />
+    <ClCompile Include="Core\Core.Hash.ixx" />
     <ClCompile Include="Core\Core.Result.ixx" />
     <ClCompile Include="Core\Jobs\Core.JobSystem.cpp" />
     <ClCompile Include="Core\Jobs\Core.JobSystem.ixx" />

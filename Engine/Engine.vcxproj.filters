@@ -54,6 +54,7 @@
     <ClCompile Include="Core\Platform\Windows\RendererPlatformIntegration.cpp" />
     <ClCompile Include="Renderer\RHI\D3D12\D3D12Pipeline.cpp" />
     <ClCompile Include="Renderer\RHI\D3D12\D3D12CommandList.cpp" />
+    <ClCompile Include="Core\Core.Hash.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Core\Logging\Core.Logging.hpp" />

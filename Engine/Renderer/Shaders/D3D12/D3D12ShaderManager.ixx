@@ -142,39 +142,6 @@ export namespace Akhanda::Shaders::D3D12 {
     };
 
     // ============================================================================
-    // Include Handler for D3D Compiler
-    // ============================================================================
-
-    class CompilerIncludeHandler : public ID3DInclude {
-    public:
-        CompilerIncludeHandler(const std::vector<std::filesystem::path>& includePaths);
-        virtual ~CompilerIncludeHandler() = default;
-
-        // ID3DInclude interface
-        HRESULT STDMETHODCALLTYPE Open(
-            D3D_INCLUDE_TYPE IncludeType,
-            LPCSTR pFileName,
-            LPCVOID pParentData,
-            LPCVOID* ppData,
-            UINT* pBytes
-        ) override;
-
-        HRESULT STDMETHODCALLTYPE Close(LPCVOID pData) override;
-
-        // Additional functionality
-        const std::vector<std::filesystem::path>& GetIncludedFiles() const { return includedFiles_; }
-        void ClearIncludedFiles() { includedFiles_.clear(); }
-
-    private:
-        std::vector<std::filesystem::path> includePaths_;
-        std::vector<std::filesystem::path> includedFiles_;
-        std::vector<std::unique_ptr<std::vector<char>>> allocatedBuffers_;
-        std::mutex includesMutex_;
-
-        std::filesystem::path FindIncludeFile(const std::string& fileName, bool isSystemInclude) const;
-    };
-
-    // ============================================================================
     // Shader Cache System
     // ============================================================================
 
@@ -654,6 +621,20 @@ export namespace Akhanda::Shaders::D3D12 {
 
         // Statistics updates
         void UpdateCompilationStatistics(const std::chrono::milliseconds& compilationTime, bool success);
+
+        /// <summary>
+        /// Gets D3D compilation flags based on optimization settings
+        /// </summary>
+        /// <param name="optimization">Optimization level from configuration</param>
+        /// <returns>D3D compile flags</returns>
+        UINT GetCompilationFlags(Configuration::ShaderOptimization optimization) const;
+
+        /// <summary>
+        /// Gets target shader profile string for the given stage
+        /// </summary>
+        /// <param name="stage">Shader stage (VS, PS, CS, etc.)</param>
+        /// <returns>Target profile string (e.g., "vs_6_0")</returns>
+        std::string GetTargetProfile(ShaderStage stage) const;
     };
 
 } // namespace Akhanda::Shaders::D3D12

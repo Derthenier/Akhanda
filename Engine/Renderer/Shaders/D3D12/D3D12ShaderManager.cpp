@@ -19,12 +19,86 @@ module;
 module Akhanda.Engine.Shaders.D3D12;
 
 import Akhanda.Core.Logging;
+import Akhanda.Core.Hash;
 
 using Microsoft::WRL::ComPtr;
 
 namespace Akhanda::Shaders {
 
     namespace D3D12 {
+
+
+        // ============================================================================
+        // CompilerIncludeHandler - Private Implementation Class
+        // ============================================================================
+
+        class CompilerIncludeHandler : public ID3DInclude {
+        private:
+            std::vector<std::filesystem::path> includePaths_;
+            std::vector<std::filesystem::path> includedFiles_;
+            mutable std::unordered_map<std::string, std::vector<char>> fileCache_;
+
+        public:
+            explicit CompilerIncludeHandler(const std::vector<std::filesystem::path>& includePaths)
+                : includePaths_(includePaths) {
+            }
+
+            HRESULT Open(D3D_INCLUDE_TYPE includeType, LPCSTR pFileName,
+                LPCVOID pParentData, LPCVOID* ppData, UINT* pBytes) override {
+
+                std::filesystem::path filePath;
+
+                for (const auto& searchPath : includePaths_) {
+                    auto candidatePath = searchPath / pFileName;
+                    if (std::filesystem::exists(candidatePath)) {
+                        filePath = candidatePath;
+                        break;
+                    }
+                }
+
+                if (filePath.empty()) {
+                    return E_FAIL;
+                }
+
+                std::string filePathStr = filePath.string();
+                auto cacheIt = fileCache_.find(filePathStr);
+                if (cacheIt != fileCache_.end()) {
+                    *ppData = cacheIt->second.data();
+                    *pBytes = static_cast<UINT>(cacheIt->second.size());
+                    return S_OK;
+                }
+
+                std::ifstream file(filePath, std::ios::binary | std::ios::ate);
+                if (!file.is_open()) {
+                    return E_FAIL;
+                }
+
+                std::streamsize fileSize = file.tellg();
+                file.seekg(0, std::ios::beg);
+
+                std::vector<char> buffer(fileSize);
+                if (!file.read(buffer.data(), fileSize)) {
+                    return E_FAIL;
+                }
+
+                fileCache_[filePathStr] = std::move(buffer);
+                includedFiles_.push_back(filePath);
+
+                *ppData = fileCache_[filePathStr].data();
+                *pBytes = static_cast<UINT>(fileCache_[filePathStr].size());
+
+                return S_OK;
+            }
+
+            HRESULT Close(LPCVOID pData) override {
+                return S_OK;
+            }
+
+            const std::vector<std::filesystem::path>& GetIncludedFiles() const {
+                return includedFiles_;
+            }
+        };
+
 
         // ============================================================================
         // D3D12Shader Implementation
@@ -288,84 +362,6 @@ namespace Akhanda::Shaders {
                     }
                 }
             }
-        }
-
-        // ============================================================================
-        // CompilerIncludeHandler Implementation
-        // ============================================================================
-
-        CompilerIncludeHandler::CompilerIncludeHandler(const std::vector<std::filesystem::path>& includePaths)
-            : includePaths_(includePaths)
-        {
-        }
-
-        HRESULT CompilerIncludeHandler::Open(
-            D3D_INCLUDE_TYPE IncludeType,
-            LPCSTR pFileName,
-            [[maybe_unused]] LPCVOID pParentData,
-            [[maybe_unused]] LPCVOID* ppData,
-            UINT* pBytes
-        ) {
-            std::lock_guard<std::mutex> lock(includesMutex_);
-
-            try {
-                bool isSystemInclude = (IncludeType == D3D_INCLUDE_SYSTEM);
-                std::filesystem::path includeFile = FindIncludeFile(pFileName, isSystemInclude);
-
-                if (includeFile.empty()) {
-                    return E_FAIL;
-                }
-
-                // Read the file
-                std::ifstream file(includeFile, std::ios::binary | std::ios::ate);
-                if (!file.is_open()) {
-                    return E_FAIL;
-                }
-
-                std::streamsize size = file.tellg();
-                file.seekg(0, std::ios::beg);
-
-                auto buffer = std::make_unique<std::vector<char>>(static_cast<size_t>(size));
-                if (!file.read(buffer->data(), size)) {
-                    return E_FAIL;
-                }
-
-                *ppData = buffer->data();
-                *pBytes = static_cast<UINT>(size);
-
-                // Track the included file
-                includedFiles_.push_back(includeFile);
-
-                // Store the buffer to keep it alive
-                allocatedBuffers_.push_back(std::move(buffer));
-
-                return S_OK;
-            }
-            catch (...) {
-                return E_FAIL;
-            }
-        }
-
-        HRESULT CompilerIncludeHandler::Close([[maybe_unused]] LPCVOID pData) {
-            // The buffer will be automatically cleaned up when allocatedBuffers_ is destroyed
-            return S_OK;
-        }
-
-        std::filesystem::path CompilerIncludeHandler::FindIncludeFile(const std::string& fileName, [[maybe_unused]] bool isSystemInclude) const {
-            // Try to find the include file in the include paths
-            for (const auto& includePath : includePaths_) {
-                std::filesystem::path fullPath = includePath / fileName;
-                if (std::filesystem::exists(fullPath)) {
-                    return fullPath;
-                }
-            }
-
-            // If not found, try relative to current directory
-            if (std::filesystem::exists(fileName)) {
-                return std::filesystem::absolute(fileName);
-            }
-
-            return {};
         }
 
         // ============================================================================
@@ -1806,15 +1802,135 @@ namespace Akhanda::Shaders {
             const ShaderVariant& variant,
             Configuration::ShaderOptimization optimization
         ) {
-            ShaderCompileRequest request;
-            request.sourceFile = sourceFile;
-            request.entryPoint = entryPoint;
-            request.stage = stage;
-            request.variant = variant;
-            request.optimization = optimization;
-            request.shaderModel = config_.GetTargetShaderModel();
 
-            return CompileShader(request);
+            using namespace Core;
+
+            // Use your existing ReadShaderFile method
+            auto sourceResult = ReadShaderFile(sourceFile);
+            if (!sourceResult.IsSuccess()) {
+                return Err<std::shared_ptr<IShader>>(sourceResult.Error());
+            }
+
+            const std::string& source = sourceResult.Value();
+
+            // Use your existing GetTargetProfile method
+            std::string targetProfile = GetTargetProfile(stage);
+
+            // Prepare defines from variant
+            std::vector<D3D_SHADER_MACRO> defines;
+            defines.reserve(variant.defines.size() + config_.GetGlobalDefines().size() + 1);
+
+            // Add variant defines
+            for (const auto& define : variant.defines) {
+                D3D_SHADER_MACRO macro;
+                macro.Name = define.name.c_str();
+                macro.Definition = define.value.c_str();
+                defines.push_back(macro);
+            }
+
+            // Add global defines from your config
+            for (const auto& globalDefine : config_.GetGlobalDefines()) {
+                D3D_SHADER_MACRO macro;
+                size_t equalPos = globalDefine.find('=');
+                if (equalPos != std::string::npos) {
+                    static thread_local std::string nameStorage, valueStorage;
+                    nameStorage = globalDefine.substr(0, equalPos);
+                    valueStorage = globalDefine.substr(equalPos + 1);
+                    macro.Name = nameStorage.c_str();
+                    macro.Definition = valueStorage.c_str();
+                }
+                else {
+                    static thread_local std::string valueStorage = "1";
+                    macro.Name = globalDefine.c_str();
+                    macro.Definition = valueStorage.c_str();
+                }
+                defines.push_back(macro);
+            }
+
+            // Null terminate
+            defines.push_back({ nullptr, nullptr });
+
+            // Create include handler using your existing GetIncludePaths method
+            CompilerIncludeHandler includeHandler(GetIncludePaths());
+
+            // Use your existing GetCompilationFlags method
+            UINT flags = GetCompilationFlags(optimization);
+
+            // Perform D3D compilation
+            ComPtr<ID3DBlob> bytecode;
+            ComPtr<ID3DBlob> errorBlob;
+
+            auto startTime = std::chrono::high_resolution_clock::now();
+
+            HRESULT hr = D3DCompile(
+                source.c_str(),
+                source.length(),
+                sourceFile.filename().string().c_str(),
+                defines.data(),
+                &includeHandler,
+                entryPoint.c_str(),
+                targetProfile.c_str(),
+                flags,
+                0,
+                &bytecode,
+                &errorBlob
+            );
+
+            auto endTime = std::chrono::high_resolution_clock::now();
+            auto compilationTime = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+
+            // Handle compilation errors
+            if (FAILED(hr)) {
+                std::string errorMessage = "Unknown compilation error";
+
+                if (errorBlob) {
+                    const char* errorData = static_cast<const char*>(errorBlob->GetBufferPointer());
+                    SIZE_T errorSize = errorBlob->GetBufferSize();
+                    errorMessage = std::string(errorData, errorSize);
+                }
+
+                // Use your existing logging system
+                logChannel_.LogFormat(Logging::LogLevel::Error,
+                    "Shader compilation failed for '{}:{}': {}",
+                    sourceFile.filename().string(), entryPoint, errorMessage);
+
+                return Err<std::shared_ptr<IShader>>({ ShaderError::CompilationFailed, "HLSL compilation failed: " + errorMessage });
+            }
+
+            // Handle warnings
+            if (errorBlob && errorBlob->GetBufferSize() > 0) {
+                const char* warningData = static_cast<const char*>(errorBlob->GetBufferPointer());
+                SIZE_T warningSize = errorBlob->GetBufferSize();
+                std::string warningMessage(warningData, warningSize);
+
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Shader compilation warnings for '{}:{}': {}",
+                    sourceFile.filename().string(), entryPoint, warningMessage);
+            }
+
+            // Create reflection data
+            auto reflection = std::make_unique<ShaderReflectionData>();
+            reflection->stage = stage;
+            reflection->entryPoint = entryPoint;
+            reflection->sourceCodeHash = HashString(source);
+            reflection->compilationTime = std::chrono::steady_clock::now();
+
+            // Create the D3D12Shader instance using your existing constructor
+            std::string shaderName = sourceFile.filename().string() + ":" + entryPoint;
+            auto shader = std::make_shared<D3D12Shader>(
+                shaderName,
+                stage,
+                variant,
+                bytecode,
+                std::move(reflection)
+            );
+
+            // Log successful compilation
+            logChannel_.LogFormat(Logging::LogLevel::Info,
+                "Successfully compiled shader '{}' ({} bytes) in {}ms",
+                shaderName, bytecode->GetBufferSize(), compilationTime.count());
+
+            return Ok<std::shared_ptr<IShader>>(shader);
         }
 
         Core::Result<std::vector<std::shared_ptr<IShader>>, Core::ErrorInfo> D3D12ShaderManager::CompileAllEntryPoints(
@@ -1939,21 +2055,186 @@ namespace Akhanda::Shaders {
         }
 
         // ========================================================================
-        // Enhanced Include Dependency Management - Stub Implementations
+        // Enhanced Include Dependency Management
         // ========================================================================
 
         std::vector<std::filesystem::path> D3D12ShaderManager::GetShaderDependencies(
             const std::filesystem::path& shaderFile
         ) const {
-            // Stub implementation
-            return {};
+            std::vector<std::filesystem::path> dependencies;
+
+            if (!std::filesystem::exists(shaderFile)) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning, 
+                    "Cannot find dependencies for non-existent shader file: {}", shaderFile.string());
+                return dependencies;
+            }
+
+            // Read shader source file
+            auto sourceResult = ReadShaderFile(shaderFile);
+            if (!sourceResult) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Failed to read shader file for dependency analysis: {}", shaderFile.string());
+                return dependencies;
+            }
+
+            const std::string& source = sourceResult.Value();
+            std::unordered_set<std::filesystem::path> uniqueDependencies;
+
+            // Parse #include directives using regex
+            std::regex includeRegex(R"(#\s*include\s*[<"](.*?)[>"])");
+            std::sregex_iterator iter(source.begin(), source.end(), includeRegex);
+            std::sregex_iterator end;
+
+            // Get current include paths
+            std::vector<std::filesystem::path> searchPaths;
+            {
+                std::shared_lock<std::shared_mutex> lock(includePathsMutex_);
+                searchPaths = includePaths_;
+            }
+
+            // Add the directory containing the shader file as a search path
+            auto shaderDir = shaderFile.parent_path();
+            if (!shaderDir.empty()) {
+                searchPaths.insert(searchPaths.begin(), shaderDir);
+            }
+
+            // Process each #include directive
+            for (; iter != end; ++iter) {
+                std::string includePath = (*iter)[1].str();
+                std::filesystem::path resolvedPath;
+
+                // Try to resolve the include path
+                for (const auto& searchPath : searchPaths) {
+                    auto candidatePath = searchPath / includePath;
+                    if (std::filesystem::exists(candidatePath)) {
+                        resolvedPath = std::filesystem::canonical(candidatePath);
+                        break;
+                    }
+                }
+
+                // If we couldn't resolve the path, try relative to shader file
+                if (resolvedPath.empty()) {
+                    auto relativePath = shaderFile.parent_path() / includePath;
+                    if (std::filesystem::exists(relativePath)) {
+                        resolvedPath = std::filesystem::canonical(relativePath);
+                    }
+                }
+
+                // Add to dependencies if found and not already processed
+                if (!resolvedPath.empty() && resolvedPath != shaderFile) {
+                    if (uniqueDependencies.find(resolvedPath) == uniqueDependencies.end()) {
+                        uniqueDependencies.insert(resolvedPath);
+                        
+                        // Recursively get dependencies of the included file
+                        auto nestedDependencies = GetShaderDependencies(resolvedPath);
+                        for (const auto& nestedDep : nestedDependencies) {
+                            uniqueDependencies.insert(nestedDep);
+                        }
+                    }
+                }
+            }
+
+            // Convert set to vector
+            dependencies.reserve(uniqueDependencies.size());
+            for (const auto& dep : uniqueDependencies) {
+                dependencies.push_back(dep);
+            }
+
+            // Sort for consistent ordering
+            std::sort(dependencies.begin(), dependencies.end());
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Found {} dependencies for shader file: {}", dependencies.size(), shaderFile.string());
+
+            return dependencies;
         }
 
         std::vector<std::string> D3D12ShaderManager::FindShadersUsingInclude(
             const std::filesystem::path& includeFile
         ) const {
-            // Stub implementation
-            return {};
+            std::vector<std::string> dependentShaders;
+
+            if (!std::filesystem::exists(includeFile)) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Cannot find shaders using non-existent include file: {}", includeFile.string());
+                return dependentShaders;
+            }
+
+            // Get canonical path for comparison
+            std::filesystem::path canonicalInclude;
+            try {
+                canonicalInclude = std::filesystem::canonical(includeFile);
+            }
+            catch (const std::filesystem::filesystem_error& e) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Failed to get canonical path for include file {}: {}", includeFile.string(), e.what());
+                return dependentShaders;
+            }
+
+            // Search through all loaded shaders
+            {
+                std::shared_lock<std::shared_mutex> lock(shadersMutex_);
+                for (const auto& [shaderKey, shader] : shaders_) {
+                    const auto& reflection = shader->GetReflection();
+                    
+                    // Check if this shader includes the specified file
+                    for (const auto& includedFile : reflection.includedFiles) {
+                        std::filesystem::path includedPath(includedFile);
+                        
+                        try {
+                            if (std::filesystem::exists(includedPath)) {
+                                auto canonicalIncludedPath = std::filesystem::canonical(includedPath);
+                                if (canonicalIncludedPath == canonicalInclude) {
+                                    dependentShaders.push_back(shader->GetName());
+                                    break; // Found match, no need to check other includes for this shader
+                                }
+                            }
+                        }
+                        catch (const std::filesystem::filesystem_error&) {
+                            // Skip files that can't be canonicalized
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            // Also search through shader programs
+            {
+                std::shared_lock<std::shared_mutex> lock(programsMutex_);
+                for (const auto& [programName, program] : programs_) {
+                    const auto& reflection = program->GetCombinedReflection();
+                    
+                    // Check if this program includes the specified file
+                    for (const auto& includedFile : reflection.includedFiles) {
+                        std::filesystem::path includedPath(includedFile);
+                        
+                        try {
+                            if (std::filesystem::exists(includedPath)) {
+                                auto canonicalIncludedPath = std::filesystem::canonical(includedPath);
+                                if (canonicalIncludedPath == canonicalInclude) {
+                                    dependentShaders.push_back(programName);
+                                    break;
+                                }
+                            }
+                        }
+                        catch (const std::filesystem::filesystem_error&) {
+                            continue;
+                        }
+                    }
+                }
+            }
+
+            // Remove duplicates and sort
+            std::sort(dependentShaders.begin(), dependentShaders.end());
+            dependentShaders.erase(
+                std::unique(dependentShaders.begin(), dependentShaders.end()),
+                dependentShaders.end()
+            );
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Found {} shaders/programs using include file: {}", dependentShaders.size(), includeFile.string());
+
+            return dependentShaders;
         }
 
         void D3D12ShaderManager::AddIncludePath(const std::filesystem::path& includePath) {
@@ -1975,53 +2256,618 @@ namespace Akhanda::Shaders {
         }
 
         void D3D12ShaderManager::RefreshDependencyTracking() {
-            // Stub implementation
+            if (!hotReloadManager_) {
+                logChannel_.Log(Logging::LogLevel::Warning, "Hot reload manager not available for dependency tracking refresh");
+                return;
+            }
+
+            logChannel_.Log(Logging::LogLevel::Info, "Refreshing shader dependency tracking...");
+
+            // Track all shader files and their dependencies
+            std::unordered_set<std::filesystem::path> allTrackedFiles;
+
+            // Refresh dependencies for all loaded shaders
+            {
+                std::shared_lock<std::shared_mutex> lock(shadersMutex_);
+                for (const auto& [shaderKey, shader] : shaders_) {
+                    const auto& reflection = shader->GetReflection();
+                    
+                    // Update dependencies for this shader
+                    std::vector<std::filesystem::path> dependencies;
+                    for (const auto& includedFile : reflection.includedFiles) {
+                        std::filesystem::path includePath(includedFile);
+                        if (std::filesystem::exists(includePath)) {
+                            try {
+                                auto canonicalPath = std::filesystem::canonical(includePath);
+                                dependencies.push_back(canonicalPath);
+                                allTrackedFiles.insert(canonicalPath);
+                            }
+                            catch (const std::filesystem::filesystem_error&) {
+                                // Skip files that can't be canonicalized
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    // Update hot reload manager with dependencies
+                    hotReloadManager_->UpdateDependencies(shader->GetName(), dependencies);
+                }
+            }
+
+            // Refresh dependencies for all loaded shader programs
+            {
+                std::shared_lock<std::shared_mutex> lock(programsMutex_);
+                for (const auto& [programName, program] : programs_) {
+                    const auto& reflection = program->GetCombinedReflection();
+                    
+                    std::vector<std::filesystem::path> dependencies;
+                    for (const auto& includedFile : reflection.includedFiles) {
+                        std::filesystem::path includePath(includedFile);
+                        if (std::filesystem::exists(includePath)) {
+                            try {
+                                auto canonicalPath = std::filesystem::canonical(includePath);
+                                dependencies.push_back(canonicalPath);
+                                allTrackedFiles.insert(canonicalPath);
+                            }
+                            catch (const std::filesystem::filesystem_error&) {
+                                continue;
+                            }
+                        }
+                    }
+                    
+                    // Update hot reload manager with program dependencies
+                    hotReloadManager_->UpdateDependencies(programName, dependencies);
+                }
+            }
+
+            // Add file watches for all dependency files
+            for (const auto& filePath : allTrackedFiles) {
+                hotReloadManager_->AddFileWatch(filePath);
+            }
+
+            // Also scan for shader source files in common shader directories
+            std::vector<std::filesystem::path> shaderDirectories;
+            {
+                std::shared_lock<std::shared_mutex> lock(includePathsMutex_);
+                shaderDirectories = includePaths_;
+            }
+
+            // Add common shader extensions to watch
+            const std::vector<std::string> shaderExtensions = {
+                ".hlsl", ".fx", ".shader", ".vert", ".frag", ".geom", ".comp", ".tesc", ".tese"
+            };
+
+            for (const auto& directory : shaderDirectories) {
+                if (!std::filesystem::exists(directory) || !std::filesystem::is_directory(directory)) {
+                    continue;
+                }
+
+                try {
+                    for (const auto& entry : std::filesystem::recursive_directory_iterator(directory)) {
+                        if (entry.is_regular_file()) {
+                            auto extension = entry.path().extension().string();
+                            
+                            // Check if this is a shader file
+                            bool isShaderFile = std::any_of(shaderExtensions.begin(), shaderExtensions.end(),
+                                [&extension](const std::string& ext) {
+                                    return extension == ext;
+                                });
+
+                            if (isShaderFile) {
+                                try {
+                                    auto canonicalPath = std::filesystem::canonical(entry.path());
+                                    hotReloadManager_->AddFileWatch(canonicalPath);
+                                }
+                                catch (const std::filesystem::filesystem_error&) {
+                                    // Skip files that can't be canonicalized
+                                    continue;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch (const std::filesystem::filesystem_error& e) {
+                    logChannel_.LogFormat(Logging::LogLevel::Warning,
+                        "Failed to scan shader directory {}: {}", directory.string(), e.what());
+                }
+            }
+
+            logChannel_.LogFormat(Logging::LogLevel::Info,
+                "Dependency tracking refresh completed. Tracking {} dependency files", allTrackedFiles.size());
         }
 
         // ========================================================================
-        // Shader Preprocessing and Macro Management - Stub Implementations
+        // Shader Preprocessing and Macro Management
         // ========================================================================
 
         Core::Result<std::string, Core::ErrorInfo> D3D12ShaderManager::PreprocessShader(
             const std::filesystem::path& sourceFile,
             const ShaderVariant& variant
         ) const {
-            // Stub implementation - just return source file content
-            return ReadShaderFile(sourceFile);
+            // Read source file
+            auto sourceResult = ReadShaderFile(sourceFile);
+            if (!sourceResult) {
+                return sourceResult;
+            }
+
+            std::string source = sourceResult.Value();
+
+            // Prepare defines for preprocessing
+            std::vector<D3D_SHADER_MACRO> defines;
+            defines.reserve(variant.defines.size() + config_.GetGlobalDefines().size() + 1);
+
+            // Add variant defines
+            for (const auto& define : variant.defines) {
+                D3D_SHADER_MACRO macro;
+                macro.Name = define.name.c_str();
+                macro.Definition = define.value.c_str();
+                defines.push_back(macro);
+            }
+
+            // Add global defines from configuration
+            for (const auto& globalDefine : config_.GetGlobalDefines()) {
+                D3D_SHADER_MACRO macro;
+                size_t equalPos = globalDefine.find('=');
+                if (equalPos != std::string::npos) {
+                    static thread_local std::string nameStorage, valueStorage;
+                    nameStorage = globalDefine.substr(0, equalPos);
+                    valueStorage = globalDefine.substr(equalPos + 1);
+                    macro.Name = nameStorage.c_str();
+                    macro.Definition = valueStorage.c_str();
+                }
+                else {
+                    static thread_local std::string valueStorage = "1";
+                    macro.Name = globalDefine.c_str();
+                    macro.Definition = valueStorage.c_str();
+                }
+                defines.push_back(macro);
+            }
+
+            // Null terminate
+            defines.push_back({ nullptr, nullptr });
+
+            // Create include handler
+            std::vector<std::filesystem::path> searchPaths;
+            {
+                std::shared_lock<std::shared_mutex> lock(includePathsMutex_);
+                searchPaths = includePaths_;
+            }
+            
+            // Add shader file directory to search paths
+            auto shaderDir = sourceFile.parent_path();
+            if (!shaderDir.empty()) {
+                searchPaths.insert(searchPaths.begin(), shaderDir);
+            }
+
+            CompilerIncludeHandler includeHandler(searchPaths);
+
+            // Use D3DPreprocess to preprocess the shader
+            ComPtr<ID3DBlob> preprocessedBlob;
+            ComPtr<ID3DBlob> errorBlob;
+
+            HRESULT hr = D3DPreprocess(
+                source.c_str(),
+                source.length(),
+                sourceFile.filename().string().c_str(),
+                defines.data(),
+                &includeHandler,
+                &preprocessedBlob,
+                &errorBlob
+            );
+
+            if (FAILED(hr)) {
+                std::string errorMessage = "Unknown preprocessing error";
+                if (errorBlob) {
+                    const char* errorData = static_cast<const char*>(errorBlob->GetBufferPointer());
+                    SIZE_T errorSize = errorBlob->GetBufferSize();
+                    errorMessage = std::string(errorData, errorSize);
+                }
+
+                return Core::Err<std::string>(Core::MakeError(
+                    Core::ShaderError::CompilationFailed,
+                    std::format("Shader preprocessing failed: {}", errorMessage)
+                ));
+            }
+
+            // Convert blob to string
+            const char* preprocessedData = static_cast<const char*>(preprocessedBlob->GetBufferPointer());
+            SIZE_T preprocessedSize = preprocessedBlob->GetBufferSize();
+            std::string preprocessedSource(preprocessedData, preprocessedSize);
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Successfully preprocessed shader: {} ({} -> {} bytes)",
+                sourceFile.filename().string(), source.length(), preprocessedSize);
+
+            return Core::Ok<std::string>(std::move(preprocessedSource));
         }
 
         Core::Result<void*, Core::ErrorInfo> D3D12ShaderManager::ValidateShaderDefines(
             const ShaderVariant& variant
         ) const {
-            // Stub implementation
+            // Validate macro names and values
+            for (const auto& define : variant.defines) {
+                // Check if macro name is valid (starts with letter or underscore, contains only alphanumeric and underscore)
+                if (define.name.empty()) {
+                    return Core::Err<void*>(Core::MakeError(
+                        Core::ShaderError::CompilationFailed,
+                        "Shader define cannot have empty name"
+                    ));
+                }
+
+                // Check first character
+                char firstChar = define.name[0];
+                if (!std::isalpha(firstChar) && firstChar != '_') {
+                    return Core::Err<void*>(Core::MakeError(
+                        Core::ShaderError::CompilationFailed,
+                        std::format("Shader define '{}' has invalid name: must start with letter or underscore", define.name)
+                    ));
+                }
+
+                // Check remaining characters
+                for (size_t i = 1; i < define.name.length(); ++i) {
+                    char c = define.name[i];
+                    if (!std::isalnum(c) && c != '_') {
+                        return Core::Err<void*>(Core::MakeError(
+                            Core::ShaderError::CompilationFailed,
+                            std::format("Shader define '{}' has invalid name: must contain only letters, digits, and underscores", define.name)
+                        ));
+                    }
+                }
+
+                // Check for reserved keywords
+                static const std::unordered_set<std::string> reservedKeywords = {
+                    "if", "else", "for", "while", "do", "switch", "case", "default", "break", "continue",
+                    "return", "struct", "class", "typedef", "enum", "union", "const", "static", "extern",
+                    "register", "auto", "volatile", "inline", "void", "char", "short", "int", "long",
+                    "float", "double", "signed", "unsigned", "bool", "true", "false", "sizeof",
+                    "template", "typename", "namespace", "using", "public", "private", "protected",
+                    "virtual", "override", "final", "new", "delete", "this", "nullptr",
+                    // HLSL specific keywords
+                    "cbuffer", "tbuffer", "texture", "sampler", "SamplerState", "Buffer", "RWBuffer",
+                    "Texture1D", "Texture2D", "Texture3D", "TextureCube", "RWTexture1D", "RWTexture2D", "RWTexture3D",
+                    "float2", "float3", "float4", "int2", "int3", "int4", "uint2", "uint3", "uint4",
+                    "half", "half2", "half3", "half4", "double2", "double3", "double4",
+                    "matrix", "float4x4", "float3x3", "float2x2", "row_major", "column_major",
+                    "vertex", "pixel", "geometry", "hull", "domain", "compute",
+                    "SV_Position", "SV_Target", "SV_VertexID", "SV_InstanceID", "SV_DispatchThreadID",
+                    "SV_GroupID", "SV_GroupThreadID", "SV_GroupIndex", "SV_PrimitiveID"
+                };
+
+                std::string lowerName = define.name;
+                std::transform(lowerName.begin(), lowerName.end(), lowerName.begin(), ::tolower);
+
+                if (reservedKeywords.find(lowerName) != reservedKeywords.end()) {
+                    return Core::Err<void*>(Core::MakeError(
+                        Core::ShaderError::CompilationFailed,
+                        std::format("Shader define '{}' uses reserved keyword", define.name)
+                    ));
+                }
+
+                // Validate define value (basic checks)
+                if (define.value.length() > 1024) {
+                    return Core::Err<void*>(Core::MakeError(
+                        Core::ShaderError::CompilationFailed,
+                        std::format("Shader define '{}' has value that is too long (max 1024 characters)", define.name)
+                    ));
+                }
+
+                // Check for potentially problematic characters in value
+                for (char c : define.value) {
+                    if (c < 32 && c != '\t' && c != '\n' && c != '\r') {
+                        return Core::Err<void*>(Core::MakeError(
+                            Core::ShaderError::CompilationFailed,
+                            std::format("Shader define '{}' contains invalid control characters", define.name)
+                        ));
+                    }
+                }
+            }
+
+            // Check for duplicate defines
+            std::unordered_set<std::string> defineNames;
+            for (const auto& define : variant.defines) {
+                if (defineNames.find(define.name) != defineNames.end()) {
+                    return Core::Err<void*>(Core::MakeError(
+                        Core::ShaderError::CompilationFailed,
+                        std::format("Duplicate shader define found: '{}'", define.name)
+                    ));
+                }
+                defineNames.insert(define.name);
+            }
+
+            // Check total number of defines (D3D has limits)
+            const size_t MAX_DEFINES = 256;
+            size_t totalDefines = variant.defines.size() + config_.GetGlobalDefines().size();
+            if (totalDefines > MAX_DEFINES) {
+                return Core::Err<void*>(Core::MakeError(
+                    Core::ShaderError::CompilationFailed,
+                    std::format("Too many shader defines: {} (max {})", totalDefines, MAX_DEFINES)
+                ));
+            }
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Validated {} shader defines successfully", variant.defines.size());
+
             return Core::Ok<void*>(nullptr);
         }
 
         std::vector<std::string> D3D12ShaderManager::GetShaderMacros(
             const std::filesystem::path& shaderFile
         ) const {
-            // Stub implementation
-            return {};
+            std::vector<std::string> macros;
+
+            if (!std::filesystem::exists(shaderFile)) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Cannot find macros in non-existent shader file: {}", shaderFile.string());
+                return macros;
+            }
+
+            // Read shader source file
+            auto sourceResult = ReadShaderFile(shaderFile);
+            if (!sourceResult) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Failed to read shader file for macro analysis: {}", shaderFile.string());
+                return macros;
+            }
+
+            const std::string& source = sourceResult.Value();
+            std::unordered_set<std::string> uniqueMacros;
+
+            // Parse #define directives using regex
+            std::regex defineRegex(R"(#\s*define\s+([A-Za-z_][A-Za-z0-9_]*))");
+            std::sregex_iterator iter(source.begin(), source.end(), defineRegex);
+            std::sregex_iterator end;
+
+            for (; iter != end; ++iter) {
+                std::string macroName = (*iter)[1].str();
+                uniqueMacros.insert(macroName);
+            }
+
+            // Also parse #ifdef, #ifndef, #if defined() patterns to find conditional macros
+            std::regex ifdefRegex(R"(#\s*ifdef\s+([A-Za-z_][A-Za-z0-9_]*))");
+            iter = std::sregex_iterator(source.begin(), source.end(), ifdefRegex);
+            for (; iter != end; ++iter) {
+                std::string macroName = (*iter)[1].str();
+                uniqueMacros.insert(macroName);
+            }
+
+            std::regex ifndefRegex(R"(#\s*ifndef\s+([A-Za-z_][A-Za-z0-9_]*))");
+            iter = std::sregex_iterator(source.begin(), source.end(), ifndefRegex);
+            for (; iter != end; ++iter) {
+                std::string macroName = (*iter)[1].str();
+                uniqueMacros.insert(macroName);
+            }
+
+            // Parse #if defined(MACRO) patterns
+            std::regex ifDefinedRegex(R"(#\s*if\s+defined\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\))");
+            iter = std::sregex_iterator(source.begin(), source.end(), ifDefinedRegex);
+            for (; iter != end; ++iter) {
+                std::string macroName = (*iter)[1].str();
+                uniqueMacros.insert(macroName);
+            }
+
+            // Parse #if !defined(MACRO) patterns
+            std::regex ifNotDefinedRegex(R"(#\s*if\s+!defined\s*\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\))");
+            iter = std::sregex_iterator(source.begin(), source.end(), ifNotDefinedRegex);
+            for (; iter != end; ++iter) {
+                std::string macroName = (*iter)[1].str();
+                uniqueMacros.insert(macroName);
+            }
+
+            // Parse simple macro usage (this is more heuristic)
+            // Look for common feature flags and platform-specific macros
+            const std::vector<std::string> commonMacros = {
+                "DEBUG", "NDEBUG", "RELEASE", "PROFILE",
+                "ENABLE_SHADOWS", "ENABLE_PBR", "ENABLE_HDR", "ENABLE_BLOOM",
+                "ENABLE_SSAO", "ENABLE_SSR", "ENABLE_ANTIALIASING",
+                "USE_TEXTURE_ARRAYS", "USE_BINDLESS", "USE_MESH_SHADERS",
+                "VERTEX_SKINNING", "VERTEX_MORPHING", "INSTANCED_RENDERING",
+                "FORWARD_RENDERING", "DEFERRED_RENDERING", "TILED_RENDERING",
+                "PLATFORM_PC", "PLATFORM_CONSOLE", "PLATFORM_MOBILE",
+                "API_D3D12", "API_VULKAN", "API_D3D11",
+                "SM_6_0", "SM_6_1", "SM_6_2", "SM_6_3", "SM_6_4", "SM_6_5", "SM_6_6", "SM_6_7"
+            };
+
+            for (const auto& commonMacro : commonMacros) {
+                // Use word boundary regex to find exact macro matches
+                std::regex macroUsageRegex("\\b" + commonMacro + "\\b");
+                if (std::regex_search(source, macroUsageRegex)) {
+                    uniqueMacros.insert(commonMacro);
+                }
+            }
+
+            // Convert set to vector and sort
+            macros.reserve(uniqueMacros.size());
+            for (const auto& macro : uniqueMacros) {
+                macros.push_back(macro);
+            }
+            std::sort(macros.begin(), macros.end());
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Found {} macros in shader file: {}", macros.size(), shaderFile.filename().string());
+
+            return macros;
         }
 
         bool D3D12ShaderManager::HasFeatureMacro(
             const std::shared_ptr<IShader>& shader,
             const std::string& macroName
         ) const {
-            // Stub implementation
+            if (!shader) {
+                return false;
+            }
+
+            // Check if the macro is defined in the shader's variant
+            const auto& variant = shader->GetVariant();
+            for (const auto& define : variant.defines) {
+                if (define.name == macroName) {
+                    return true;
+                }
+            }
+
+            // Check if the macro is in the global defines
+            for (const auto& globalDefine : config_.GetGlobalDefines()) {
+                size_t equalPos = globalDefine.find('=');
+                std::string defineName = (equalPos != std::string::npos) ? 
+                    globalDefine.substr(0, equalPos) : globalDefine;
+                
+                if (defineName == macroName) {
+                    return true;
+                }
+            }
+
+            // For a more comprehensive check, we could also examine the shader's source code
+            // by looking at the reflection data's included files and parsing them for macro usage
+            const auto& reflection = shader->GetReflection();
+            
+            // This is a heuristic approach - we check if any of the included files mention this macro
+            // This could be expanded to actually parse the source for macro definitions/usage
+            for (const auto& includedFile : reflection.includedFiles) {
+                std::filesystem::path includePath(includedFile);
+                if (std::filesystem::exists(includePath)) {
+                    auto macros = GetShaderMacros(includePath);
+                    if (std::find(macros.begin(), macros.end(), macroName) != macros.end()) {
+                        return true;
+                    }
+                }
+            }
+
             return false;
         }
 
         // ========================================================================
-        // Shader Permutation and Variant Management - Stub Implementations
+        // Shader Permutation and Variant Management
         // ========================================================================
 
         std::vector<ShaderVariant> D3D12ShaderManager::GenerateShaderVariants(
             const std::filesystem::path& shaderFile,
             const std::vector<std::string>& conditionalDefines
         ) const {
-            // Stub implementation
-            return { ShaderVariant{} };
+            std::vector<ShaderVariant> variants;
+
+            if (!std::filesystem::exists(shaderFile)) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Cannot generate variants for non-existent shader file: {}", shaderFile.string());
+                return variants;
+            }
+
+            // Get all macros used in the shader file
+            auto shaderMacros = GetShaderMacros(shaderFile);
+            
+            // Filter conditional defines to only include those actually used in the shader
+            std::vector<std::string> relevantDefines;
+            for (const auto& define : conditionalDefines) {
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), define) != shaderMacros.end()) {
+                    relevantDefines.push_back(define);
+                }
+            }
+
+            // Limit the number of defines to prevent exponential explosion
+            const size_t MAX_VARIANT_DEFINES = 8;  // 2^8 = 256 variants max
+            if (relevantDefines.size() > MAX_VARIANT_DEFINES) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Limiting shader variants from {} to {} defines to prevent exponential explosion",
+                    relevantDefines.size(), MAX_VARIANT_DEFINES);
+                relevantDefines.resize(MAX_VARIANT_DEFINES);
+            }
+
+            // Generate all possible combinations of defines (2^n combinations)
+            const size_t numCombinations = 1ULL << relevantDefines.size();
+            variants.reserve(numCombinations);
+
+            for (size_t i = 0; i < numCombinations; ++i) {
+                ShaderVariant variant;
+                
+                // For each bit position, decide whether to include that define
+                for (size_t j = 0; j < relevantDefines.size(); ++j) {
+                    if (i & (1ULL << j)) {
+                        ShaderDefine define;
+                        define.name = relevantDefines[j];
+                        define.value = "1";  // Default value for feature flags
+                        variant.defines.push_back(define);
+                    }
+                }
+
+                variants.push_back(std::move(variant));
+            }
+
+            // Add some common useful variants with specific values
+            if (!relevantDefines.empty()) {
+                // High quality variant
+                ShaderVariant highQualityVariant;
+                for (const auto& defineName : relevantDefines) {
+                    ShaderDefine define;
+                    define.name = defineName;
+                    
+                    // Set quality-based values
+                    if (defineName.find("QUALITY") != std::string::npos || 
+                        defineName.find("LOD") != std::string::npos) {
+                        define.value = "2"; // High quality
+                    }
+                    else if (defineName.find("SAMPLES") != std::string::npos) {
+                        define.value = "8"; // High sample count
+                    }
+                    else {
+                        define.value = "1"; // Default enabled
+                    }
+                    
+                    highQualityVariant.defines.push_back(define);
+                }
+                variants.push_back(std::move(highQualityVariant));
+
+                // Low quality/performance variant
+                ShaderVariant performanceVariant;
+                for (const auto& defineName : relevantDefines) {
+                    // Only include performance-critical defines
+                    if (defineName.find("ENABLE") != std::string::npos &&
+                        (defineName.find("SHADOWS") != std::string::npos ||
+                         defineName.find("PBR") != std::string::npos ||
+                         defineName.find("LIGHTING") != std::string::npos)) {
+                        
+                        ShaderDefine define;
+                        define.name = defineName;
+                        define.value = "1";
+                        performanceVariant.defines.push_back(define);
+                    }
+                }
+                if (!performanceVariant.defines.empty()) {
+                    variants.push_back(std::move(performanceVariant));
+                }
+            }
+
+            // Remove duplicate variants
+            auto compareVariants = [](const ShaderVariant& a, const ShaderVariant& b) {
+                if (a.defines.size() != b.defines.size()) {
+                    return a.defines.size() < b.defines.size();
+                }
+                for (size_t i = 0; i < a.defines.size(); ++i) {
+                    if (a.defines[i].name != b.defines[i].name) {
+                        return a.defines[i].name < b.defines[i].name;
+                    }
+                    if (a.defines[i].value != b.defines[i].value) {
+                        return a.defines[i].value < b.defines[i].value;
+                    }
+                }
+                return false;
+            };
+
+            std::sort(variants.begin(), variants.end(), compareVariants);
+            variants.erase(std::unique(variants.begin(), variants.end(), 
+                [](const ShaderVariant& a, const ShaderVariant& b) {
+                    if (a.defines.size() != b.defines.size()) return false;
+                    for (size_t i = 0; i < a.defines.size(); ++i) {
+                        if (a.defines[i].name != b.defines[i].name ||
+                            a.defines[i].value != b.defines[i].value) {
+                            return false;
+                        }
+                    }
+                    return true;
+                }), variants.end());
+
+            logChannel_.LogFormat(Logging::LogLevel::Info,
+                "Generated {} shader variants for {} from {} conditional defines",
+                variants.size(), shaderFile.filename().string(), conditionalDefines.size());
+
+            return variants;
         }
 
         Core::Result<std::shared_ptr<IShader>, Core::ErrorInfo> D3D12ShaderManager::CompileShaderWithAutoVariants(
@@ -2030,17 +2876,232 @@ namespace Akhanda::Shaders {
             ShaderStage stage,
             const std::vector<std::string>& enabledFeatures
         ) {
-            // Stub implementation - just compile with empty variant
+            // Get shader macros to determine which features are actually used
+            auto shaderMacros = GetShaderMacros(sourceFile);
+            
+            // Create variant based on enabled features that are actually used in the shader
             ShaderVariant variant;
-            return CompileShaderEntryPoint(sourceFile, entryPoint, stage, variant, config_.GetOptimization());
+            
+            for (const auto& feature : enabledFeatures) {
+                // Check if this feature is referenced in the shader
+                if (std::ranges::find(shaderMacros, feature) != shaderMacros.end()) {
+                    ShaderDefine define;
+                    define.name = feature;
+                    
+                    // Set appropriate values based on feature type
+                    if (feature.find("QUALITY") != std::string::npos) {
+                        // Quality levels: 0=low, 1=medium, 2=high
+                        define.value = "1"; // Default to medium quality
+                    }
+                    else if (feature.find("SAMPLES") != std::string::npos) {
+                        define.value = "4"; // Default sample count
+                    }
+                    else if (feature.find("LOD") != std::string::npos) {
+                        define.value = "1"; // Default LOD level
+                    }
+                    else if (feature.find("MAX") != std::string::npos && feature.find("LIGHTS") != std::string::npos) {
+                        define.value = "32"; // Default max lights
+                    }
+                    else if (feature.find("ENABLE") != std::string::npos || feature.find("USE") != std::string::npos) {
+                        define.value = "1"; // Simple boolean flag
+                    }
+                    else {
+                        define.value = "1"; // Default fallback
+                    }
+                    
+                    variant.defines.push_back(define);
+                }
+            }
+
+            // Validate the variant before compilation
+            auto validationResult = ValidateShaderDefines(variant);
+            if (!validationResult) {
+                return Core::Err<std::shared_ptr<IShader>>(validationResult.Error());
+            }
+
+            // Try to compile with the generated variant
+            auto compileResult = CompileShaderEntryPoint(sourceFile, entryPoint, stage, variant, config_.GetOptimization());
+            
+            if (compileResult) {
+                logChannel_.LogFormat(Logging::LogLevel::Info,
+                    "Successfully compiled shader with auto-generated variant containing {} defines",
+                    variant.defines.size());
+                return compileResult;
+            }
+
+            // If compilation failed, try with a simpler variant
+            logChannel_.LogFormat(Logging::LogLevel::Warning,
+                "Auto-variant compilation failed, trying with reduced feature set");
+
+            // Create a fallback variant with only essential features
+            ShaderVariant fallbackVariant;
+            for (const auto& define : variant.defines) {
+                // Only include essential features in fallback
+                if (define.name.find("ENABLE_LIGHTING") != std::string::npos ||
+                    define.name.find("ENABLE_TEXTURES") != std::string::npos ||
+                    define.name.find("USE_VERTEX_COLOR") != std::string::npos) {
+                    fallbackVariant.defines.push_back(define);
+                }
+            }
+
+            auto fallbackResult = CompileShaderEntryPoint(sourceFile, entryPoint, stage, fallbackVariant, config_.GetOptimization());
+            
+            if (fallbackResult) {
+                logChannel_.LogFormat(Logging::LogLevel::Info,
+                    "Successfully compiled shader with fallback variant containing {} defines",
+                    fallbackVariant.defines.size());
+                return fallbackResult;
+            }
+
+            // If that also failed, try with empty variant
+            logChannel_.LogFormat(Logging::LogLevel::Warning,
+                "Fallback variant compilation failed, trying with empty variant");
+
+            ShaderVariant emptyVariant;
+            auto emptyResult = CompileShaderEntryPoint(sourceFile, entryPoint, stage, emptyVariant, config_.GetOptimization());
+            
+            if (emptyResult) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Compiled shader with empty variant as last resort");
+                return emptyResult;
+            }
+
+            // Return the original compilation error if all attempts failed
+            return compileResult;
         }
 
         ShaderVariant D3D12ShaderManager::GetOptimalVariant(
             const std::filesystem::path& shaderFile,
             ShaderStage stage
         ) const {
-            // Stub implementation
-            return ShaderVariant{};
+            ShaderVariant optimalVariant;
+
+            if (!std::filesystem::exists(shaderFile)) {
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Cannot determine optimal variant for non-existent shader file: {}", shaderFile.string());
+                return optimalVariant;
+            }
+
+            // Get all macros used in the shader file
+            auto shaderMacros = GetShaderMacros(shaderFile);
+
+            // Define stage-specific optimal settings
+            std::vector<std::pair<std::string, std::string>> stageOptimalDefines;
+
+            switch (stage) {
+            case ShaderStage::Vertex:
+                // Vertex shader optimizations
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "VERTEX_SKINNING") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("VERTEX_SKINNING", "1");
+                }
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "INSTANCED_RENDERING") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("INSTANCED_RENDERING", "1");
+                }
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "USE_VERTEX_COLOR") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("USE_VERTEX_COLOR", "1");
+                }
+                break;
+
+            case ShaderStage::Pixel:
+                // Pixel shader optimizations - balance quality and performance
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "ENABLE_PBR") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("ENABLE_PBR", "1");
+                }
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "ENABLE_SHADOWS") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("ENABLE_SHADOWS", "1");
+                    stageOptimalDefines.emplace_back("SHADOW_QUALITY", "1"); // Medium quality
+                }
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "ENABLE_LIGHTING") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("ENABLE_LIGHTING", "1");
+                    stageOptimalDefines.emplace_back("MAX_LIGHTS", "16"); // Reasonable light count
+                }
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "ENABLE_TEXTURES") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("ENABLE_TEXTURES", "1");
+                }
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "MSAA_SAMPLES") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("MSAA_SAMPLES", "4"); // 4x MSAA
+                }
+                break;
+
+            case ShaderStage::Compute:
+                // Compute shader optimizations
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "THREAD_GROUP_SIZE") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("THREAD_GROUP_SIZE", "64"); // Common optimal size
+                }
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "USE_SHARED_MEMORY") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("USE_SHARED_MEMORY", "1");
+                }
+                break;
+
+            case ShaderStage::Geometry:
+                // Geometry shader optimizations (use sparingly due to performance)
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "MAX_VERTICES") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("MAX_VERTICES", "4"); // Conservative vertex count
+                }
+                break;
+
+            default:
+                // Default optimizations for other stages
+                break;
+            }
+
+            // Add platform/API specific optimizations
+            if (std::find(shaderMacros.begin(), shaderMacros.end(), "API_D3D12") != shaderMacros.end()) {
+                stageOptimalDefines.emplace_back("API_D3D12", "1");
+            }
+
+            // Add current shader model define
+            auto currentShaderModel = config_.GetTargetShaderModel();
+            std::string shaderModelDefine = "SM_" + Configuration::ShaderModelToString(currentShaderModel);
+            std::replace(shaderModelDefine.begin(), shaderModelDefine.end(), '.', '_');
+            
+            if (std::find(shaderMacros.begin(), shaderMacros.end(), shaderModelDefine) != shaderMacros.end()) {
+                stageOptimalDefines.emplace_back(shaderModelDefine, "1");
+            }
+
+            // Add quality settings based on configuration
+            auto optimization = config_.GetOptimization();
+            if (optimization == Configuration::ShaderOptimization::Release ||
+                optimization == Configuration::ShaderOptimization::Speed) {
+                
+                // High performance settings
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "PERFORMANCE_MODE") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("PERFORMANCE_MODE", "1");
+                }
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "QUALITY_LEVEL") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("QUALITY_LEVEL", "1"); // Medium quality for performance
+                }
+            }
+            else if (optimization == Configuration::ShaderOptimization::Debug) {
+                // Debug settings
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "DEBUG_MODE") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("DEBUG_MODE", "1");
+                }
+                if (std::find(shaderMacros.begin(), shaderMacros.end(), "QUALITY_LEVEL") != shaderMacros.end()) {
+                    stageOptimalDefines.emplace_back("QUALITY_LEVEL", "0"); // Low quality for debug
+                }
+            }
+
+            // Convert to ShaderVariant
+            optimalVariant.defines.reserve(stageOptimalDefines.size());
+            for (const auto& [name, value] : stageOptimalDefines) {
+                ShaderDefine define;
+                define.name = name;
+                define.value = value;
+                optimalVariant.defines.push_back(define);
+            }
+
+            // Sort defines for consistency
+            std::sort(optimalVariant.defines.begin(), optimalVariant.defines.end(),
+                [](const ShaderDefine& a, const ShaderDefine& b) {
+                    return a.name < b.name;
+                });
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Generated optimal variant for {} stage with {} defines",
+                static_cast<int>(stage), optimalVariant.defines.size());
+
+            return optimalVariant;
         }
 
         // ========================================================================
@@ -2060,24 +3121,222 @@ namespace Akhanda::Shaders {
         Core::Result<std::string, Core::ErrorInfo> D3D12ShaderManager::GetShaderAssembly(
             const std::shared_ptr<IShader>& shader
         ) const {
-            // Stub implementation
-            return Core::Err<std::string>(Core::MakeError(
-                Core::ShaderError::UnsupportedShaderModel,
-                "Shader disassembly not implemented yet"
-            ));
+            if (!shader) {
+                return Core::Err<std::string>(Core::MakeError(
+                    Core::ShaderError::LinkError,
+                    "Shader pointer is null"
+                ));
+            }
+
+            auto d3d12Shader = std::dynamic_pointer_cast<D3D12Shader>(shader);
+            if (!d3d12Shader) {
+                return Core::Err<std::string>(Core::MakeError(
+                    Core::ShaderError::LinkError,
+                    "Shader is not a D3D12Shader"
+                ));
+            }
+
+            ID3DBlob* bytecodeBlob = d3d12Shader->GetD3DBlob();
+            if (!bytecodeBlob) {
+                return Core::Err<std::string>(Core::MakeError(
+                    Core::ShaderError::InvalidBytecode,
+                    "Shader bytecode is null"
+                ));
+            }
+
+            // Disassemble the shader bytecode
+            ComPtr<ID3DBlob> disassemblyBlob;
+            HRESULT hr = D3DDisassemble(
+                bytecodeBlob->GetBufferPointer(),
+                bytecodeBlob->GetBufferSize(),
+                D3D_DISASM_ENABLE_INSTRUCTION_NUMBERING | D3D_DISASM_ENABLE_INSTRUCTION_OFFSET,
+                nullptr,
+                &disassemblyBlob
+            );
+
+            if (FAILED(hr)) {
+                return Core::Err<std::string>(Core::MakeError(
+                    Core::ShaderError::InvalidBytecode,
+                    std::format("Failed to disassemble shader: HRESULT 0x{:08X}", static_cast<uint32_t>(hr))
+                ));
+            }
+
+            if (!disassemblyBlob || disassemblyBlob->GetBufferSize() == 0) {
+                return Core::Err<std::string>(Core::MakeError(
+                    Core::ShaderError::InvalidBytecode,
+                    "Disassembly produced empty result"
+                ));
+            }
+
+            // Convert the disassembly blob to string
+            const char* disassemblyText = static_cast<const char*>(disassemblyBlob->GetBufferPointer());
+            std::string assembly(disassemblyText, disassemblyBlob->GetBufferSize() - 1); // -1 to exclude null terminator
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Successfully disassembled shader '{}' ({} bytes assembly)",
+                shader->GetName(), assembly.size());
+
+            return Core::Ok<std::string>(std::move(assembly));
         }
 
         IShaderManager::CompilationProfile D3D12ShaderManager::GetCompilationProfile(
             const std::shared_ptr<IShader>& shader
         ) const {
-            // Stub implementation
             CompilationProfile profile;
-            profile.compilerVersion = "D3DCompiler";
+
+            if (!shader) {
+                logChannel_.Log(Logging::LogLevel::Warning, "GetCompilationProfile called with null shader");
+                return profile;
+            }
+
+            const auto& reflection = shader->GetReflection();
+
+            // Fill in compilation profile data from shader reflection
+            profile.compilationTime = reflection.compilationDuration;
+            profile.totalTime = reflection.compilationDuration; // For now, total equals compilation time
+            profile.compilerVersion = reflection.compilerVersion.empty() ? "D3DCompiler" : reflection.compilerVersion;
+            
+            // Get bytecode information
+            const auto& bytecode = shader->GetBytecode();
+            profile.bytecodeSize = bytecode.size();
+            profile.instructionCount = reflection.instructionCount;
+
+            // Estimate source size if available
+            // We don't store source directly, but we can estimate from complexity
+            profile.sourceSize = reflection.instructionCount * 20; // Rough estimate: ~20 chars per instruction
+
+            // Add compiler flags as warnings (for informational purposes)
+            profile.warnings = reflection.compilerFlags;
+
+            // If profiling is enabled, add timing breakdown estimates
+            if (profilingEnabled_.load()) {
+                // Estimate preprocessing time as ~10% of total compilation
+                profile.preprocessingTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    profile.totalTime * 0.1
+                );
+                
+                // Estimate reflection time as ~5% of total compilation  
+                profile.reflectionTime = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    profile.totalTime * 0.05
+                );
+                
+                // Adjust compilation time to exclude preprocessing and reflection
+                profile.compilationTime = profile.totalTime - profile.preprocessingTime - profile.reflectionTime;
+            }
+
+            logChannel_.LogFormat(Logging::LogLevel::Debug,
+                "Retrieved compilation profile for shader '{}': {} ms total, {} bytes bytecode, {} instructions",
+                shader->GetName(), profile.totalTime.count(), profile.bytecodeSize, profile.instructionCount);
+
             return profile;
         }
 
 
+        UINT D3D12ShaderManager::GetCompilationFlags(Configuration::ShaderOptimization optimization) const {
+            UINT flags = 0;
 
+            // Optimization flags
+            switch (optimization) {
+            case Configuration::ShaderOptimization::Debug:
+                flags |= D3DCOMPILE_SKIP_OPTIMIZATION | D3DCOMPILE_DEBUG;
+                break;
+
+            case Configuration::ShaderOptimization::Speed:
+                flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
+                break;
+
+            case Configuration::ShaderOptimization::Size:
+                flags |= D3DCOMPILE_OPTIMIZATION_LEVEL1;
+                break;
+
+            case Configuration::ShaderOptimization::Release:
+                flags |= D3DCOMPILE_OPTIMIZATION_LEVEL2;
+                break;
+            }
+
+            // Configuration-based flags
+            if (config_.GetGenerateDebugInfo()) {
+                flags |= D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+            }
+
+            if (config_.GetEnableStrictMode()) {
+                flags |= D3DCOMPILE_WARNINGS_ARE_ERRORS;
+            }
+
+            if (config_.GetEnableMatrix16ByteAlignment()) {
+                flags |= D3DCOMPILE_PACK_MATRIX_ROW_MAJOR;
+            }
+
+#ifdef _DEBUG
+            flags |= D3DCOMPILE_DEBUG;
+#endif
+
+            return flags;
+        }
+
+        // ============================================================================
+        // GetTargetProfile method
+        // ============================================================================ugaifasdf
+
+        std::string D3D12ShaderManager::GetTargetProfile(ShaderStage stage) const {
+            auto shaderModel = config_.GetTargetShaderModel();
+
+            switch (stage) {
+            case ShaderStage::Vertex:
+                switch (shaderModel) {
+                case Configuration::ShaderModel::SM_6_0: return "vs_6_0";
+                case Configuration::ShaderModel::SM_6_1: return "vs_6_1";
+                case Configuration::ShaderModel::SM_6_2: return "vs_6_2";
+                case Configuration::ShaderModel::SM_6_3: return "vs_6_3";
+                case Configuration::ShaderModel::SM_6_4: return "vs_6_4";
+                case Configuration::ShaderModel::SM_6_5: return "vs_6_5";
+                case Configuration::ShaderModel::SM_6_6: return "vs_6_6";
+                case Configuration::ShaderModel::SM_6_7: return "vs_6_7";
+                default: return "vs_6_0";
+                }
+
+            case ShaderStage::Pixel:
+                switch (shaderModel) {
+                case Configuration::ShaderModel::SM_6_0: return "ps_6_0";
+                case Configuration::ShaderModel::SM_6_1: return "ps_6_1";
+                case Configuration::ShaderModel::SM_6_2: return "ps_6_2";
+                case Configuration::ShaderModel::SM_6_3: return "ps_6_3";
+                case Configuration::ShaderModel::SM_6_4: return "ps_6_4";
+                case Configuration::ShaderModel::SM_6_5: return "ps_6_5";
+                case Configuration::ShaderModel::SM_6_6: return "ps_6_6";
+                case Configuration::ShaderModel::SM_6_7: return "ps_6_7";
+                default: return "ps_6_0";
+                }
+
+            case ShaderStage::Compute:
+                switch (shaderModel) {
+                case Configuration::ShaderModel::SM_6_0: return "cs_6_0";
+                case Configuration::ShaderModel::SM_6_1: return "cs_6_1";
+                case Configuration::ShaderModel::SM_6_2: return "cs_6_2";
+                case Configuration::ShaderModel::SM_6_3: return "cs_6_3";
+                case Configuration::ShaderModel::SM_6_4: return "cs_6_4";
+                case Configuration::ShaderModel::SM_6_5: return "cs_6_5";
+                case Configuration::ShaderModel::SM_6_6: return "cs_6_6";
+                case Configuration::ShaderModel::SM_6_7: return "cs_6_7";
+                default: return "cs_6_0";
+                }
+
+            case ShaderStage::Geometry:
+                return "gs_6_0";
+
+            case ShaderStage::Hull:
+                return "hs_6_0";
+
+            case ShaderStage::Domain:
+                return "ds_6_0";
+
+            default:
+                logChannel_.LogFormat(Logging::LogLevel::Warning,
+                    "Unknown shader stage {}, defaulting to vs_6_0",
+                    static_cast<int>(stage));
+                return "vs_6_0";
+            }
+        }
     }
 
     // ============================================================================
